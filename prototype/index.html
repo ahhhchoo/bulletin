@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bulletin — BRD-01</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="phone" id="phone">
+
+  <!-- status bar (static, from design) -->
+  <div class="statusbar" aria-hidden="true">
+    <span class="time">9:41</span>
+    <span class="notch"></span>
+    <span class="sys">
+      <svg class="sim" width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x="0.9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt="">
+      <img src="assets/battery.svg" width="28" height="14" alt="">
+    </span>
+    <img class="privacy" src="assets/privacy.svg" width="6" height="6" alt="">
+  </div>
+
+  <!-- header -->
+  <header class="header">
+    <h1>My November</h1>
+    <div class="cards" id="cards" tabindex="0" aria-label="Board header cards">
+      <section class="card card-into" id="cardInto">
+        <div class="card-text">
+          <p class="muted">currently into:</p>
+          <p id="intoValue">pumpkin spice late</p>
+        </div>
+      </section>
+      <section class="card card-prompt" id="cardPrompt">
+        <div class="card-text">
+          <p class="muted">this month's prompt:</p>
+          <p>what made you smile lately?</p>
+        </div>
+        <button class="prompt-add" id="promptAdd" aria-label="Answer the prompt">+</button>
+      </section>
+    </div>
+    <div class="dots" id="dots" aria-hidden="true"><i class="on"></i><i></i></div>
+  </header>
+
+  <!-- board -->
+  <section class="board" id="board" aria-label="My board">
+    <div class="rail"></div>
+
+    <div class="day" data-day="2">
+      <img class="dot" src="assets/timeline-dot.svg" alt="">
+      <h2>Mon 2</h2>
+      <div class="items">
+        <article class="item sticky-photo" data-id="seed-1" style="--rot:-2.41deg">
+          <div class="photo"></div>
+          <img class="pin" src="assets/pin.svg" alt="">
+          <div class="caption">Rained all day</div>
+        </article>
+      </div>
+    </div>
+
+    <div class="day today" data-day="3">
+      <img class="dot" src="assets/timeline-dot.svg" alt="">
+      <h2>Tues 3</h2>
+      <p class="empty" id="empty">its kinda empty...</p>
+      <div class="items" id="todayItems"></div>
+    </div>
+  </section>
+
+  <!-- composer -->
+  <div class="composer" id="composer">
+    <button class="composer-pill" id="composerPill">Whats on your mind...</button>
+    <form class="composer-form" id="composerForm" autocomplete="off">
+      <input id="composerInput" type="text" placeholder="Whats on your mind..." maxlength="280" aria-label="New post">
+      <button type="submit" id="pinBtn" aria-label="Pin it">
+        <img src="assets/pin.svg" alt="" width="14" height="14">
+      </button>
+    </form>
+  </div>
+
+  <!-- tab bar -->
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="bulletin">
+      <img class="tab-bg" src="assets/nav-active.svg" alt="">
+      <img src="assets/note-2-text.svg" width="24" height="24" alt="">
+      <span>bulletin</span>
+    </button>
+    <button class="tab" data-tab="friends">
+      <img src="assets/emotion-wow.svg" width="24" height="24" alt="">
+      <span>friends</span>
+    </button>
+    <button class="tab" data-tab="shelf">
+      <img src="assets/book.svg" width="24" height="24" alt="">
+      <span>shelf</span>
+    </button>
+  </nav>
+
+  <!-- placeholder tabs -->
+  <section class="stub" id="stub" hidden>
+    <h1 id="stubTitle"></h1>
+    <p id="stubBody"></p>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
