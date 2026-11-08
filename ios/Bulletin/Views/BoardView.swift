@@ -14,10 +14,15 @@ struct BoardView: View {
         ZStack(alignment: .top) {
             Color("Backdrop").ignoresSafeArea()
 
-            VStack(spacing: 8) {
-                HeaderView(squeeze: squeeze, onChipTap: promptChipTapped)
+            // The board never changes size, so scrolling can't feed back into its own layout (that made the
+            // masthead jitter on a fast scroll). The masthead is drawn over the board's top instead of pushing
+            // it down, and the board masks its own rounded top edge to sit just below the masthead.
+            VStack(spacing: 0) {
+                Color.clear.frame(height: HeaderView.compactHeight + 8)
                 BoardSheet(squeeze: $squeeze, scrollToTop: scrollToTop)
             }
+
+            HeaderView(squeeze: squeeze, onChipTap: promptChipTapped)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ComposerPill { showComposer = true }
@@ -287,20 +292,28 @@ private struct BoardSheet: View {
     @Binding var squeeze: CGFloat
     let scrollToTop: Int
 
+    /// While the board scrolls itself (to a new post's day), the masthead stays put.
+    @State private var lockedUntil = Date.distantPast
+
     private struct Metrics: Equatable {
         var y: CGFloat
         var maxY: CGFloat
+        var content: CGFloat
+        var container: CGFloat
     }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    Color.clear.frame(height: 0).id("board-top")
                     ForEach(store.days) { day in
                         DayRow(day: day, isLast: day.id == store.days.last?.id)
                             .id("day-\(day.id)")
                     }
                 }
+                // room for the open masthead, which sits over the top of the board
+                .padding(.top, HeaderView.range)
                 .padding(.bottom, 40)
             }
             .scrollIndicators(.hidden)
@@ -308,12 +321,21 @@ private struct BoardSheet: View {
             .contentMargins(.bottom, 150, for: .scrollContent)   // lets the last day scroll up above the pill and tab bar
             .onScrollGeometryChange(for: Metrics.self) { g in
                 Metrics(y: g.contentOffset.y + g.contentInsets.top,
-                        maxY: max(0, g.contentSize.height + g.contentInsets.bottom - g.containerSize.height))
+                        // Where the board really ends. (Adding contentInsets.bottom here put "the end" past the
+                        // real one, so the spring-back after a hard flick looked like scrolling up and
+                        // reopened the masthead.)
+                        maxY: max(0, g.contentSize.height - g.containerSize.height),
+                        content: g.contentSize.height,
+                        container: g.containerSize.height)
             } action: { old, new in
                 // Ignore rubber-banding past either end so the masthead doesn't twitch.
                 let y = min(max(new.y, 0), new.maxY)
                 let oldY = min(max(old.y, 0), old.maxY)
                 if y <= 0 { squeeze = 0; return }
+                // A change in size moves the scroll offset by itself (the system clamps it); that is not the
+                // user scrolling, so it must not open or close the masthead.
+                guard new.content == old.content, new.container == old.container else { return }
+                guard Date.now >= lockedUntil else { return }
                 squeeze = min(1, max(0, squeeze + (y - oldY) / HeaderView.range))
             }
             .background(
@@ -321,17 +343,28 @@ private struct BoardSheet: View {
                     .fill(Color("Paper"))
                     .ignoresSafeArea(edges: .bottom)
             )
+            // the board's visible top edge follows the bottom of the masthead
+            .mask {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: HeaderView.range * (1 - squeeze))
+                    UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
+                        .ignoresSafeArea(edges: .bottom)
+                }
+            }
             .onChange(of: store.postCount) {
                 // Show the day the post landed on, label at the top (works for clipped posts on past days too).
                 guard let day = store.lastPostedDayID else { return }
                 Task {
                     try? await Task.sleep(for: .milliseconds(300))   // let the composer sheet finish dismissing
-                    withAnimation(.smooth(duration: 0.55)) { proxy.scrollTo("day-\(day)", anchor: .top) }
+                    lockedUntil = Date.now.addingTimeInterval(1)     // keep the masthead from reopening mid-scroll
+                    withAnimation(.smooth(duration: 0.55)) {
+                        squeeze = 1
+                        proxy.scrollTo("day-\(day)", anchor: .top)
+                    }
                 }
             }
             .onChange(of: scrollToTop) {
-                guard let first = store.days.first?.id else { return }
-                withAnimation(.smooth(duration: 0.5)) { proxy.scrollTo("day-\(first)", anchor: .top) }
+                withAnimation(.smooth(duration: 0.5)) { proxy.scrollTo("board-top", anchor: .top) }
             }
         }
     }
