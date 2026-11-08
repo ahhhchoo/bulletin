@@ -24,7 +24,25 @@ struct PostComposerView: View {
     @State private var available = CGSize(width: 402, height: 600)
     @State private var textHeight: CGFloat = 0      // rendered height of the text at sticky width
 
-    init(todayID: Int) { _dayID = State(initialValue: todayID) }
+    /// Set when editing an existing post: the composer opens with its text, on its day, and "Save" replaces it.
+    private let editing: Post?
+
+    init(todayID: Int, editing: (post: Post, dayID: Int)? = nil) {
+        self.editing = editing?.post
+        _dayID = State(initialValue: editing?.dayID ?? todayID)
+        switch editing?.post.kind {
+        case .sticky(let t)?:
+            _text = State(initialValue: t)
+        case .journal(let t, let b)?:
+            _title = State(initialValue: t)
+            _text = State(initialValue: b)
+            _isPage = State(initialValue: true)                  // already a page: open flat, no unfold
+            _whiteness = State(initialValue: 1)
+            _paperSize = State(initialValue: CGSize(width: Metrics.pageWidth, height: Metrics.pageHeight))
+        default:
+            break
+        }
+    }
 
     private enum Metrics {
         static let stickySide: CGFloat = 246
@@ -38,7 +56,8 @@ struct PostComposerView: View {
         static let stage1Height: CGFloat = 270      // crease-led: first stage is shallow
     }
 
-    private var isClip: Bool { dayID != store.todayID }
+    /// Editing keeps the post's own state: an original post on a past day is not a clipped addition.
+    private var isClip: Bool { editing?.isClipped ?? (dayID != store.todayID) }
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var placeholder: String {
@@ -49,7 +68,7 @@ struct PostComposerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                DayHeader(dayID: $dayID, isClip: isClip)
+                DayHeader(dayID: $dayID, isClip: isClip, editable: editing == nil)
                     .padding(.top, 2)
 
                 paper
@@ -66,7 +85,7 @@ struct PostComposerView: View {
                         .foregroundStyle(.black)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isClip ? "Clip" : "Pin", action: post)
+                    Button(editing != nil ? "Save" : (isClip ? "Clip" : "Pin"), action: editing != nil ? save : post)
                         .fontWeight(.semibold)
                         .disabled(trimmed.isEmpty)
                 }
@@ -81,6 +100,10 @@ struct PostComposerView: View {
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: landed)
         .sensoryFeedback(.success, trigger: store.postCount)
         .onAppear { focused = true }
+        .onChange(of: available) {
+            // an opened page fills the room above the keyboard, whatever the device
+            if isPage && paperSize.height > Metrics.stage1Height + 1 { paperSize = pageSize(stage: 2) }
+        }
         .onChange(of: textHeight) { _, h in
             if !isPage && h > Metrics.stickyMaxTextHeight { setPage(true) }
             else if isPage && h <= Metrics.stickyMaxTextHeight - Metrics.switchBackSlack { setPage(false) }
@@ -237,6 +260,12 @@ struct PostComposerView: View {
 
     // MARK: - actions
 
+    private func save() {
+        guard let editing else { return }
+        store.update(editing.id, title: title, body: text, asJournal: isPage)
+        dismiss()
+    }
+
     private func post() {
         store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage)
         dismiss()
@@ -246,41 +275,53 @@ struct PostComposerView: View {
 // MARK: - pieces
 
 /// The day marker (dotted line + pink dot) with the day label below. Tap the label to pick a past day.
+/// When editing, the day is fixed and the label is plain text.
 private struct DayHeader: View {
     @Environment(BoardStore.self) private var store
     @Binding var dayID: Int
     let isClip: Bool
+    var editable = true
 
     var body: some View {
         VStack(spacing: 8) {
             Image("DayMarker")
                 .accessibilityHidden(true)
 
-            Menu {
-                Picker("Day", selection: $dayID) {
-                    ForEach(store.postableDays, id: \.self) { id in
-                        Text(id == store.todayID ? "\(store.fullLabel(id)) · today" : store.fullLabel(id)).tag(id)
+            if editable {
+                Menu {
+                    Picker("Day", selection: $dayID) {
+                        ForEach(store.postableDays, id: \.self) { id in
+                            Text(id == store.todayID ? "\(store.fullLabel(id)) · today" : store.fullLabel(id)).tag(id)
+                        }
                     }
+                } label: {
+                    label(showChevron: true)
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(store.fullLabel(dayID))
-                    if isClip {
-                        Image(systemName: "paperclip")
-                            .foregroundStyle(Color("DayPink"))
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.35))
-                }
-                .font(Typo.scaled(17, .medium, relativeTo: .body))
-                .foregroundStyle(.black)
-                .animation(.snappy, value: isClip)
+                .accessibilityLabel("Day: \(store.fullLabel(dayID))")
+                .accessibilityHint("Pick a past day to clip this onto")
+            } else {
+                label(showChevron: false)
             }
-            .accessibilityLabel("Day: \(store.fullLabel(dayID))")
-            .accessibilityHint("Pick a past day to clip this onto")
         }
+    }
+
+    private func label(showChevron: Bool) -> some View {
+        HStack(spacing: 6) {
+            Text(store.fullLabel(dayID))
+            if isClip {
+                Image(systemName: "paperclip")
+                    .foregroundStyle(Color("DayPink"))
+                    .transition(.scale.combined(with: .opacity))
+            }
+            if showChevron {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.35))
+            }
+        }
+        .font(Typo.scaled(17, .medium, relativeTo: .body))
+        .foregroundStyle(.black)
+        .animation(.snappy, value: isClip)
     }
 }
 
