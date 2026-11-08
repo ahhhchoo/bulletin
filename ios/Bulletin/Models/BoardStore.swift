@@ -1,5 +1,24 @@
 import SwiftUI
 
+/// A photo on a post. Wraps the image so `Post` can stay Hashable (identity is the id).
+struct PostImage: Hashable, Identifiable {
+    let id = UUID()
+    let uiImage: UIImage
+
+    static func == (lhs: PostImage, rhs: PostImage) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+extension UIImage {
+    /// Shrinks a picked photo so the board never holds full-resolution camera images.
+    func scaled(maxSide: CGFloat) -> UIImage {
+        let factor = min(1, maxSide / max(size.width, size.height))
+        guard factor < 1 else { return self }
+        let target = CGSize(width: size.width * factor, height: size.height * factor)
+        return UIGraphicsImageRenderer(size: target).image { _ in draw(in: CGRect(origin: .zero, size: target)) }
+    }
+}
+
 enum PostKind: Hashable {
     /// Seed content from the design: a colored photo block with a caption slip.
     case photo(caption: String)
@@ -13,6 +32,8 @@ struct Post: Identifiable, Hashable {
     var kind: PostKind
     var rotation: Double          // degrees; items are loose and a little tilted
     var isPromptAnswer = false
+    /// The picture, for photo posts. Seed photos have none and show a placeholder color block.
+    var image: PostImage?
     /// Added to a past day: gets a paperclip instead of a pushpin.
     var isClipped = false
     /// Shown when you tap the paperclip, e.g. "Tues 3 at 9:14 PM". Only set for clipped posts.
@@ -155,16 +176,20 @@ final class BoardStore {
 
     // MARK: posting
 
-    func addPost(title: String, body: String, dayID: Int, asJournal: Bool) {
+    /// A post is a sticky, a journal entry, or (with `photo`) a photo whose text is its caption.
+    func addPost(title: String, body: String, dayID: Int, asJournal: Bool, photo: PostImage? = nil) {
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, (1...todayID).contains(dayID) else { return }
+        guard (!text.isEmpty || photo != nil), (1...todayID).contains(dayID) else { return }
 
         var post = Post(
-            kind: asJournal
-                ? .journal(title: title.trimmingCharacters(in: .whitespacesAndNewlines), body: text)
-                : .sticky(text: text),
+            kind: photo != nil
+                ? .photo(caption: text)
+                : asJournal
+                    ? .journal(title: title.trimmingCharacters(in: .whitespacesAndNewlines), body: text)
+                    : .sticky(text: text),
             rotation: .random(in: -3...3)
         )
+        post.image = photo
         post.isClipped = dayID != todayID
         if post.isClipped {
             let time = Date.now.formatted(date: .omitted, time: .shortened)

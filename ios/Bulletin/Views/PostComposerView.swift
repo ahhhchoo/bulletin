@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// BRD-04 Composer / clip to past day.
 ///
@@ -13,6 +14,10 @@ struct PostComposerView: View {
     @State private var text = ""
     @State private var title = ""
     @FocusState private var focused: Bool
+
+    // photo: one per post. Picking one swaps the sticky for a polaroid whose caption is the text.
+    @State private var pickedItem: PhotosPickerItem?
+    @State private var photo: PostImage?
 
     // paper state
     @State private var isPage = false
@@ -71,8 +76,10 @@ struct PostComposerView: View {
                 DayHeader(dayID: $dayID, isClip: isClip, editable: editing == nil)
                     .padding(.top, 2)
 
-                paper
-                    .padding(.top, 36)
+                Group {
+                    if let photo { polaroid(photo) } else { paper }
+                }
+                .padding(.top, 36)
 
                 Spacer(minLength: 0)
             }
@@ -87,11 +94,13 @@ struct PostComposerView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(editing != nil ? "Save" : (isClip ? "Clip" : "Pin"), action: editing != nil ? save : post)
                         .fontWeight(.semibold)
-                        .disabled(trimmed.isEmpty)
+                        .disabled(trimmed.isEmpty && photo == nil)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .bottom, spacing: 0) { PhotoChip() }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if editing == nil { PhotoChip(selection: $pickedItem, hasPhoto: photo != nil, enabled: !isPage) }
+            }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
@@ -100,14 +109,76 @@ struct PostComposerView: View {
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: landed)
         .sensoryFeedback(.success, trigger: store.postCount)
         .onAppear { focused = true }
+        .onChange(of: pickedItem) { _, item in
+            guard let item else { return }
+            Task { await attach(item) }
+        }
+        .onChange(of: text) { _, new in
+            // a caption is a short line, not a story
+            if photo != nil && new.count > 60 { text = String(new.prefix(60)) }
+        }
         .onChange(of: available) {
             // an opened page fills the room above the keyboard, whatever the device
             if isPage && paperSize.height > Metrics.stage1Height + 1 { paperSize = pageSize(stage: 2) }
         }
         .onChange(of: textHeight) { _, h in
+            guard photo == nil else { return }
             if !isPage && h > Metrics.stickyMaxTextHeight { setPage(true) }
             else if isPage && h <= Metrics.stickyMaxTextHeight - Metrics.switchBackSlack { setPage(false) }
         }
+    }
+
+    // MARK: - photo
+
+    private func attach(_ item: PhotosPickerItem) async {
+        defer { pickedItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let picked = UIImage(data: data) else { return }
+        let image = PostImage(uiImage: picked.scaled(maxSide: 1400))
+        withAnimation(.spring(duration: 0.5, bounce: 0.25)) { photo = image }
+        // Focus the caption once the system picker has finished dismissing; before that it is ignored.
+        try? await Task.sleep(for: .milliseconds(600))
+        focused = true
+    }
+
+    /// The photo as it will be pinned: a polaroid, with the caption slip across its bottom edge.
+    private func polaroid(_ image: PostImage) -> some View {
+        VStack(spacing: -12) {
+            Image(uiImage: image.uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: Metrics.stickySide, height: Metrics.stickySide)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 3))
+                .shadow(color: .black.opacity(0.14), radius: 5, y: 3)
+                .overlay(alignment: .topTrailing) {
+                    Button {
+                        withAnimation(.spring(duration: 0.4, bounce: 0.2)) { photo = nil }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(.black.opacity(0.55), in: Circle())
+                    }
+                    .padding(10)
+                    .accessibilityLabel("Remove photo")
+                }
+
+            TextField("Add a caption", text: $text)
+                .font(Typo.pixel(15))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.center)
+                .focused($focused)
+                .submitLabel(.done)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(width: 214)
+                .background(.white)
+                .overlay(Rectangle().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
+                .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
+        }
+        .transition(.scale(scale: 0.85).combined(with: .opacity))
     }
 
     // MARK: - paper
@@ -267,7 +338,7 @@ struct PostComposerView: View {
     }
 
     private func post() {
-        store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage)
+        store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage, photo: photo)
         dismiss()
     }
 }
@@ -334,21 +405,26 @@ private struct CreaseShade: View {
     }
 }
 
+/// Opens the photo library (the system picker, so no permission prompt). One photo per post.
 private struct PhotoChip: View {
+    @Binding var selection: PhotosPickerItem?
+    let hasPhoto: Bool
+    let enabled: Bool
+
     var body: some View {
         HStack {
-            Button {
-                // TODO: photo picker (v1 has one photo per post)
-            } label: {
+            PhotosPicker(selection: $selection, matching: .images, photoLibrary: .shared()) {
                 HStack(spacing: 10) {
                     Image("PhotoGlyph").frame(width: 24, height: 24)
-                    Text("Photo").font(.system(size: 16, weight: .semibold))
+                    Text(hasPhoto ? "Change photo" : "Photo").font(.system(size: 16, weight: .semibold))
                 }
                 .foregroundStyle(.black)
                 .padding(10)
                 .background(.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .buttonStyle(PressableStyle())
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.35)
             Spacer()
         }
         .padding(.horizontal, 12)
