@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRD-04 — Composer options</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink:#000; --ink50:rgba(0,0,0,.5); --ink20:rgba(0,0,0,.2); --ink05:rgba(0,0,0,.05);
+  --sticky:#aee0ce; --pink:#e55bb5; --kb:#d1d2d9; --keyshadow:#898a8d;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","Courier New",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+textarea{font:inherit;border:0;outline:0;background:none;resize:none;color:inherit;width:100%}
+
+header.page{max-width:1500px;margin:0 auto 28px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:720px;line-height:1.45}
+header.page .rules{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+header.page .rules span{background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;color:#333}
+
+.grid{display:flex;flex-wrap:wrap;gap:36px 28px;justify-content:center;max-width:1700px;margin:0 auto}
+.cell{width:calc(402px * var(--z));}
+:root{--z:.8}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}
+.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z));}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#000;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.phone.light{background:var(--paper)}
+
+/* status bar */
+.sb{position:absolute;inset:0 0 auto 0;height:44px;display:flex;align-items:center;padding:0 12px;z-index:30;pointer-events:none;color:var(--sbc,#000)}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}
+.sb .r{flex:1;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-top:6px}
+.sb svg{fill:currentColor}
+.dark-sb{--sbc:#fff}
+
+/* keyboard (decorative + clickable) */
+.kb{position:absolute;left:0;right:0;bottom:0;height:291px;background:var(--kb);z-index:20;padding:8px 5px 0}
+.kb .row{display:flex;gap:6px;margin-bottom:12px;justify-content:center}
+.kb .row.r2{padding:0 19px}
+.kb .key{height:42px;border-radius:4.6px;background:#fff;box-shadow:0 1px 0 var(--keyshadow);display:grid;place-items:center;font-size:22.5px;flex:1;max-width:36px;user-select:none;cursor:pointer}
+.kb .key:active{background:#c8cad1}
+.kb .key.fn{background:#aab0bb;font-size:16px;max-width:none}
+.kb .key.shift{background:#fcfcfe;flex:0 0 44px}
+.kb .key.del{flex:0 0 44px}
+.kb .key.sp{flex:1;max-width:none;font-size:16px}
+.kb .key.k123{flex:0 0 42px}
+.kb .key.emoji{flex:0 0 42px}
+.kb .key.ret{flex:0 0 91px}
+.kb .row.r4{margin-bottom:0}
+.kb .home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:100px;background:#000}
+.kb .globe,.kb .mic{position:absolute;bottom:34px;opacity:.9}
+.kb .globe{left:26px}.kb .mic{right:26px}
+
+/* shared bits */
+.caret-ph::placeholder{color:var(--ink20);opacity:1}
+.toast{position:absolute;left:50%;top:56px;transform:translate(-50%,-12px);background:#000;color:#fff;font-size:13px;padding:9px 14px;border-radius:16px;opacity:0;transition:all .25s;white-space:nowrap;z-index:40;pointer-events:none}
+.dark-sb .toast{background:#fff;color:#000}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.i-pin,.i-clip{display:inline-block;vertical-align:middle}
+.i-clip{display:none}
+.is-clip .i-pin{display:none}
+.is-clip .i-clip{display:inline-block}
+.menu{position:absolute;background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:6px;z-index:25;display:none;min-width:170px}
+.menu.open{display:block}
+.menu button{display:flex;width:100%;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;font-size:16px;text-align:left}
+.menu button:hover{background:var(--ink05)}
+.menu button[aria-checked=true]{font-weight:600}
+.menu small{margin-left:auto;color:var(--ink50);font-size:12px}
+
+/* ------- A: your mock ------- */
+.A .sheet{position:absolute;left:0;right:0;top:47px;bottom:291px;background:var(--paper);border-radius:24px}
+.A .marker{position:absolute;left:22px;top:71px;width:8px;height:34.5px}
+.A .day{position:absolute;left:39px;top:88px;font-size:17px;font-weight:510;display:flex;align-items:center;gap:6px;line-height:22px}
+.A .day .chev{opacity:.35;font-size:11px}
+.A .done{position:absolute;left:0;right:22px;top:66px;text-align:right;font-size:17px;font-weight:510;z-index:5}
+.A .done[disabled]{opacity:.3;cursor:default}
+.A .body{position:absolute;left:24px;right:24px;top:149px}
+.A textarea{font-size:22px;font-weight:590;line-height:28px;min-height:30px;caret-color:#000}
+.A .chip{margin:20px 0 0 -2px;display:inline-flex;align-items:center;gap:10px;background:var(--ink05);padding:10px;border-radius:14px;font-size:16px;font-weight:590}
+.A .clipmark{display:none}.A.is-clip .clipmark{display:inline-block}
+.A .menu{left:30px;top:120px}
+
+/* ------- B: accessory bar ------- */
+.B .top{position:absolute;left:22px;right:22px;top:66px;display:flex;justify-content:space-between;align-items:center;font-size:17px}
+.B .top .ttl{font-weight:600;position:absolute;left:0;right:0;text-align:center;pointer-events:none}
+.B .top button{font-size:17px;font-weight:510;z-index:2}
+.B .body{position:absolute;left:24px;right:24px;top:118px}
+.B textarea{font-size:22px;font-weight:590;line-height:28px;min-height:30px}
+.B .acc{position:absolute;left:0;right:0;bottom:291px;height:56px;background:rgba(245,245,245,.92);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.08);z-index:21;display:flex;align-items:center;gap:8px;padding:0 12px}
+.B .acc .ph{width:36px;height:36px;border-radius:50%;background:var(--ink05);display:grid;place-items:center;flex:none}
+.B .chips{display:flex;gap:6px;flex:1;overflow:hidden}
+.B .chips button{padding:8px 12px;border-radius:999px;background:var(--ink05);font-size:14px;font-weight:510;white-space:nowrap;transition:all .2s}
+.B .chips button.on{background:#000;color:#fff}
+.B .send{width:40px;height:40px;border-radius:50%;background:#000;display:grid;place-items:center;flex:none;transition:transform .2s,opacity .2s}
+.B .send[disabled]{opacity:.25}
+.B .send:not([disabled]):active{transform:scale(.9)}
+.B .hint{position:absolute;left:0;right:0;text-align:center;top:90px;font-size:12px;color:var(--ink50)}
+.B .body{top:128px !important}
+
+/* ------- C: board behind ------- */
+.C .title{position:absolute;left:28px;top:59px;font-size:24px;font-weight:510}
+.C .rail{position:absolute;left:28px;top:122px;width:3px;height:150px;background:rgba(0,0,0,.1);border-radius:3px}
+.C .drow{position:absolute;left:0;right:0;transition:all .25s}
+.C .drow .dot{position:absolute;left:25px;top:4px;width:8px;height:8px;border-radius:50%;background:#000;transition:all .25s}
+.C .drow .lab{position:absolute;left:44px;top:0;font-size:14px;font-weight:510;color:var(--ink50);line-height:17px;transition:all .25s;padding:4px 10px 4px 0;margin:-4px 0}
+.C .drow.on .dot{background:var(--pink);transform:scale(1.5)}
+.C .drow.on .lab{color:#000;font-weight:600}
+.C .drow .band{position:absolute;left:10px;right:10px;top:-8px;bottom:-8px;border-radius:14px;background:rgba(229,91,181,.08);opacity:0;transition:opacity .25s}
+.C .drow.on .band{opacity:1}
+.C .drow .empty{position:absolute;left:44px;top:22px;font-size:14px;font-style:italic;color:var(--ink50)}
+.C .mini{position:absolute;left:52px;top:28px;width:84px;height:84px;background:var(--sticky);border:2px solid #fff;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.1);transform:rotate(-2.4deg)}
+.C .mini i{position:absolute;left:36px;top:-6px;width:9.5px;height:9.5px;border-radius:50%;background:#f92d2d;border:.75px solid #9c0c0c}
+.C .mini span{position:absolute;left:10px;bottom:-16px;background:#fff;border:.75px solid rgba(0,0,0,.15);padding:4px 7px;font-family:var(--pixel);font-size:10px;white-space:nowrap}
+.C .card{position:absolute;left:12px;right:12px;bottom:302px;background:#fff;border-radius:26px;box-shadow:0 10px 40px rgba(0,0,0,.18);padding:14px 16px 12px;z-index:22}
+.C .card .row1{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink50);margin-bottom:6px}
+.C .card .row1 b{color:#000;font-weight:600}
+.C .card textarea{font-size:19px;line-height:25px;font-weight:510;min-height:50px}
+.C .card .row2{display:flex;align-items:center;gap:8px;margin-top:8px}
+.C .card .ph{width:36px;height:36px;border-radius:50%;background:var(--ink05);display:grid;place-items:center}
+.C .card .sp{flex:1}
+.C .send{height:36px;padding:0 16px 0 12px;border-radius:999px;background:#000;color:#fff;font-size:14px;font-weight:510;display:flex;align-items:center;gap:8px}
+.C .send[disabled]{opacity:.25}
+.C .send svg{filter:none}
+.C .cancel{font-size:14px;color:var(--ink50)}
+
+/* ------- D: week strip ------- */
+.D .sheet{position:absolute;left:0;right:0;top:47px;bottom:291px;background:var(--paper);border-radius:24px}
+.D .nav{position:absolute;left:22px;right:22px;top:66px;display:flex;justify-content:space-between;font-size:17px;font-weight:510}
+.D .nav .ttl{position:absolute;left:0;right:0;text-align:center;font-weight:600;pointer-events:none}
+.D .nav button{font-size:17px;font-weight:510;z-index:2}
+.D .nav .done[disabled]{opacity:.3}
+.D .month{position:absolute;left:24px;top:108px;font-size:13px;color:var(--ink50);font-weight:510}
+.D .week{position:absolute;left:14px;right:14px;top:132px;display:flex;justify-content:space-between}
+.D .wd{width:48px;text-align:center}
+.D .wd small{display:block;font-size:11px;color:var(--ink50);margin-bottom:6px;font-weight:510}
+.D .wd button{width:40px;height:40px;border-radius:50%;font-size:16px;font-weight:510;display:grid;place-items:center;margin:0 auto;transition:all .2s;position:relative}
+.D .wd button[disabled]{color:var(--ink20);cursor:default}
+.D .wd button.today::after{content:"";position:absolute;bottom:-7px;width:4px;height:4px;border-radius:50%;background:var(--ink50)}
+.D .wd button.on{background:#000;color:#fff}
+.D .wd button.on.past{background:var(--pink)}
+.D .status{position:absolute;left:24px;right:24px;top:218px;font-size:13px;color:var(--ink50);display:flex;align-items:center;gap:6px;min-height:18px}
+.D .body{position:absolute;left:24px;right:24px;top:250px}
+.D textarea{font-size:22px;font-weight:590;line-height:28px;min-height:30px}
+.D .chip{margin:20px 0 0 -2px;display:inline-flex;align-items:center;gap:10px;background:var(--ink05);padding:10px;border-radius:14px;font-size:16px;font-weight:590}
+
+/* ------- E: draft on the sticky ------- */
+.E .top{position:absolute;left:22px;right:22px;top:66px;display:flex;justify-content:space-between;font-size:17px}
+.E .top button{font-weight:510}
+.E .stage{position:absolute;left:0;right:0;top:112px;display:flex;flex-direction:column;align-items:center}
+.E .tag{display:inline-flex;align-items:center;gap:8px;background:#fff;border:.75px solid rgba(0,0,0,.15);padding:6px 12px;border-radius:4px;font-family:var(--pixel);font-size:13px;transform:rotate(1.2deg);margin-bottom:20px;cursor:pointer}
+.E .tag .dotp{width:8px;height:8px;border-radius:50%;background:var(--pink)}
+.E .dayrow{display:flex;gap:6px;margin:-8px 0 14px;height:0;overflow:hidden;opacity:0;transition:all .25s}
+.E .dayrow.open{height:36px;opacity:1;margin-bottom:34px}
+.E .dayrow{max-width:360px;width:100%;overflow-x:auto;overflow-y:hidden;padding:0 24px;scrollbar-width:none;scroll-snap-type:x proximity;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.E .dayrow::-webkit-scrollbar{display:none}
+.E .dayrow button{padding:6px 12px;border-radius:999px;background:var(--ink05);font-size:13px;font-weight:510;white-space:nowrap;flex:none;scroll-snap-align:center}
+.E .dayrow button.cal{background:transparent;border:1px dashed rgba(0,0,0,.3)}
+.E .calgrid{display:none;position:absolute;left:50%;top:44px;transform:translateX(-50%);width:330px;background:#fff;border-radius:20px;box-shadow:0 10px 36px rgba(0,0,0,.2);padding:14px 12px 12px;z-index:24;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.E .calgrid.open{display:grid}
+.E .calgrid small{font-size:11px;color:var(--ink50);font-weight:510;padding-bottom:4px}
+.E .calgrid button{height:38px;border-radius:50%;font-size:15px;font-weight:510;position:relative}
+.E .calgrid button[disabled]{color:var(--ink20);cursor:default}
+.E .calgrid button.on{background:var(--pink);color:#fff}
+.E .calgrid button.on.today{background:#000}
+.E .calgrid button.today:not(.on)::after{content:"";position:absolute;left:50%;bottom:3px;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--ink50)}
+.E .stage{position:absolute}
+.seg{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13px;color:#555}
+.seg button{padding:5px 11px;border-radius:999px;background:#fff;font-size:13px;font-weight:510}
+.seg button.on{background:#000;color:#fff}
+.E .dayrow button.on{background:#000;color:#fff}
+.E .note{position:relative;width:272px;height:272px;background:var(--sticky);border-radius:4px;box-shadow:0 3px 8px rgba(0,0,0,.14);transform:rotate(-2deg);padding:30px 22px 18px;transition:transform .3s cubic-bezier(.2,.9,.3,1.4)}
+.E .note textarea{height:100%;font-family:var(--pixel);font-size:17px;line-height:24px}
+.E .note textarea::placeholder{color:rgba(0,0,0,.3)}
+.E .attach{position:absolute;left:50%;top:-8px;margin-left:-10px}
+.E .attach .pinhead{display:block;width:16px;height:16px;border-radius:50%;background:#f92d2d;border:1px solid #9c0c0c;box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.E .attach .clipsvg{display:none;margin-left:-6px;margin-top:-8px}
+.E.is-clip .attach .pinhead{display:none}
+.E.is-clip .attach .clipsvg{display:block}
+.E .acc{position:absolute;left:0;right:0;bottom:291px;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:21;background:rgba(245,245,245,.92);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.08)}
+.E .acc .ph{display:flex;align-items:center;gap:8px;background:var(--ink05);border-radius:999px;padding:8px 14px 8px 10px;font-size:14px;font-weight:590}
+.E .go{height:40px;padding:0 18px 0 14px;border-radius:999px;background:#000;color:#fff;font-size:15px;font-weight:590;display:flex;align-items:center;gap:8px;transition:transform .2s}
+.E .go[disabled]{opacity:.25}
+.E .go:not([disabled]):active{transform:scale(.94)}
+.E.flap .note{transform:rotate(1deg) scale(1.03)}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>BRD-04 · Composer / clip to past day</h1>
+  <p>Five ways to write a post and choose its day. Everything is live: type on your keyboard or tap the on-screen keys, switch the day, and watch the pin turn into a paperclip. Hit post to see what happens.</p>
+  <div class="rules">
+    <span>Posts land on today by default</span>
+    <span>Past day = paperclip instead of pushpin</span>
+    <span>Placeholder reads “add to Mon 2…”</span>
+    <span>After posting it snaps back to today</span>
+    <span>Only days this month, up to today</span>
+  </div>
+</header>
+
+<div class="grid">
+
+<!-- ================= A ================= -->
+<div class="cell">
+  <div class="frame"><div class="phone A dark-sb" data-phone data-label-style="long">
+    <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+      <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt="" style="filter:invert(1)"><img src="assets/battery.svg" width="28" height="14" alt="" style="filter:invert(1)"></span></div>
+    <div class="toast" data-toast></div>
+    <div class="sheet"></div>
+    <img class="marker" src="assets/day-marker.svg" alt="">
+    <button class="day" data-daybtn><span data-label>Tues 11/3</span><svg class="clipmark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e55bb5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg><span class="chev">▼</span></button>
+    <div class="menu" data-menu></div>
+    <button class="done" data-post disabled>Done</button>
+    <div class="body">
+      <textarea class="caret-ph" rows="1" data-input placeholder="What’s on your mind?"></textarea>
+      <button class="chip"><img src="assets/image-3.svg" width="24" height="24" alt=""><span>Upload a pic</span></button>
+    </div>
+    <div class="kb" data-kb></div>
+  </div></div>
+  <h2><em>A</em>Your mock</h2>
+  <p>Your Figma frame, working. The day label up top is the picker: tap it for the three days you can post to. “Done” is the post button.</p>
+  <div class="tags"><b class="plus">Calm, journal-like</b><b class="plus">Day marker echoes the timeline</b><b class="minus">Day picker is a bit hidden</b></div>
+</div>
+
+<!-- ================= B ================= -->
+<div class="cell">
+  <div class="frame"><div class="phone light B" data-phone data-label-style="short">
+    <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+      <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+    <div class="toast" data-toast></div>
+    <div class="top"><button data-cancel>Cancel</button><span class="ttl" data-title>New note</span><span></span></div>
+    <div class="hint" data-hint>pinning to today</div>
+    <div class="body"><textarea class="caret-ph" rows="1" data-input placeholder="What’s on your mind?"></textarea></div>
+    <div class="acc">
+      <button class="ph" aria-label="Add a photo"><img src="assets/image-3.svg" width="22" height="22" alt=""></button>
+      <div class="chips" data-chips></div>
+      <button class="send" data-post disabled aria-label="Post">
+        <svg class="i-pin" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M16 3l5 5-2 1-3.2 3.2.9 4.3-1.4 1.4-3.3-3.3L8 18l-1-1 3.4-4-3.3-3.3 1.4-1.4 4.3.9L15 6z"/></svg>
+        <svg class="i-clip" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg>
+      </button>
+    </div>
+    <div class="kb" data-kb></div>
+  </div></div>
+  <h2><em>B</em>Day chips above the keyboard</h2>
+  <p>Closest to the spec. A strip right above the keyboard holds the photo button, the day chips, and one round send button that morphs from pin to paperclip.</p>
+  <div class="tags"><b class="plus">Day choice always visible</b><b class="plus">One thumb, no menus</b><b class="minus">More chrome than your mock</b></div>
+</div>
+
+<!-- ================= C ================= -->
+<div class="cell">
+  <div class="frame"><div class="phone light C" data-phone data-label-style="short">
+    <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+      <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+    <div class="toast" data-toast></div>
+    <div class="title">My November</div>
+    <div class="rail"></div>
+    <div class="drow" data-daytarget="2" style="top:124px"><div class="band"></div><span class="dot"></span><span class="lab" data-tap>Mon 2</span><div class="mini"><i></i><span>Rained all day</span></div></div>
+    <div class="drow" data-daytarget="3" style="top:262px"><div class="band"></div><span class="dot"></span><span class="lab" data-tap>Tues 3</span><div class="empty">its kinda empty...</div></div>
+    <div class="card">
+      <div class="row1"><span data-cardlabel>Pinning to <b>today</b></span></div>
+      <textarea class="caret-ph" rows="2" data-input placeholder="What’s on your mind?"></textarea>
+      <div class="row2">
+        <button class="ph" aria-label="Add a photo"><img src="assets/image-3.svg" width="20" height="20" alt=""></button>
+        <button class="cancel" data-cancel>Cancel</button>
+        <span class="sp"></span>
+        <button class="send" data-post disabled>
+          <svg class="i-pin" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M16 3l5 5-2 1-3.2 3.2.9 4.3-1.4 1.4-3.3-3.3L8 18l-1-1 3.4-4-3.3-3.3 1.4-1.4 4.3.9L15 6z"/></svg>
+          <svg class="i-clip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg>
+          <span data-sendtext>Pin</span>
+        </button>
+      </div>
+    </div>
+    <div class="kb" data-kb></div>
+  </div></div>
+  <h2><em>C</em>Tap the day on the board</h2>
+  <p>You never leave the board. The composer floats above the keyboard, and you pick the day by tapping a day on the board itself. The row lights up pink.</p>
+  <div class="tags"><b class="plus">Most direct, you see where it lands</b><b class="plus">Board stays in context</b><b class="minus">Less room to write</b></div>
+</div>
+
+<!-- ================= D ================= -->
+<div class="cell">
+  <div class="frame"><div class="phone light D" data-phone data-label-style="long">
+    <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+      <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+    <div class="toast" data-toast></div>
+    <div class="sheet"></div>
+    <div class="nav"><button data-cancel>Cancel</button><span class="ttl">New post</span><button class="done" data-post disabled>Done</button></div>
+    <div class="month">November</div>
+    <div class="week" data-week></div>
+    <div class="status" data-status></div>
+    <div class="body">
+      <textarea class="caret-ph" rows="1" data-input placeholder="What’s on your mind?"></textarea>
+      <button class="chip"><img src="assets/image-3.svg" width="24" height="24" alt=""><span>Upload a pic</span></button>
+    </div>
+    <div class="kb" data-kb></div>
+  </div></div>
+  <h2><em>D</em>Week strip</h2>
+  <p>A row of this week sits under the title. Future days are greyed out. Pick a past day and the circle turns pink with a note that you’re clipping.</p>
+  <div class="tags"><b class="plus">Reads like a calendar</b><b class="plus">Scales to the month view later</b><b class="minus">Takes a chunk of the screen</b></div>
+</div>
+
+<!-- ================= E ================= -->
+<div class="cell">
+  <div class="seg" data-segfor="E"><span>Pretend today is the</span><button class="on" data-settoday="3">3rd</button><button data-settoday="25">25th</button></div>
+  <div class="frame"><div class="phone light E" data-phone data-label-style="short" data-today="3">
+    <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+      <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+      <img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+    <div class="toast" data-toast></div>
+    <div class="top"><button data-cancel>Cancel</button><span></span></div>
+    <div class="stage">
+      <button class="tag" data-tag><span class="dotp"></span><span data-label>Tues 3</span><span style="opacity:.5">▾</span></button>
+      <div class="dayrow" data-dayrow></div>
+      <div class="calgrid" data-calgrid></div>
+      <div class="note" data-note>
+        <div class="attach"><span class="pinhead"></span>
+          <svg class="clipsvg" width="30" height="58" viewBox="0 0 24 46" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round"><path d="M7 38V11a5 5 0 0110 0v25a3 3 0 01-6 0V13"/></svg>
+        </div>
+        <textarea class="caret-ph" data-input placeholder="What’s on your mind?"></textarea>
+      </div>
+    </div>
+    <div class="acc">
+      <button class="ph"><img src="assets/image-3.svg" width="20" height="20" alt="">Photo</button>
+      <button class="go" data-post disabled>
+        <svg class="i-pin" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M16 3l5 5-2 1-3.2 3.2.9 4.3-1.4 1.4-3.3-3.3L8 18l-1-1 3.4-4-3.3-3.3 1.4-1.4 4.3.9L15 6z"/></svg>
+        <svg class="i-clip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg>
+        <span data-sendtext>Pin it</span>
+      </button>
+    </div>
+    <div class="kb" data-kb></div>
+  </div></div>
+  <h2><em>E</em>Write on the sticky itself</h2>
+  <p>You type straight onto the note it’ll become. The tag above is the day picker, and the sticky shows a pushpin or a paperclip so you see the result before you post.</p>
+  <div class="tags"><b class="plus">Most playful, matches the board</b><b class="plus">Preview of the final item</b><b class="minus">Long entries need another layout</b></div>
+</div>
+
+</div>
+
+<script>
+(() => {
+  const WK = ['Sun','Mon','Tues','Wed','Thu','Fri','Sat'];   // Nov 1, 2026 is a Sunday
+  const DAYS = {};
+  for(let d=1; d<=30; d++){ const w=WK[(d-1)%7]; DAYS[d]={long:`${w} 11/${d}`, short:`${w} ${d}`}; }
+  const KEYS = ['qwertyuiop','asdfghjkl','zxcvbnm'];
+
+  const kbHTML = `
+    <div class="row">${[...KEYS[0]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row r2">${[...KEYS[1]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row"><div class="key shift">⇧</div>${[...KEYS[2]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}<div class="key fn del" data-del>⌫</div></div>
+    <div class="row r4"><div class="key fn k123">123</div><div class="key fn emoji">☺</div><div class="key sp" data-k=" ">space</div><div class="key fn ret" data-k="\n">return</div></div>
+    <svg class="globe" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+    <svg class="mic" width="22" height="26" viewBox="0 0 24 28" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round"><rect x="8" y="2" width="8" height="15" rx="4"/><path d="M4 13a8 8 0 0016 0M12 21v4"/></svg>
+    <div class="home"></div>`;
+
+  document.querySelectorAll('[data-phone]').forEach(root => {
+    const style = root.dataset.labelStyle;
+    const input = root.querySelector('[data-input]');
+    const post = root.querySelector('[data-post]');
+    const toast = root.querySelector('[data-toast]');
+    const kb = root.querySelector('[data-kb]');
+    let today = +(root.dataset.today||3);
+    let day = today;
+    kb.innerHTML = kbHTML;
+
+    const L = (d, s=style) => DAYS[d][s];
+
+    function toastMsg(m){ toast.textContent=m; toast.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>toast.classList.remove('show'),1900); }
+    function grow(){ if(input.tagName==='TEXTAREA' && !root.classList.contains('E') && !root.classList.contains('C')){ input.style.height='auto'; input.style.height=input.scrollHeight+'px'; } }
+
+    function render(){
+      const clip = day !== today;
+      root.classList.toggle('is-clip', clip);
+      input.placeholder = clip ? `add to ${DAYS[day].short}…` : 'What’s on your mind?';
+      const has = input.value.trim().length>0;
+      if(post) post.disabled = !has;
+      root.querySelectorAll('[data-label]').forEach(el => el.textContent = L(day));
+      root.querySelectorAll('[data-sendtext]').forEach(el => el.textContent = root.classList.contains('E') ? (clip?'Clip it':'Pin it') : (clip?'Clip':'Pin'));
+      // A menu
+      const menu = root.querySelector('[data-menu]');
+      if(menu){ menu.innerHTML = [3,2,1].map(d=>`<button role="menuitemradio" aria-checked="${d===day}" data-pick="${d}">${DAYS[d].long}<small>${d===today?'today':'clip'}</small></button>`).join(''); }
+      // B chips
+      const chips = root.querySelector('[data-chips]');
+      if(chips){ chips.innerHTML = [1,2,3].map(d=>`<button class="${d===day?'on':''}" data-pick="${d}">${d===today?'Today':DAYS[d].short}</button>`).join(''); }
+      const hint = root.querySelector('[data-hint]'); if(hint) hint.textContent = clip ? `clipping onto ${DAYS[day].long}` : 'pinning to today';
+      const title = root.querySelector('[data-title]'); if(title) title.textContent = clip ? 'Add to the past' : 'New note';
+      // C
+      root.querySelectorAll('[data-daytarget]').forEach(r => r.classList.toggle('on', +r.dataset.daytarget===day));
+      const cl = root.querySelector('[data-cardlabel]'); if(cl) cl.innerHTML = clip ? `Clipping onto <b>${DAYS[day].short}</b> · paperclip` : `Pinning to <b>today</b>`;
+      // D
+      const week = root.querySelector('[data-week]');
+      if(week){
+        const names = ['S','M','T','W','T','F','S'];
+        week.innerHTML = names.map((n,i)=>{ const d=i+1; const off=d>today; return `<div class="wd"><small>${n}</small><button ${off?'disabled':''} class="${d===day?'on':''} ${d<today&&d===day?'past':''} ${d===today?'today':''}" data-pick="${d}">${d}</button></div>`; }).join('');
+      }
+      const st = root.querySelector('[data-status]');
+      if(st) st.innerHTML = clip ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e55bb5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg>Clipping onto ${DAYS[day].long} · paperclip` : `Today · ${DAYS[day].long}`;
+      // E
+      const dr = root.querySelector('[data-dayrow]');
+      if(dr){
+        const list=[]; for(let d=today; d>=1; d--) list.push(d);
+        const nm = d => d===today?'Today' : d===today-1?'Yesterday' : DAYS[d].short;
+        dr.innerHTML = list.map(d=>`<button class="${d===day?'on':''}" data-pick="${d}">${nm(d)}</button>`).join('') + (today>7?`<button class="cal" data-cal>▦ Calendar</button>`:'');
+        const on = dr.querySelector('.on'); if(on && dr.classList.contains('open')) on.scrollIntoView({inline:'center',block:'nearest'});
+      }
+      const grid = root.querySelector('[data-calgrid]');
+      if(grid){
+        grid.innerHTML = ['S','M','T','W','T','F','S'].map(n=>`<small>${n}</small>`).join('') +
+          Array.from({length:30},(_,i)=>{const d=i+1; return `<button ${d>today?'disabled':''} class="${d===day?'on':''} ${d===today?'today':''}" data-pick="${d}">${d}</button>`}).join('');
+      }
+    }
+
+    function pick(d){ day = d; render(); root.classList.add('flap'); setTimeout(()=>root.classList.remove('flap'),250); const m=root.querySelector('[data-menu]'); if(m) m.classList.remove('open'); root.querySelector('[data-calgrid]')?.classList.remove('open'); input.focus(); }
+
+    root.addEventListener('click', e => {
+      const p = e.target.closest('[data-pick]'); if(p){ pick(+p.dataset.pick); return; }
+      const t = e.target.closest('[data-tap]'); if(t){ pick(+t.parentElement.dataset.daytarget); return; }
+      if(e.target.closest('[data-daybtn]')){ root.querySelector('[data-menu]').classList.toggle('open'); return; }
+      if(e.target.closest('[data-tag]')){ root.querySelector('[data-dayrow]').classList.toggle('open'); root.querySelector('[data-calgrid]')?.classList.remove('open'); render(); return; }
+      if(e.target.closest('[data-cal]')){ root.querySelector('[data-calgrid]').classList.toggle('open'); return; }
+
+      const k = e.target.closest('.key[data-k]'); if(k){ input.value += k.dataset.k; input.dispatchEvent(new Event('input')); return; }
+      if(e.target.closest('[data-del]')){ input.value = input.value.slice(0,-1); input.dispatchEvent(new Event('input')); return; }
+      if(e.target.closest('[data-cancel]')){ input.value=''; day=today; render(); grow(); return; }
+      if(post && e.target.closest('[data-post]') && !post.disabled){
+        const clipped = day!==today;
+        toastMsg(clipped ? `clipped onto ${DAYS[day].short}` : 'pinned to today');
+        input.value=''; day=today; render(); grow();   // snaps back to today
+      }
+    });
+    input.addEventListener('input', () => { render(); grow(); });
+    const seg = root.closest('.cell')?.querySelector('.seg');
+    if(seg) seg.addEventListener('click', e => { const b=e.target.closest('[data-settoday]'); if(!b) return; seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); today=+b.dataset.settoday; day=today; input.value=''; root.querySelector('[data-dayrow]').classList.remove('open'); root.querySelector('[data-calgrid]').classList.remove('open'); render(); });
+    render();
+  });
+})();
+</script>
+</body>
+</html>

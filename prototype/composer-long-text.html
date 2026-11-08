@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRD-04 — Sticky to page</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink50:rgba(0,0,0,.5); --ink20:rgba(0,0,0,.2); --ink05:rgba(0,0,0,.05);
+  --sticky:#aee0ce; --pink:#e55bb5; --kb:#d1d2d9; --keyshadow:#898a8d;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --serif:"New York","Iowan Old Style","Georgia",serif;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+textarea,input{font:inherit;border:0;outline:0;background:none;resize:none;color:inherit;width:100%}
+
+header.page{max-width:1500px;margin:0 auto 22px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:760px;line-height:1.45}
+.refs{display:flex;gap:14px;align-items:center;margin:16px 0 4px;flex-wrap:wrap}
+.refs figure{margin:0;text-align:center;font-size:12px;color:#666}
+.refs img{display:block;width:96px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.2);margin-bottom:4px}
+.refs .arrow{font-size:20px;color:#999}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 0;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar .grp{display:flex;gap:6px;align-items:center}
+.bar button.pill{padding:7px 13px;border-radius:999px;background:var(--ink05);font-weight:510;font-size:13px}
+.bar button.pill.on{background:#000;color:#fff}
+.bar button.primary{background:#000;color:#fff;padding:8px 16px;border-radius:999px;font-weight:510}
+.bar input[type=number]{width:62px;background:var(--ink05);border-radius:8px;padding:6px 8px;text-align:center}
+.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar label{color:#555}
+
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1700px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}
+.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.cell .ctl{display:flex;gap:8px;align-items:center;margin:0 2px 10px;font-size:12.5px;color:#666}
+.cell .ctl button{padding:6px 12px;border-radius:999px;background:#fff;font-weight:510;font-size:12.5px}
+.cell .ctl .count{margin-left:auto;font-variant-numeric:tabular-nums}
+.cell .ctl .count b{color:#111}
+
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#000;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);--sbc:#fff}
+
+.sb{position:absolute;inset:0 0 auto 0;height:44px;display:flex;align-items:center;padding:0 12px;z-index:30;pointer-events:none;color:var(--sbc)}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}
+.sb .r{flex:1;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-top:6px}
+.sb svg{fill:currentColor}
+
+.sheet{position:absolute;left:0;right:0;top:47px;bottom:291px;background:var(--paper);border-radius:24px}
+.cancel{position:absolute;left:22px;top:66px;font-size:17px;font-weight:510;z-index:5}
+.marker{position:absolute;left:193px;top:68px;width:8px;height:34.5px}
+.daylabel{position:absolute;left:0;right:0;text-align:center;top:115px;font-size:17px;font-weight:510;line-height:20px}
+
+/* the stage holds the two kinds of paper */
+.stage{position:absolute;inset:0;z-index:10;perspective:1500px;pointer-events:none}
+.stage > *{pointer-events:auto}
+.sticky{position:absolute;left:78px;top:190px;width:246px;min-height:246px;background:var(--sticky);border-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,.12);padding:16px 18px 18px;transform-origin:50% 50%;will-change:transform,opacity}
+.page{position:absolute;left:20px;top:184px;width:362px;height:485px;background:#fff;border-radius:2px;box-shadow:0 2px 6px rgba(0,0,0,.12);padding:22px 22px 18px;opacity:0;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity}
+.phone[data-mode=page] .sticky{opacity:0;pointer-events:none}
+.phone[data-mode=page] .page{opacity:1;pointer-events:auto}
+.sticky textarea,.page textarea{font-size:17px;line-height:21.5px;font-weight:600;letter-spacing:-.1px;display:block;overflow:hidden}
+.sticky textarea::placeholder{color:rgba(0,0,0,.28);opacity:1}
+.page .title{font-family:var(--serif);font-size:17px;line-height:21px;margin-bottom:20px;color:#000}
+.page .title::placeholder{color:rgba(0,0,0,.2);opacity:1}
+.page textarea{height:380px;overflow:auto}
+.streak{position:absolute;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(0,0,0,.14),transparent);pointer-events:none;z-index:11}
+.streak.w{background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);height:3px}
+
+.photo{position:absolute;left:12px;top:528px;z-index:15;display:flex;align-items:center;gap:10px;background:var(--ink05);backdrop-filter:blur(8px);padding:10px;border-radius:14px;font-size:16px;font-weight:590}
+.photo{background:rgba(0,0,0,.06)}
+
+/* keyboard */
+.kb{position:absolute;left:0;right:0;bottom:0;height:291px;background:var(--kb);z-index:20;padding:8px 5px 0}
+.kb .row{display:flex;gap:6px;margin-bottom:12px;justify-content:center}
+.kb .row.r2{padding:0 19px}
+.kb .key{height:42px;border-radius:4.6px;background:#fff;box-shadow:0 1px 0 var(--keyshadow);display:grid;place-items:center;font-size:22.5px;flex:1;max-width:36px;user-select:none;cursor:pointer}
+.kb .key:active{background:#c8cad1}
+.kb .key.fn{background:#aab0bb;font-size:16px;max-width:none}
+.kb .key.shift{background:#fcfcfe;flex:0 0 44px}
+.kb .key.del{flex:0 0 44px}
+.kb .key.sp{flex:1;max-width:none;font-size:16px}
+.kb .key.k123,.kb .key.emoji{flex:0 0 42px}
+.kb .key.ret{flex:0 0 91px}
+.kb .row.r4{margin-bottom:0}
+.kb .home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:100px;background:#000}
+.kb .globe,.kb .mic{position:absolute;bottom:34px;opacity:.9}
+.kb .globe{left:26px}.kb .mic{right:26px}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>BRD-04 · Sticky turns into a page</h1>
+  <p>When an entry gets long, the green sticky stops fitting and a white page takes over, with an optional title. These are four ways that handoff can feel. Type in any phone until it passes the limit, or press <b>Type it</b> to watch it happen.</p>
+  <div class="refs">
+    <figure><img src="assets/ref-v1.png" alt="v1"><span>v1 · empty sticky</span></figure>
+    <span class="arrow">→</span>
+    <figure><img src="assets/ref-v2.png" alt="v2"><span>v2 · sticky grows</span></figure>
+    <span class="arrow">→</span>
+    <figure><img src="assets/ref-v3.png" alt="v3"><span>v3 · white page + title</span></figure>
+  </div>
+  <div class="bar">
+    <button class="primary" id="playAll">▶ Type it in all</button>
+    <button class="pill" id="resetAll">Reset all</button>
+    <span class="sep"></span>
+    <div class="grp"><label>Speed</label>
+      <button class="pill on" data-speed="1">1×</button>
+      <button class="pill" data-speed=".5">½</button>
+      <button class="pill" data-speed=".25">¼</button>
+    </div>
+    <span class="sep"></span>
+    <div class="grp"><label for="thr">Switch at</label><input id="thr" type="number" value="220" min="40" max="600" step="10"><label>characters</label></div>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<template id="phoneTpl">
+  <div class="cell">
+    <div class="ctl"><button data-type>▶ Type it</button><button data-reset>Reset</button><span class="count"><b data-n>0</b> chars</span></div>
+    <div class="frame"><div class="phone" data-mode="sticky">
+      <div class="sb" aria-hidden="true"><span class="t">9:41</span><span class="n"></span><span class="r">
+        <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+        <img src="assets/wifi.svg" width="16" height="11" alt="" style="filter:invert(1)"><img src="assets/battery.svg" width="28" height="14" alt="" style="filter:invert(1)"></span></div>
+      <div class="sheet"></div>
+      <button class="cancel" data-reset>Cancel</button>
+      <img class="marker" src="assets/day-marker.svg" alt="">
+      <div class="daylabel">Tues 11/3</div>
+      <div class="stage">
+        <div class="sticky"><textarea class="t-sticky" rows="1" placeholder="What’s on your mind?"></textarea></div>
+        <div class="page"><input class="title" placeholder="Title (optional)"><textarea class="t-page" placeholder="What’s on your mind?"></textarea></div>
+      </div>
+      <button class="photo"><img src="assets/image-3.svg" width="24" height="24" alt=""><span>Photo</span></button>
+      <div class="kb" data-kb></div>
+    </div></div>
+    <h2><em data-letter></em><span data-name></span></h2>
+    <p data-desc></p>
+    <div class="tags" data-tags></div>
+  </div>
+</template>
+
+<script>
+(() => {
+  const SAMPLE = "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases. It’s pretty good, but i’m getting up early tomorrow so not sure if i am able to binge";
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let speed = 1;
+  const thr = () => +document.getElementById('thr').value || 220;
+
+  const KEYS = ['qwertyuiop','asdfghjkl','zxcvbnm'];
+  const kbHTML = `
+    <div class="row">${[...KEYS[0]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row r2">${[...KEYS[1]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row"><div class="key shift">⇧</div>${[...KEYS[2]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}<div class="key fn del" data-del>⌫</div></div>
+    <div class="row r4"><div class="key fn k123">123</div><div class="key fn emoji">☺</div><div class="key sp" data-k=" ">space</div><div class="key fn ret" data-k="\n">return</div></div>
+    <svg class="globe" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+    <svg class="mic" width="22" height="26" viewBox="0 0 24 28" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round"><rect x="8" y="2" width="8" height="15" rx="4"/><path d="M4 13a8 8 0 0016 0M12 21v4"/></svg>
+    <div class="home"></div>`;
+
+  // ---- animation helpers -------------------------------------------------
+  function A(el, keyframes, opts){
+    if(reduce){ return el.animate([{opacity:0},{opacity:1}],{duration:160}); }
+    const a = el.animate(keyframes, {fill:'backwards', easing:'cubic-bezier(.2,.9,.25,1.05)', ...opts});
+    a.playbackRate = speed; return a;
+  }
+  const NAT = {transform:'none', opacity:1, filter:'none'};
+
+  function streaks(root, count, dir){
+    if(reduce) return;
+    const stage = root.querySelector('.stage');
+    for(let i=0;i<count;i++){
+      const s = document.createElement('div');
+      s.className = 'streak' + (i%3===0?' w':'');
+      const w = 90+Math.random()*150;
+      s.style.cssText = `width:${w}px;left:${dir>0?402:-w}px;top:${200+Math.random()*420}px`;
+      stage.appendChild(s);
+      const a = s.animate([{transform:'translateX(0)',opacity:0},{opacity:1,offset:.25},{transform:`translateX(${-dir*(402+w+60)}px)`,opacity:0}],
+        {duration:420+Math.random()*180, delay:40+Math.random()*180, easing:'cubic-bezier(.3,.1,.2,1)', fill:'backwards'});
+      a.playbackRate = speed; a.onfinish = () => s.remove();
+    }
+  }
+  function titleIn(root, delay){
+    const t = root.querySelector('.title');
+    A(t,[{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay,easing:'ease-out'});
+  }
+
+  // ---- the four variants ------------------------------------------------
+  const V = {
+    // A: new page sweeps in from the right with speed lines; sticky is pushed aside
+    whoosh:{
+      name:'Whoosh in from the side', letter:'A',
+      desc:'The page sweeps in from the right edge, skewed with speed lines, and settles with a tiny overshoot. The sticky gets shoved off to the left. Going back reverses it.',
+      tags:[['plus','Feels fast and playful'],['plus','Clear “new thing arrived”'],['minus','Loud if people write long often']],
+      toPage(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(s,[NAT,{transform:'translateX(-150px) rotate(-8deg) scale(.92)',opacity:0,filter:'blur(4px)'}],{duration:300,easing:'ease-in',fill:'none'});
+        A(p,[{transform:'translateX(500px) rotate(7deg) skewX(-12deg)',opacity:0,filter:'blur(10px)'},
+             {transform:'translateX(-12px) rotate(-.7deg) skewX(1.6deg)',opacity:1,filter:'blur(0)',offset:.72},NAT],
+             {duration:640,delay:110,easing:'cubic-bezier(.16,.84,.3,1)'});
+        streaks(r,9,1); titleIn(r,420); },
+      toSticky(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(p,[NAT,{transform:'translateX(500px) rotate(6deg) skewX(-10deg)',opacity:0,filter:'blur(8px)'}],{duration:320,easing:'ease-in',fill:'none'});
+        A(s,[{transform:'translateX(-150px) rotate(-8deg) scale(.92)',opacity:0,filter:'blur(4px)'},{transform:'translateX(6px) rotate(.8deg)',opacity:1,filter:'blur(0)',offset:.75},NAT],{duration:520,delay:130});
+        streaks(r,5,-1); }
+    },
+    // B: the sticky itself grows into the page
+    morph:{
+      name:'The sticky grows into the page', letter:'B',
+      desc:'No new object arrives. The same piece of paper stretches taller and wider and fades from green to white. The title slides in once there is room.',
+      tags:[['plus','Calm, nothing jumps'],['plus','Obviously the same entry'],['minus','Least “whoosh”, text reflows mid-move']],
+      toPage(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(s,[NAT,{opacity:0}],{duration:140,fill:'none',easing:'linear'});
+        A(p,[{left:'78px',top:'190px',width:'246px',height:'246px',backgroundColor:'#aee0ce',padding:'16px 18px 18px',opacity:1},
+             {left:'20px',top:'184px',width:'362px',height:'485px',backgroundColor:'#ffffff',padding:'22px 22px 18px',opacity:1}],
+             {duration:620,easing:'cubic-bezier(.2,.85,.25,1.08)'});
+        titleIn(r,330); },
+      toSticky(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(p,[{left:'20px',top:'184px',width:'362px',height:'485px',backgroundColor:'#ffffff',opacity:1},
+             {left:'78px',top:'190px',width:'246px',height:'246px',backgroundColor:'#aee0ce',opacity:1}],
+             {duration:420,easing:'cubic-bezier(.4,0,.2,1)',fill:'none'});
+        A(s,[{opacity:0},{opacity:1}],{duration:160,delay:300,easing:'linear'}); }
+    },
+    // C: tossed in on an arc; sticky is flicked away
+    toss:{
+      name:'Flick the sticky away, page flies in', letter:'C',
+      desc:'The sticky is flicked off the top with a spin. A page comes in from the bottom-left on an arc, over-rotates, and lands with a small bounce and a bigger shadow mid-flight.',
+      tags:[['plus','Most playful, feels physical'],['plus','Fits the pinboard world'],['minus','A lot of motion for one keystroke']],
+      toPage(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(s,[NAT,{transform:'translate(130px,-700px) rotate(34deg)',opacity:1,offset:.85},{transform:'translate(150px,-760px) rotate(38deg)',opacity:0}],{duration:420,easing:'cubic-bezier(.5,0,.9,.4)',fill:'none'});
+        A(p,[{transform:'translate(-430px,680px) rotate(-30deg) scale(.72)',opacity:1,boxShadow:'0 30px 40px rgba(0,0,0,.25)'},
+             {transform:'translate(34px,-28px) rotate(3.2deg) scale(1.03)',offset:.68,boxShadow:'0 18px 30px rgba(0,0,0,.2)'},
+             {transform:'translate(-5px,5px) rotate(-.9deg) scale(.995)',offset:.86},
+             {transform:'none',boxShadow:'0 2px 6px rgba(0,0,0,.12)'}],
+             {duration:820,delay:140,easing:'cubic-bezier(.22,.8,.3,1)'});
+        titleIn(r,560); },
+      toSticky(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        A(p,[NAT,{transform:'translate(440px,720px) rotate(26deg) scale(.8)',opacity:1,offset:.85},{transform:'translate(460px,760px) rotate(28deg)',opacity:0}],{duration:420,easing:'cubic-bezier(.5,0,.9,.4)',fill:'none'});
+        A(s,[{transform:'translate(-20px,-520px) rotate(-14deg)',opacity:1},{transform:'translate(4px,10px) rotate(1.4deg)',offset:.75},NAT],{duration:640,delay:170}); }
+    },
+    // D: turn the page like a notepad
+    flip:{
+      name:'Turn the page', letter:'D',
+      desc:'Like flipping to a fresh sheet on a notepad: the sticky swings away on a hinge at its left edge and the white page swings in behind it, with a little light and shade.',
+      tags:[['plus','Familiar, tactile, quick'],['plus','Quiet but still reads as new paper'],['minus','Less “whoosh”, more “flip”']],
+      toPage(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        s.style.transformOrigin='0% 50%'; p.style.transformOrigin='0% 50%';
+        A(s,[{transform:'rotateY(0)',filter:'brightness(1)',opacity:1},{transform:'rotateY(-100deg)',filter:'brightness(.7)',opacity:1,offset:.98},{opacity:0,transform:'rotateY(-100deg)'}],{duration:360,easing:'cubic-bezier(.5,0,.9,.5)',fill:'none'});
+        A(p,[{transform:'translateX(40px) rotateY(88deg)',filter:'brightness(.65)',opacity:1},
+             {transform:'translateX(0) rotateY(-5deg)',filter:'brightness(1.03)',offset:.72},NAT],
+             {duration:560,delay:230,easing:'cubic-bezier(.2,.8,.25,1)'});
+        titleIn(r,520); },
+      toSticky(r){ const s=r.querySelector('.sticky'),p=r.querySelector('.page');
+        s.style.transformOrigin='0% 50%'; p.style.transformOrigin='0% 50%';
+        A(p,[{transform:'rotateY(0)',filter:'brightness(1)',opacity:1},{transform:'rotateY(-100deg)',filter:'brightness(.7)',opacity:1,offset:.98},{opacity:0,transform:'rotateY(-100deg)'}],{duration:320,easing:'cubic-bezier(.5,0,.9,.5)',fill:'none'});
+        A(s,[{transform:'translateX(30px) rotateY(88deg)',filter:'brightness(.65)',opacity:1},{transform:'rotateY(-4deg)',offset:.72},NAT],{duration:520,delay:200}); }
+    }
+  };
+
+  // ---- build the phones -------------------------------------------------
+  const grid = document.getElementById('grid');
+  const tpl = document.getElementById('phoneTpl');
+  const phones = [];
+
+  Object.entries(V).forEach(([key, v]) => {
+    const cell = tpl.content.firstElementChild.cloneNode(true);
+    const root = cell.querySelector('.phone');
+    root.dataset.opt = key;
+    cell.querySelector('[data-letter]').textContent = v.letter;
+    cell.querySelector('[data-name]').textContent = v.name;
+    cell.querySelector('[data-desc]').textContent = v.desc;
+    cell.querySelector('[data-tags]').innerHTML = v.tags.map(([k,t]) => `<b class="${k}">${t}</b>`).join('');
+    root.querySelector('[data-kb]').innerHTML = kbHTML;
+    grid.appendChild(cell);
+
+    const ts = root.querySelector('.t-sticky'), tp = root.querySelector('.t-page');
+    const n = cell.querySelector('[data-n]');
+    let timer = null;
+    const value = () => (root.dataset.mode === 'page' ? tp : ts).value;
+
+    function fit(){ ts.style.height='auto'; ts.style.height = ts.scrollHeight+'px'; }
+    function setText(t){ ts.value = tp.value = t; fit(); evaluate(); }
+    function setMode(mode){
+      if(root.dataset.mode === mode) return;
+      root.querySelectorAll('.sticky,.page,.title').forEach(e => e.getAnimations().forEach(a => a.cancel()));
+      root.dataset.mode = mode;
+      V[key][mode==='page' ? 'toPage' : 'toSticky'](root);
+      const ta = mode==='page' ? tp : ts;
+      ta.focus({preventScroll:true}); ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+    function evaluate(){
+      const len = ts.value.trim().length;
+      n.textContent = len;
+      if(root.dataset.mode==='sticky' && len >= thr()) setMode('page');
+      else if(root.dataset.mode==='page' && len < thr()-15) setMode('sticky');
+    }
+    function reset(){ clearInterval(timer); root.dataset.mode='sticky'; root.querySelectorAll('.sticky,.page,.title').forEach(e => {e.getAnimations().forEach(a=>a.cancel()); e.style.transformOrigin='';}); ts.value=tp.value=''; fit(); n.textContent=0; }
+    function typeIt(){
+      reset(); let i = 0; const text = SAMPLE;
+      timer = setInterval(() => { i++; setText(text.slice(0,i)); if(i>=text.length) clearInterval(timer); }, 22/speed + Math.random()*10);
+    }
+
+    ts.addEventListener('input', () => { tp.value = ts.value; fit(); evaluate(); });
+    tp.addEventListener('input', () => { ts.value = tp.value; fit(); evaluate(); });
+    root.addEventListener('click', e => {
+      const k = e.target.closest('.key[data-k]');
+      const act = mode => (mode==='page'?tp:ts);
+      if(k){ const ta = act(root.dataset.mode); ta.value += k.dataset.k; ta.dispatchEvent(new Event('input')); return; }
+      if(e.target.closest('[data-del]')){ const ta = act(root.dataset.mode); ta.value = ta.value.slice(0,-1); ta.dispatchEvent(new Event('input')); return; }
+      if(e.target.closest('.cancel')) reset();
+    });
+    cell.querySelector('[data-type]').addEventListener('click', typeIt);
+    cell.querySelector('.ctl [data-reset]').addEventListener('click', reset);
+    phones.push({typeIt, reset});
+    fit();
+  });
+
+  document.getElementById('playAll').addEventListener('click', () => phones.forEach(p => p.typeIt()));
+  document.getElementById('resetAll').addEventListener('click', () => phones.forEach(p => p.reset()));
+  document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
+    speed = +b.dataset.speed;
+    document.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
+  }));
+})();
+</script>
+</body>
+</html>
