@@ -43,6 +43,7 @@ final class BoardStore {
     var promptAnswerID: Post.ID?
 
     var postCount = 0             // drives haptics
+    var lastPostedDayID: Int?     // where the board scrolls to after posting
 
     // MARK: labels
 
@@ -78,6 +79,7 @@ final class BoardStore {
             let at = days.firstIndex(where: { $0.id > dayID }) ?? days.endIndex
             days.insert(BoardDay(id: dayID, posts: [post]), at: at)
         }
+        lastPostedDayID = dayID
         postCount += 1
     }
 }

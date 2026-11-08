@@ -169,21 +169,26 @@ private struct BoardSheet: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(store.days) { day in
                         DayRow(day: day, isLast: day.id == store.days.last?.id)
+                            .id("day-\(day.id)")
                     }
                 }
-                .padding(.top, 20)
                 .padding(.bottom, 40)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
+            .contentMargins(.bottom, 150, for: .scrollContent)   // lets the last day scroll up above the pill and tab bar
             .background(
                 UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
                     .fill(Color("Paper"))
                     .ignoresSafeArea(edges: .bottom)
             )
             .onChange(of: store.postCount) {
-                guard let last = store.days.last?.posts.last else { return }
-                withAnimation(.smooth) { proxy.scrollTo(last.id, anchor: .center) }
+                // Show the day the post landed on, label at the top (works for clipped posts on past days too).
+                guard let day = store.lastPostedDayID else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))   // let the composer sheet finish dismissing
+                    withAnimation(.smooth(duration: 0.55)) { proxy.scrollTo("day-\(day)", anchor: .top) }
+                }
             }
         }
     }
@@ -216,7 +221,7 @@ private struct DayRow: View {
             }
         }
         .padding(.leading, gutter)
-        .padding(.bottom, isLast ? 0 : 61)
+        .padding(.bottom, isLast ? 0 : 41)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .topLeading) { Dot().frame(width: dot, height: dot).offset(x: 25, y: 4.5) }
         .background(alignment: .topLeading) {
@@ -226,11 +231,12 @@ private struct DayRow: View {
                     .fill(.black.opacity(0.1))
                     .frame(width: 3)
                     .padding(.top, 8.5)
-                    .padding(.bottom, -8.5)
+                    .padding(.bottom, -28.5)   // reaches the next dot, past its 20pt top cushion
                     .offset(x: 27.5)
             }
         }
         .animation(.smooth, value: day.posts.isEmpty)
+        .padding(.top, 20)   // cushion above the label, so scrollTo(day, anchor: .top) isn't flush with the sheet edge
     }
 }
 

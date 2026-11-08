@@ -22,6 +22,7 @@ struct PostComposerView: View {
     @State private var landed = 0                   // fires the soft haptic when the page lands
     @State private var morphTask: Task<Void, Never>?
     @State private var available = CGSize(width: 402, height: 600)
+    @State private var textHeight: CGFloat = 0      // rendered height of the text at sticky width
 
     init(todayID: Int) { _dayID = State(initialValue: todayID) }
 
@@ -29,8 +30,11 @@ struct PostComposerView: View {
         static let stickySide: CGFloat = 246
         static let pageWidth: CGFloat = 362
         static let pageHeight: CGFloat = 485
-        static let switchToPageAt = 220             // characters; tuned in the prototype
-        static let switchBackBelow = 205
+        // The sticky holds as much text as fits in its square, minus padding. Past that, it becomes a page.
+        // Measured as rendered height, so wrapped lines and blank lines both count.
+        static let stickyInnerWidth: CGFloat = stickySide - 18 - 18
+        static let stickyMaxTextHeight: CGFloat = stickySide - 16 - 18
+        static let switchBackSlack: CGFloat = 24    // about one line of hysteresis, so it doesn't flicker at the edge
         static let stage1Height: CGFloat = 270      // crease-led: first stage is shallow
     }
 
@@ -77,10 +81,9 @@ struct PostComposerView: View {
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: landed)
         .sensoryFeedback(.success, trigger: store.postCount)
         .onAppear { focused = true }
-        .onChange(of: text) { _, new in
-            let n = new.trimmingCharacters(in: .whitespacesAndNewlines).count
-            if !isPage && n >= Metrics.switchToPageAt { setPage(true) }
-            else if isPage && n < Metrics.switchBackBelow { setPage(false) }
+        .onChange(of: textHeight) { _, h in
+            if !isPage && h > Metrics.stickyMaxTextHeight { setPage(true) }
+            else if isPage && h <= Metrics.stickyMaxTextHeight - Metrics.switchBackSlack { setPage(false) }
         }
     }
 
@@ -165,7 +168,21 @@ struct PostComposerView: View {
                 CubicKeyframe(0, duration: 0.55)       // then smooths out
             }
         }
+        .background(alignment: .topLeading) { heightProbe }
         .accessibilityElement(children: .contain)
+    }
+
+    /// Invisible copy of the text laid out at the sticky's width. A trailing zero-width character makes
+    /// trailing newlines count, so pressing Enter a bunch of times fills the sticky like real lines do.
+    private var heightProbe: some View {
+        Text(text + "\u{200B}")
+            .font(Typo.body17)
+            .lineSpacing(3)
+            .frame(width: Metrics.stickyInnerWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .hidden()
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { textHeight = $0 }
+            .accessibilityHidden(true)
     }
 
     private struct Lift {
