@@ -3,6 +3,7 @@ import SwiftUI
 /// BRD-01 Board / today
 struct BoardView: View {
     @Environment(BoardStore.self) private var store
+    @State private var showComposer = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -14,10 +15,15 @@ struct BoardView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ComposerView()
+            ComposerPill { showComposer = true }
                 .padding(.bottom, 8)
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: store.postCount)
+        .sheet(isPresented: $showComposer, onDismiss: { store.answeringPrompt = false }) {
+            PostComposerView(todayID: store.todayID)
+        }
+        .onChange(of: store.answeringPrompt) { _, answering in
+            if answering { showComposer = true }
+        }
     }
 }
 
@@ -184,6 +190,7 @@ private struct BoardSheet: View {
 }
 
 private struct DayRow: View {
+    @Environment(BoardStore.self) private var store
     let day: BoardDay
     let isLast: Bool
 
@@ -192,7 +199,7 @@ private struct DayRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(day.label)
+            Text(store.shortLabel(day.id))
                 .font(Typo.scaled(14, .medium, relativeTo: .subheadline))
                 .foregroundStyle(.black.opacity(0.5))
                 .frame(height: 17)

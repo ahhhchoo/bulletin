@@ -14,12 +14,14 @@
 		A11BB289140580DA4771D603 /* PostViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE29D072C138CB86D05F7054 /* PostViews.swift */; };
 		ACD841EE9C65B7105EB74932 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88D46AD4A45E0F120516AD5 /* Typography.swift */; };
 		AD18F26EF7D00F42C50B273E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCF11D0E434407DF41CB93EA /* Assets.xcassets */; };
+		E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D561ABDD7925727E576172F /* PostComposerView.swift */; };
 		F27FEA7B1884432FA28D0C43 /* BoardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CADE96FC36F34D72D340C2D /* BoardStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerView.swift; sourceTree = "<group>"; };
 		6CADE96FC36F34D72D340C2D /* BoardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardStore.swift; sourceTree = "<group>"; };
+		8D561ABDD7925727E576172F /* PostComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostComposerView.swift; sourceTree = "<group>"; };
 		AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulletinApp.swift; sourceTree = "<group>"; };
 		B6FEC0963AB2437071199F41 /* Bulletin.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bulletin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCF11D0E434407DF41CB93EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -59,6 +61,7 @@
 			children = (
 				E3E49F1DDB15B3C276A787FC /* BoardView.swift */,
 				4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */,
+				8D561ABDD7925727E576172F /* PostComposerView.swift */,
 				DE29D072C138CB86D05F7054 /* PostViews.swift */,
 				CD454554D33728F308F5EA68 /* RootTabView.swift */,
 				E88D46AD4A45E0F120516AD5 /* Typography.swift */,
@@ -148,6 +151,7 @@
 				8C9B43F02C38DA97A4B69ADF /* BoardView.swift in Sources */,
 				4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */,
 				21FC3DB33B96B773AB63361A /* ComposerView.swift in Sources */,
+				E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */,
 				A11BB289140580DA4771D603 /* PostViews.swift in Sources */,
 				8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */,
 				ACD841EE9C65B7105EB74932 /* Typography.swift in Sources */,

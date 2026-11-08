@@ -8,7 +8,9 @@ struct PostView: View {
         case .photo(let caption):
             PhotoPost(caption: caption, rotation: post.rotation)
         case .sticky(let text):
-            StickyPost(text: text, rotation: post.rotation, isPromptAnswer: post.isPromptAnswer)
+            StickyPost(text: text, rotation: post.rotation, isPromptAnswer: post.isPromptAnswer, isClipped: post.isClipped)
+        case .journal(let title, let body):
+            JournalPost(title: title, text: body, rotation: post.rotation, isPromptAnswer: post.isPromptAnswer, isClipped: post.isClipped)
         }
     }
 }
@@ -46,6 +48,7 @@ private struct StickyPost: View {
     let text: String
     let rotation: Double
     let isPromptAnswer: Bool
+    let isClipped: Bool
 
     @State private var landed = false
 
@@ -63,7 +66,7 @@ private struct StickyPost: View {
             .background(Color("Sticky"), in: RoundedRectangle(cornerRadius: 3))
             .shadow(color: .black.opacity(0.12), radius: 2, y: 2)
             .overlay(alignment: .top) {
-                Pushpin()
+                Attachment(isClipped: isClipped)
                     .offset(y: landed ? -4 : -26)
                     .scaleEffect(landed ? 1 : 1.6)
                     .opacity(landed ? 1 : 0)
@@ -98,5 +101,79 @@ struct PromptTag: View {
             .padding(.vertical, 2)
             .background(.white, in: Capsule())
             .overlay(Capsule().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
+    }
+}
+
+
+/// Pushpin for things added the same day, paperclip for things added to a past day.
+struct Attachment: View {
+    let isClipped: Bool
+
+    var body: some View {
+        if isClipped {
+            Image(systemName: "paperclip")
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(Color(white: 0.42))
+                .rotationEffect(.degrees(-12))
+                .offset(y: -8)   // hangs on the top edge, clear of the text
+                .accessibilityLabel("Added later")
+        } else {
+            Pushpin()
+        }
+    }
+}
+
+/// A long entry on the board: a folded note with an optional title, a snippet, and a read time.
+private struct JournalPost: View {
+    let title: String
+    let text: String
+    let rotation: Double
+    let isPromptAnswer: Bool
+    let isClipped: Bool
+
+    @State private var landed = false
+
+    private var readMinutes: Int { max(1, text.split(separator: " ").count / 200) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // No title typed means no title shown: just the start of the entry.
+            if !title.isEmpty {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .lineLimit(2)
+            }
+            Text(text)
+                .font(Typo.pixel(12))
+                .foregroundStyle(.black.opacity(0.7))
+                .lineLimit(title.isEmpty ? 5 : 3)
+            Text("\(readMinutes) min read")
+                .font(.system(size: 11))
+                .foregroundStyle(.black.opacity(0.45))
+                .padding(.top, 2)
+        }
+        .foregroundStyle(.black)
+        .padding(14)
+        .frame(width: 160, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 2))
+        .overlay(alignment: .topTrailing) { FoldedCorner() }
+        .shadow(color: .black.opacity(0.12), radius: 2, y: 2)
+        .overlay(alignment: .top) { Attachment(isClipped: isClipped).offset(y: -4) }
+        .overlay(alignment: .bottomTrailing) { if isPromptAnswer { PromptTag().offset(x: 6, y: 8) } }
+        .rotationEffect(.degrees(landed ? rotation : rotation + 5))
+        .scaleEffect(landed ? 1 : 0.9)
+        .opacity(landed ? 1 : 0)
+        .onAppear { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { landed = true } }
+    }
+}
+
+private struct FoldedCorner: View {
+    var body: some View {
+        Path { p in
+            p.move(to: .zero); p.addLine(to: CGPoint(x: 16, y: 16)); p.addLine(to: CGPoint(x: 0, y: 16)); p.closeSubpath()
+        }
+        .fill(Color(white: 0.9))
+        .frame(width: 16, height: 16)
+        .shadow(color: .black.opacity(0.1), radius: 1, x: -1, y: 1)
     }
 }

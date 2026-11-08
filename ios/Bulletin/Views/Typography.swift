@@ -10,6 +10,9 @@ enum Typo {
         return .system(size: scaled, weight: weight)
     }
 
+    /// Text you write on paper (sticky and page): 17pt semibold, scales with Dynamic Type.
+    static var body17: Font { scaled(17, .semibold, relativeTo: .body) }
+
     /// Stand-in for CoFo Sans Pixel (trial font, not bundled yet).
     static func pixel(_ size: CGFloat) -> Font {
         let scaled = UIFontMetrics(forTextStyle: .subheadline).scaledValue(for: size)
