@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRD-01 — Masthead and busy day</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink50:rgba(0,0,0,.5); --ink05:rgba(0,0,0,.05); --ink10:rgba(0,0,0,.1);
+  --mint:#aee0ce; --pink:#e55bb5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --serif:"New York","Iowan Old Style","Georgia",serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+header.page{max-width:1500px;margin:0 auto 22px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:780px;line-height:1.45}
+.rules{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.rules span{background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;color:#333}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0 0;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar label{color:#555}
+.bar .seg button{padding:7px 13px;border-radius:999px;background:var(--ink05);font-weight:510;font-size:13px;margin-left:4px}
+.bar .seg button.on{background:#000;color:#fff}
+.bar .primary{background:#000;color:#fff;padding:8px 16px;border-radius:999px;font-weight:510}
+
+.grid{display:flex;flex-wrap:wrap;gap:34px 30px;justify-content:center;max-width:1700px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}
+.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#000;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+
+/* masthead */
+.mast{position:absolute;left:0;right:0;top:0;height:214px;background:var(--paper);border-radius:24px;z-index:10;overflow:hidden;will-change:height}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;display:flex;align-items:center;padding:0 12px;z-index:2;pointer-events:none}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}
+.sb .r{flex:1;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-top:6px}
+.mtitle{position:absolute;left:28px;top:59px;font-size:24px;font-weight:510;line-height:29px;will-change:transform}
+.cards{position:absolute;left:0;right:0;top:103px;height:76px;display:flex;gap:5px;padding:0 27px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-padding:0 27px;will-change:transform,opacity}
+.cards::-webkit-scrollbar{display:none}
+.card{position:relative;flex:0 0 348px;height:76px;border-radius:23px;scroll-snap-align:start}
+.card.into{background:rgba(36,83,153,.05)}
+.card.prompt{background:#e5ebf4}
+.card .tx{position:absolute;left:21px;top:20px;font-size:14px;font-weight:510;line-height:17px}
+.card .tx i{display:block;font-style:normal;color:var(--ink50);margin-bottom:1px}
+.card .thumb{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:5px;background:var(--mint);border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.1);transform:translateY(-50%) rotate(-3deg);font-size:9px;display:grid;place-items:center;font-family:var(--pixel);text-align:center;line-height:1.1;padding:3px}
+.dots{position:absolute;top:190px;left:0;right:0;display:flex;justify-content:center;gap:4px;will-change:opacity}
+.dots i{display:block;width:7px;height:7px;border-radius:10px;background:rgba(0,0,0,.1)}
+.dots i:first-child{width:16px;background:rgba(0,0,0,.2)}
+.chip{position:absolute;right:20px;top:56px;display:flex;align-items:center;gap:7px;padding:7px 12px 7px 9px;border-radius:999px;background:#e5ebf4;font-size:12.5px;font-weight:510;opacity:0;pointer-events:none;will-change:opacity}
+.chip b{width:12px;height:12px;border-radius:50%;background:var(--mint);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18)}
+.mast.compact .chip{pointer-events:auto;cursor:pointer}
+
+/* board */
+.board{position:absolute;left:0;right:0;top:222px;bottom:-20px;background:var(--paper);border-radius:24px 24px 0 0;overflow:hidden;z-index:5}
+.scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+.scroller::-webkit-scrollbar{display:none}
+.content{position:relative;padding:20px 0 210px}
+.day{position:relative;padding:0 0 38px 44px}
+.day::before{content:"";position:absolute;left:27.5px;top:8.5px;bottom:-8.5px;width:3px;border-radius:3px;background:var(--ink10)}
+.day:last-child::before{display:none}
+.day .dot{position:absolute;left:25px;top:4.5px;width:8px;height:8px;border-radius:50%;background:#000;z-index:1}
+.day h2{font-size:14px;font-weight:510;color:var(--ink50);line-height:17px}
+.day .empty{margin-top:5px;font-size:14px;font-style:italic;color:var(--ink50)}
+.items{position:relative;display:grid;grid-template-columns:150px 150px;column-gap:22px;row-gap:24px;padding:18px 0 0 8px;align-items:start}
+
+.item{position:relative;rotate:var(--r,0deg);transform-origin:50% 50%;cursor:pointer}
+.item.is-stacked{display:none}
+.pin{position:absolute;left:50%;top:-5px;margin-left:-5px;width:10px;height:10px;border-radius:50%;background:#f92d2d;border:.75px solid #9c0c0c;z-index:2}
+.photo{width:150px;height:150px;margin-bottom:40px}
+.photo .img{position:absolute;inset:0;background:var(--mint);border:2px solid #fff;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.photo .cap{position:absolute;left:24px;bottom:-34px;min-width:106px;text-align:center;background:#fff;border:.75px solid rgba(0,0,0,.15);padding:9px 10px;font-family:var(--pixel);font-size:13px;white-space:nowrap}
+.sticky{width:150px;min-height:128px;background:var(--mint);border-radius:2px;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:16px 14px 14px;font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.1px}
+.sticky.pix{font-family:var(--pixel);font-weight:400;font-size:13px;line-height:19px}
+.tag{position:absolute;right:-6px;bottom:-9px;background:#fff;border:.75px solid rgba(0,0,0,.15);border-radius:99px;padding:2px 7px;font-size:10px;font-weight:510}
+.folded{width:150px;height:148px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:13px 13px 12px;overflow:hidden;border-radius:2px}
+.folded::after{content:"";position:absolute;right:0;top:0;border-style:solid;border-width:0 16px 16px 0;border-color:transparent #e6e6e6 transparent transparent;filter:drop-shadow(-1px 1px 1px rgba(0,0,0,.12))}
+.folded h3{font-family:var(--serif);font-size:15px;line-height:18px;font-weight:700;margin-bottom:5px}
+.folded .sn{font-family:var(--pixel);font-size:11.5px;line-height:15px;color:rgba(0,0,0,.6);height:60px;overflow:hidden}
+.folded .rt{position:absolute;left:13px;bottom:11px;font-size:11px;color:rgba(0,0,0,.45)}
+
+/* the stack that holds the overflow */
+.stackcard{position:relative;width:150px;height:148px;cursor:pointer}
+.stackcard .l{position:absolute;inset:0;border-radius:2px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.stackcard .l1{background:var(--mint);transform:translate(11px,10px) rotate(3deg)}
+.stackcard .l2{background:#f4f4f4;transform:translate(5px,5px) rotate(1.5deg)}
+.stackcard .l3{background:#fff;overflow:hidden;padding:13px}
+.stackcard .l3 h3{font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:6px;filter:blur(3px)}
+.stackcard .l3 p{font-family:var(--pixel);font-size:11.5px;line-height:15px;color:rgba(0,0,0,.6);filter:blur(3px)}
+.stackcard .cnt{position:absolute;right:-8px;top:-9px;min-width:28px;height:24px;border-radius:99px;background:#000;color:#fff;font-size:12px;font-weight:600;display:grid;place-items:center;padding:0 8px;z-index:3}
+.stackcard .go{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;padding:9px 18px;border-radius:999px;background:rgba(235,235,235,.92);border:1px solid rgba(0,0,0,.18);font-size:15px;font-weight:510;box-shadow:0 2px 8px rgba(0,0,0,.1);backdrop-filter:blur(4px)}
+.day.expanded .stackcard{display:none}
+.restack{display:none;grid-column:1/-1;justify-self:start;margin:2px 0 0 -2px;padding:9px 16px 9px 12px;border-radius:999px;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.14);font-size:14px;font-weight:510;align-items:center;gap:7px}
+.phone.has-pill .day.expanded .restack{display:inline-flex}
+.restack svg{opacity:.7}
+
+/* bottom chrome (static) */
+.cpill{position:absolute;left:50%;top:727px;transform:translateX(-50%);background:#000;color:#fff;font-size:13px;padding:10px 16px;border-radius:18px;z-index:12;white-space:nowrap}
+.tabbar{position:absolute;left:50%;top:781px;transform:translateX(calc(-50% - .5px));display:flex;gap:32px;padding:8px 22px;border-radius:32px;z-index:12;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.92));box-shadow:0 0 0 1px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.08);backdrop-filter:blur(12px)}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:45px;font-size:13px}
+.tab:first-child{width:49px;font-weight:510}
+.tab .bg{position:absolute;left:-17px;top:-4px;width:80px;height:53px;z-index:-1}
+.toast{position:absolute;left:50%;bottom:150px;transform:translate(-50%,12px);background:#000;color:#fff;font-size:13px;padding:9px 14px;border-radius:16px;opacity:0;transition:all .3s;z-index:20;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>BRD-01 · Masthead and busy day</h1>
+  <p>Your v4 layout, working. Scroll the board: the masthead squeezes down to “My November” and opens back up when you scroll back up. Mon 2 is a busy day with the overflow folded into a stack. Tap <b>Expand</b>, then try the different ways to fold it back.</p>
+  <div class="rules">
+    <span>Prompt answers never go in the stack</span>
+    <span>Items keep posting order</span>
+    <span>Collapsed by height, about two rows</span>
+    <span>Tapping an item never collapses anything</span>
+  </div>
+  <div class="bar">
+    <label>Masthead opens</label>
+    <span class="seg" id="mode">
+      <button class="on" data-m="reveal">as soon as you scroll up</button>
+      <button data-m="top">only back at the top</button>
+    </span>
+    <span class="sep"></span>
+    <button class="primary" id="reset">Reset all</button>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  // ---------- demo data ----------
+  const DAYS = [
+    { id:'Sun 1', items:[
+      {t:'sticky', text:'first day of the month, no plans'},
+    ]},
+    { id:'Mon 2', busy:true, items:[
+      {t:'photo',  cap:'Rained all day'},
+      {t:'photo',  cap:'this is a picture'},
+      {t:'sticky', prompt:true, text:'Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays'},
+      {t:'folded', title:'short rant', body:'Watching this ever-so exciting movie that is about...'},
+      {t:'folded', title:'short rant', body:'Watching this ever-so exciting movie that is about...'},
+      {t:'sticky', pix:true, text:'bought way too many oranges'},
+      {t:'folded', title:'late thoughts', body:'It is almost midnight and i keep thinking about...'},
+      {t:'photo',  cap:'view from the bus'},
+    ]},
+    { id:'Tues 3', items:[
+      {t:'sticky', pix:true, text:'dentist at 9, then groceries'},
+      {t:'folded', title:'on being tired', body:'Some days the whole point is just getting through...'},
+    ]},
+    { id:'Wed 4', items:[
+      {t:'photo',  cap:'new desk setup'},
+      {t:'sticky', pix:true, text:'finally fixed the lamp'},
+      {t:'sticky', pix:true, text:'call mom sunday'},
+    ]},
+    { id:'Thurs 5', items:[] }
+  ];
+  const BUDGET = 380;                                    // a day shows about two rows before it stacks
+  const H = { photo:190, sticky:150, folded:156 };       // rough item heights for the rule
+  const MAST_FULL = 214, MAST_COMPACT = 101, RANGE = MAST_FULL - MAST_COMPACT;
+  const clamp = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+  let mode = 'reveal';
+  const phones = [];
+
+  // which items stay visible: fit the height budget in rows of two, and prompt answers always stay
+  function visibleSet(items){
+    const keep = new Set(); let used = 0;
+    for(let i=0;i<items.length;i+=2){
+      const row = items.slice(i,i+2);
+      const rh = Math.max(...row.map(it => H[it.t]));
+      if(used + rh > BUDGET && i>0) break;
+      used += rh; row.forEach((_,k)=>keep.add(i+k));
+    }
+    items.forEach((it,i)=>{ if(it.prompt) keep.add(i); });
+    return keep;
+  }
+
+  // ---------- item builders ----------
+  const rot = i => ([-2.4,1.8,-1.2,2.6,-2,1.4,-1.6,2.2][i%8]) + 'deg';
+  function buildItem(it,i){
+    const el = document.createElement('article');
+    el.className = 'item ' + it.t; el.style.setProperty('--r', rot(i)); el.dataset.i = i;
+    if(it.t==='photo') el.innerHTML = `<div class="img"></div><i class="pin"></i><div class="cap">${it.cap}</div>`;
+    if(it.t==='sticky'){ el.className += ' sticky' + (it.pix?' pix':''); el.innerHTML = `<i class="pin"></i>${it.text}${it.prompt?'<span class="tag">prompt</span>':''}`; }
+    if(it.t==='folded') el.innerHTML = `<h3>${it.title}</h3><div class="sn">${it.body}</div><div class="rt">1 min read</div><i class="pin"></i>`;
+    if(it.t==='photo'){ /* wrapper already .photo */ }
+    el.addEventListener('click', () => el.animate([{translate:'0'},{translate:'0 -4px'},{translate:'0'}],{duration:240,easing:'ease-out'}));
+    return el;
+  }
+
+  const TPL = {
+    pill:{ letter:'A', name:'“Stack back up” pill', pill:true, auto:false,
+      desc:'When a day is open, a pill sits right after its last item. Tap it and the items fly back into the stack, then the board nudges so the day label stays in view.',
+      tags:[['plus','Always clear how to close it'],['plus','You stay in control'],['minus','Pill is at the bottom, a long way from the top of a tall day']] },
+    auto:{ letter:'B', name:'Auto re-stack', pill:false, auto:true,
+      desc:'No button. Scroll past an open day and it quietly folds itself back up, with a small toast so nothing seems to vanish. The scroll position is adjusted so the board never jumps.',
+      tags:[['plus','Nothing to manage, feels tidy'],['plus','Board stays short'],['minus','Can surprise you if you scroll back up and it’s closed again']] },
+    both:{ letter:'C', name:'Both', pill:true, auto:true,
+      desc:'The pill for when you want to close it now, and auto re-stack for when you just walk away from it.',
+      tags:[['plus','Covers both habits'],['minus','Two ways to learn']] }
+  };
+
+  // ---------- phone ----------
+  function buildPhone(cfg){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `
+    <div class="frame"><div class="phone ${cfg.pill?'has-pill':''}">
+      <div class="board"><div class="scroller"><div class="content"></div></div></div>
+      <div class="mast">
+        <div class="sb"><span class="t">9:41</span><span class="n"></span><span class="r">
+          <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+          <img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+        <div class="mtitle">My November</div>
+        <button class="chip" data-chip><b></b>prompt answered</button>
+        <div class="cards">
+          <div class="card into"><div class="tx"><i>currently into:</i>pumpkin spice late</div></div>
+          <div class="card prompt"><div class="tx"><i>Nov. prompt</i>“your desk right now”</div><div class="thumb">Mon 2</div></div>
+        </div>
+        <div class="dots"><i></i><i></i></div>
+      </div>
+      <div class="cpill">Whats on your mind...</div>
+      <div class="tabbar">
+        <div class="tab"><img class="bg" src="assets/nav-active.svg" alt=""><img src="assets/note-2-text.svg" width="24" height="24" alt=""><span>bulletin</span></div>
+        <div class="tab"><img src="assets/emotion-wow.svg" width="24" height="24" alt=""><span>friends</span></div>
+        <div class="tab"><img src="assets/book.svg" width="24" height="24" alt=""><span>shelf</span></div>
+      </div>
+      <div class="toast"></div>
+    </div></div>
+    <h2><em>${cfg.letter}</em>${cfg.name}</h2>
+    <p>${cfg.desc}</p>
+    <div class="tags">${cfg.tags.map(([k,t])=>`<b class="${k}">${t}</b>`).join('')}</div>`;
+
+    const phone = cell.querySelector('.phone'), mast = cell.querySelector('.mast'), board = cell.querySelector('.board');
+    const scroller = cell.querySelector('.scroller'), content = cell.querySelector('.content');
+    const title = cell.querySelector('.mtitle'), cards = cell.querySelector('.cards'), dots = cell.querySelector('.dots'), chip = cell.querySelector('.chip');
+    const toast = cell.querySelector('.toast');
+
+    // days
+    DAYS.forEach(d => {
+      const day = document.createElement('section'); day.className='day'; day.dataset.id = d.id;
+      day.innerHTML = `<i class="dot"></i><h2>${d.id}</h2>`;
+      const items = document.createElement('div'); items.className='items';
+      if(!d.items.length){ day.insertAdjacentHTML('beforeend','<p class="empty">its kinda empty...</p>'); }
+      else {
+        d.items.forEach((it,i)=>items.appendChild(buildItem(it,i)));
+        if(d.busy){
+          const keep = visibleSet(d.items);
+          const over = d.items.map((_,i)=>i).filter(i=>!keep.has(i));
+          if(over.length){
+            over.forEach(i => items.children[i].classList.add('is-stacked','was-overflow'));
+            const st = document.createElement('div'); st.className='stackcard';
+            st.innerHTML = `<div class="l l1"></div><div class="l l2"></div><div class="l l3"><h3>short rant</h3><p>Watching this ever-so exciting movie that is about...</p></div><span class="cnt">+${over.length}</span><button class="go">Expand</button>`;
+            st.addEventListener('click', () => expand(day));
+            items.appendChild(st);
+            const rs = document.createElement('button'); rs.className='restack';
+            rs.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>Stack back up`;
+            rs.addEventListener('click', e => { e.stopPropagation(); collapse(day,{tidy:true}); });
+            items.appendChild(rs);
+            day.dataset.busy = '1';
+          }
+        }
+        day.appendChild(items);
+      }
+      content.appendChild(day);
+    });
+
+    // ---- masthead ----
+    let last = 0, p = 0, ignoreNext = false;
+    function applyMast(v){
+      p = v; const H = MAST_FULL - RANGE*p;
+      mast.style.height = H + 'px'; board.style.top = (H + 8) + 'px';
+      title.style.transform = `translateY(${-9*p}px)`;
+      const fade = clamp(1 - p*1.7);
+      cards.style.opacity = fade; dots.style.opacity = fade;
+      cards.style.transform = `translateY(${-14*p}px) scale(${1-.04*p})`;
+      cards.style.pointerEvents = fade < .2 ? 'none' : 'auto';
+      chip.style.opacity = clamp((p-.55)*2.2);
+      mast.classList.toggle('compact', p > .6);
+    }
+    function onScroll(){
+      const st = scroller.scrollTop, dy = st - last; last = st;
+      if(ignoreNext){ ignoreNext = false; }
+      else if(mode === 'top') applyMast(clamp(st / RANGE));
+      else { applyMast(st <= 0 ? 0 : clamp(p + dy / RANGE)); }
+      if(cfg.auto) checkAuto();
+    }
+    scroller.addEventListener('scroll', onScroll, {passive:true});
+    chip.addEventListener('click', () => scroller.scrollTo({top:0, behavior:'smooth'}));
+
+    // ---- stack / unstack ----
+    const ctr = (el, rel) => ({ x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 });
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function growTo(items, h0, h1){
+      items.style.height = h0 + 'px'; items.getBoundingClientRect();
+      items.style.transition = 'height .5s cubic-bezier(.2,.8,.2,1)'; items.style.height = h1 + 'px';
+      setTimeout(() => { items.style.transition = ''; items.style.height = ''; }, 540);
+    }
+
+    function expand(day, instant){
+      if(day.classList.contains('expanded')) return;
+      const items = day.querySelector('.items'), stack = items.querySelector('.stackcard');
+      const h0 = items.offsetHeight, from = ctr(stack);
+      day.classList.add('expanded');
+      items.querySelectorAll('.was-overflow').forEach(el => el.classList.remove('is-stacked'));
+      if(instant || reduce) return;
+      growTo(items, h0, items.offsetHeight);
+      items.querySelectorAll('.was-overflow').forEach((el,k) => {
+        const c = ctr(el);
+        el.animate([
+          { translate:`${from.x-c.x}px ${from.y-c.y}px`, scale:.55, opacity:0, rotate:'8deg' },
+          { translate:'0 0', scale:1, opacity:1, rotate: getComputedStyle(el).rotate }
+        ], { duration:560, delay:50 + k*55, easing:'cubic-bezier(.2,.9,.25,1.12)', fill:'backwards' });
+      });
+    }
+
+    function collapse(day, o={}){
+      if(!day.classList.contains('expanded')) return;
+      const items = day.querySelector('.items');
+      const h0 = items.offsetHeight, over = [...items.querySelectorAll('.was-overflow')];
+      const clones = over.map(el => {
+        const c = el.cloneNode(true);
+        c.style.cssText = `position:absolute;left:${el.offsetLeft}px;top:${el.offsetTop}px;width:${el.offsetWidth}px;margin:0;pointer-events:none;z-index:4`;
+        c.dataset.from = JSON.stringify(ctr(el)); return c;
+      });
+      day.classList.remove('expanded');
+      over.forEach(el => el.classList.add('is-stacked'));
+      const h1 = items.offsetHeight, stack = items.querySelector('.stackcard'), to = ctr(stack);
+
+      if(o.instant || reduce){
+        if(o.compensate){ ignoreNext = true; scroller.scrollTop -= (h0 - h1); last = scroller.scrollTop; }
+        return;
+      }
+      growTo(items, h0, h1);
+      clones.forEach((c,k) => {
+        items.appendChild(c); const f = JSON.parse(c.dataset.from);
+        c.animate([
+          { translate:'0 0', scale:1, opacity:1 },
+          { translate:`${to.x-f.x}px ${to.y-f.y}px`, scale:.55, opacity:0 }
+        ], { duration:380, delay:k*35, easing:'cubic-bezier(.5,0,.8,.4)', fill:'forwards' }).onfinish = () => c.remove();
+      });
+      stack.animate([{ scale:.8, opacity:0 },{ scale:1, opacity:1 }], { duration:340, delay:200, easing:'cubic-bezier(.2,.9,.25,1.2)', fill:'backwards' });
+      if(o.tidy){ // keep the day label in view after folding it up
+        setTimeout(() => { if(day.offsetTop < scroller.scrollTop + 8) scroller.scrollTo({ top: Math.max(0, day.offsetTop - 14), behavior:'smooth' }); }, 420);
+      }
+    }
+
+    // ---- auto re-stack when you walk away from an open day ----
+    function say(msg){ toast.textContent = msg; toast.classList.add('show'); clearTimeout(say.t); say.t = setTimeout(() => toast.classList.remove('show'), 2000); }
+    function checkAuto(){
+      const st = scroller.scrollTop, vh = scroller.clientHeight;
+      content.querySelectorAll('.day.expanded').forEach(day => {
+        const top = day.offsetTop, bottom = top + day.offsetHeight;
+        if(bottom < st - 80){ collapse(day,{instant:true, compensate:true}); say(`${day.dataset.id} stacked back up`); }
+        else if(top > st + vh + 60){ collapse(day,{instant:true}); }
+      });
+    }
+
+    // ---- reset ----
+    function reset(){
+      content.querySelectorAll('.day.expanded').forEach(d => collapse(d,{instant:true}));
+      scroller.scrollTop = 0; last = 0; applyMast(0);
+    }
+    phones.push({ reset, setMode(){ applyMast(mode==='top' ? clamp(scroller.scrollTop/RANGE) : p); } });
+    applyMast(0);
+    return cell;
+  }
+
+  const grid = document.getElementById('grid');
+  ['pill','auto','both'].forEach(k => grid.appendChild(buildPhone(TPL[k])));
+
+  document.getElementById('reset').addEventListener('click', () => phones.forEach(p => p.reset()));
+  document.querySelectorAll('#mode button').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.m;
+    document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+    phones.forEach(p => p.setMode());
+  }));
+})();
+</script>
+</body>
+</html>
