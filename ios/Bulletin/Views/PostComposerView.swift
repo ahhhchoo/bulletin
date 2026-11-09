@@ -14,10 +14,18 @@ struct PostComposerView: View {
     @State private var text = ""
     @State private var title = ""
     @FocusState private var focused: Bool
+    @FocusState private var captionFocused: Bool
 
-    // photo: one per post. Picking one swaps the sticky for a polaroid whose caption is the text.
+    // Two things you can make: write something, or pin a picture. They sit side by side as two cards;
+    // the one you are not on peeks in from the edge so you can always see the other option.
+    enum PageMode: Int { case write, picture, past }
+    private typealias Mode = PageMode
+    @State private var mode: Mode = .write
+    @State private var caption = ""
     @State private var pickedItem: PhotosPickerItem?
     @State private var photo: PostImage?
+    @State private var showPicker = false
+    @State private var showPast = false              // "from my posts": answer the prompt with an older post
 
     // paper state
     @State private var isPage = false
@@ -65,6 +73,22 @@ struct PostComposerView: View {
     private var isClip: Bool { editing?.isClipped ?? (dayID != store.todayID) }
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    /// Writing needs words; a picture needs a photo (its caption is optional).
+    private var canSubmit: Bool {
+        switch mode {
+        case .write: !trimmed.isEmpty
+        case .picture: photo != nil
+        case .past: false          // choosing from your posts happens in its own picker
+        }
+    }
+
+    /// The pages you can swipe through, left to right.
+    private var modes: [Mode] { answeringPrompt ? [.write, .picture, .past] : [.write, .picture] }
+    /// Editing a post is only ever about its words, so the picture side is not offered there.
+    private var offersPicture: Bool { editing == nil }
+
+    private var answeringPrompt: Bool { store.answeringPrompt && editing == nil }
+
     private var placeholder: String {
         if store.answeringPrompt { return "answer the prompt…" }
         return isClip ? "add to \(store.shortLabel(dayID))…" : "What’s on your mind?"
@@ -76,16 +100,28 @@ struct PostComposerView: View {
                 DayHeader(dayID: $dayID, isClip: isClip, editable: editing == nil)
                     .padding(.top, 2)
 
-                Group {
-                    if let photo { polaroid(photo) } else { paper }
+                if answeringPrompt {
+                    promptBlock
+                        .padding(.top, 14)
                 }
-                .padding(.top, 36)
+
+                pager
+                    .padding(.top, answeringPrompt ? 22 : 36)
 
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
             .background(Color("Paper"))
             .onGeometryChange(for: CGSize.self, of: \.size) { available = $0 }
+            // The switch is pinned just above the keyboard, so a longer caption can never push it around.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if offersPicture {
+                    modeSwitch
+                        .frame(maxWidth: .infinity)
+                        .opacity(isPage ? 0 : 1)                  // a long page owns the screen
+                        .allowsHitTesting(!isPage)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -94,13 +130,10 @@ struct PostComposerView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(editing != nil ? "Save" : (isClip ? "Clip" : "Pin"), action: editing != nil ? save : post)
                         .fontWeight(.semibold)
-                        .disabled(trimmed.isEmpty && photo == nil)
+                        .disabled(!canSubmit)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if editing == nil { PhotoChip(selection: $pickedItem, hasPhoto: photo != nil, enabled: !isPage) }
-            }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
@@ -108,27 +141,150 @@ struct PostComposerView: View {
         .tint(.black)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: landed)
         .sensoryFeedback(.success, trigger: store.postCount)
+        .sensoryFeedback(.selection, trigger: mode)
+        .photosPicker(isPresented: $showPicker, selection: $pickedItem, matching: .images)
+        .sheet(isPresented: $showPast) {
+            PastPostPicker { id in
+                store.answerPrompt(with: id)
+                dismiss()
+            }
+        }
         .onAppear { focused = true }
         .onChange(of: pickedItem) { _, item in
             guard let item else { return }
             Task { await attach(item) }
         }
-        .onChange(of: text) { _, new in
+        .onChange(of: caption) { _, new in
             // a caption is a short line, not a story
-            if photo != nil && new.count > 60 { text = String(new.prefix(60)) }
+            let flat = new.replacingOccurrences(of: "\n", with: " ")
+            if flat.count > 38 { caption = String(flat.prefix(38)) } else if flat != new { caption = flat }
         }
         .onChange(of: available) {
             // an opened page fills the room above the keyboard, whatever the device
             if isPage && paperSize.height > Metrics.stage1Height + 1 { paperSize = pageSize(stage: 2) }
         }
         .onChange(of: textHeight) { _, h in
-            guard photo == nil else { return }
+            guard mode == .write else { return }
             if !isPage && h > Metrics.stickyMaxTextHeight { setPage(true) }
             else if isPage && h <= Metrics.stickyMaxTextHeight - Metrics.switchBackSlack { setPage(false) }
         }
     }
 
-    // MARK: - photo
+    // MARK: - write | picture
+
+    /// Both cards, and swiping between the two (the switch itself is pinned above the keyboard).
+    private var pager: some View {
+        let shift = available.width / 2 + 18          // how far the other card sits off to the side
+        let peek: CGFloat = 0.608                     // the peeking card is about 60% size, as in the design
+
+        return VStack(spacing: 0) {
+            ZStack {
+                paper
+                    .modifier(PageSlot(mode: mode, own: .write, shift: shift, peek: peek, lift: 0))
+                    .allowsHitTesting(mode == .write)
+                    .accessibilityHidden(mode != .write)
+
+                if offersPicture && !isPage {
+                    pictureCard
+                        .modifier(PageSlot(mode: mode, own: .picture, shift: shift, peek: peek, lift: -12))
+                        .transition(.opacity)
+
+                    if answeringPrompt {
+                        pastCard
+                            .modifier(PageSlot(mode: mode, own: .past, shift: shift, peek: peek, lift: -12))
+                            .transition(.opacity)
+                    }
+                }
+            }
+            .frame(height: pagerHeight)
+            .contentShape(.rect)
+            .simultaneousGesture(swipe)
+        }
+    }
+
+    /// While answering the prompt, its text stays above the paper so you can see the question.
+    private var promptBlock: some View {
+        VStack(spacing: 6) {
+            PromptTag()
+            Text(store.prompt)
+                .font(Typo.scaled(17, .medium, relativeTo: .body))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Prompt: \(store.prompt)")
+    }
+
+    private var pagerHeight: CGFloat {
+        if isPage { return paperSize.height }
+        if mode == .picture, let photo { return pictureFaceHeight(photo) + 54 }   // room for a two-line caption
+        return Metrics.stickySide
+    }
+
+    private func pictureFaceHeight(_ image: PostImage) -> CGFloat {
+        min(Metrics.stickySide / image.pinAspect, answeringPrompt ? 236 : 290)     // keeps the photo's shape, but never crowds the keyboard
+    }
+
+    private var modeSwitch: some View {
+        HStack(spacing: 14) {
+            modeButton("write", .write)
+            modeButton("picture", .picture)
+            if answeringPrompt { modeButton("from my posts", .past) }
+        }
+        .frame(height: 48)
+        .frame(maxWidth: .infinity)
+        .background(Color("Paper").opacity(0.94))
+        .overlay(alignment: .top) { Rectangle().fill(.black.opacity(0.08)).frame(height: 0.5) }
+    }
+
+    private func modeButton(_ title: String, _ target: Mode) -> some View {
+        Button { go(target, opening: true) } label: {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(mode == target ? .black : .black.opacity(0.2))
+                .padding(10)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.25), value: mode)
+        .accessibilityAddTraits(mode == target ? .isSelected : [])
+    }
+
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onEnded { value in
+                guard offersPicture, !isPage,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.2 else { return }
+                guard let i = modes.firstIndex(of: mode) else { return }
+                // swiping only moves between pages; it never opens the photo picker by itself
+                if value.translation.width < -50, i + 1 < modes.count { go(modes[i + 1]) }
+                else if value.translation.width > 50, i > 0 { go(modes[i - 1]) }
+            }
+    }
+
+    /// `opening`: a tap on a label or on the peeking card opens its picker straight away. A swipe never does.
+    private func go(_ target: Mode, opening: Bool = false) {
+        guard target != mode, offersPicture else { return }
+        focused = false
+        captionFocused = false
+        withAnimation(.spring(duration: 0.5, bounce: 0.18)) { mode = target }
+        Task {
+            try? await Task.sleep(for: .milliseconds(420))      // let the cards finish sliding first
+            guard mode == target else { return }
+            switch target {
+            case .write: focused = true
+            case .picture:
+                if photo != nil { captionFocused = true }
+                else if opening { showPicker = true }           // tapping "picture" opens your photos right away
+            case .past:
+                if opening { showPast = true }
+            }
+        }
+    }
+
+    // MARK: - picture
 
     private func attach(_ item: PhotosPickerItem) async {
         defer { pickedItem = nil }
@@ -138,20 +294,41 @@ struct PostComposerView: View {
         withAnimation(.spring(duration: 0.5, bounce: 0.25)) { photo = image }
         // Focus the caption once the system picker has finished dismissing; before that it is ignored.
         try? await Task.sleep(for: .milliseconds(600))
-        focused = true
+        if mode == .picture { captionFocused = true }
     }
 
-    /// The photo as it will be pinned: a polaroid, with the caption slip across its bottom edge.
-    private func polaroid(_ image: PostImage) -> some View {
-        VStack(spacing: -12) {
-            Image(uiImage: image.uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: Metrics.stickySide, height: Metrics.stickySide)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 3))
-                .shadow(color: .black.opacity(0.14), radius: 5, y: 3)
-                .overlay(alignment: .topTrailing) {
+    /// The picture card: a gray polaroid you tap to choose a photo, which becomes your photo with a caption slip.
+    /// The same card is the one peeking in from the side while you are on "write".
+    private var pictureCard: some View {
+        let side = Metrics.stickySide
+        let height = photo.map(pictureFaceHeight) ?? side
+        let width = photo.map { height * $0.pinAspect } ?? side
+        let active = mode == .picture
+
+        return VStack(spacing: -12) {
+            ZStack {
+                if let photo {
+                    Image(uiImage: photo.uiImage).resizable().scaledToFill()
+                } else {
+                    Color(white: 0.871)                                  // #DEDEDE, the placeholder in the design
+                        .overlay {
+                            VStack(spacing: 8) {
+                                Image("PhotoGlyph").frame(width: 24, height: 24)
+                                Text("Choose a photo").font(Typo.pixel(14))
+                            }
+                            .foregroundStyle(.black.opacity(0.4))
+                            .opacity(active ? 1 : 0)
+                        }
+                }
+            }
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: photo == nil ? 2 : 3))
+            .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+            .contentShape(.rect)
+            .onTapGesture { if active { showPicker = true } else { go(.picture, opening: true) } }
+            .overlay(alignment: .topTrailing) {
+                if active, photo != nil {
                     Button {
                         withAnimation(.spring(duration: 0.4, bounce: 0.2)) { photo = nil }
                     } label: {
@@ -164,21 +341,53 @@ struct PostComposerView: View {
                     .padding(10)
                     .accessibilityLabel("Remove photo")
                 }
+            }
+            .accessibilityLabel(photo == nil ? "Choose a photo" : "Your photo")
+            .accessibilityAddTraits(.isButton)
 
-            TextField("Add a caption", text: $text)
-                .font(Typo.pixel(15))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.center)
-                .focused($focused)
-                .submitLabel(.done)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .frame(width: 214)
-                .background(.white)
-                .overlay(Rectangle().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
-                .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
+            if active, photo != nil {
+                TextField("Add a caption", text: $caption, axis: .vertical)
+                    .lineLimit(1...2)                                // grows to two lines, then stops
+                    .font(Typo.pixel(15))
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .focused($captionFocused)
+                    .submitLabel(.done)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(width: 214)
+                    .background(.white)
+                    .overlay(Rectangle().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
+                    .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
+                    .transition(.opacity)
+            }
         }
-        .transition(.scale(scale: 0.85).combined(with: .opacity))
+    }
+
+    /// "From my posts": a stack of your pinned notes. Tap it to choose one as your answer.
+    private var pastCard: some View {
+        let side = Metrics.stickySide
+        let active = mode == .past
+        return ZStack {
+            Color(white: 0.871)
+                .overlay {
+                    VStack(spacing: 8) {
+                        Image(systemName: "square.stack")
+                            .font(.system(size: 22, weight: .regular))
+                        Text("From my posts").font(Typo.pixel(14))
+                    }
+                    .foregroundStyle(.black.opacity(0.4))
+                    .opacity(active ? 1 : 0)
+                }
+        }
+        .frame(width: side, height: side)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 2))
+        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+        .contentShape(.rect)
+        .onTapGesture { if active { focused = false; captionFocused = false; showPast = true } else { go(.past, opening: true) } }
+        .accessibilityLabel("Choose from my posts")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - paper
@@ -338,12 +547,34 @@ struct PostComposerView: View {
     }
 
     private func post() {
-        store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage, photo: photo)
+        if mode == .picture, let photo {
+            store.addPost(title: "", body: caption, dayID: dayID, asJournal: false, photo: photo)
+        } else {
+            store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage)
+        }
         dismiss()
     }
 }
 
 // MARK: - pieces
+
+/// Where a page sits in the pager: centered when it is the current one, otherwise peeking in from its side
+/// (earlier pages to the left, later ones to the right), smaller and tilted.
+private struct PageSlot: ViewModifier {
+    let mode: PostComposerView.PageMode
+    let own: PostComposerView.PageMode
+    let shift: CGFloat
+    let peek: CGFloat
+    let lift: CGFloat
+
+    func body(content: Content) -> some View {
+        let rel = own.rawValue - mode.rawValue          // -1 = one page to the left, 1 = one to the right
+        content
+            .scaleEffect(rel == 0 ? 1 : peek)
+            .rotationEffect(.degrees(rel == 0 ? 0 : (rel < 0 ? 2.41 : -2.41)))
+            .offset(x: CGFloat(rel) * shift, y: rel == 0 ? 0 : lift)
+    }
+}
 
 /// The day marker (dotted line + pink dot) with the day label below. Tap the label to pick a past day.
 /// When editing, the day is fixed and the label is plain text.
@@ -402,32 +633,5 @@ private struct CreaseShade: View {
             LinearGradient(colors: [.black.opacity(0.10), .black.opacity(0)], startPoint: .top, endPoint: .bottom)
             Rectangle().fill(.black.opacity(0.14)).frame(height: 1)
         }
-    }
-}
-
-/// Opens the photo library (the system picker, so no permission prompt). One photo per post.
-private struct PhotoChip: View {
-    @Binding var selection: PhotosPickerItem?
-    let hasPhoto: Bool
-    let enabled: Bool
-
-    var body: some View {
-        HStack {
-            PhotosPicker(selection: $selection, matching: .images, photoLibrary: .shared()) {
-                HStack(spacing: 10) {
-                    Image("PhotoGlyph").frame(width: 24, height: 24)
-                    Text(hasPhoto ? "Change photo" : "Photo").font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundStyle(.black)
-                .padding(10)
-                .background(.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(PressableStyle())
-            .disabled(!enabled)
-            .opacity(enabled ? 1 : 0.35)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
     }
 }

@@ -11,7 +11,7 @@ struct PostView: View {
         let rotation = post.rotation * tilt
         switch post.kind {
         case .photo(let caption):
-            PhotoPost(caption: caption, rotation: rotation, image: post.image)
+            PhotoPost(caption: caption, rotation: rotation, image: post.image, isPromptAnswer: post.isPromptAnswer)
         case .sticky(let text):
             StickyPost(text: text, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated)
@@ -23,23 +23,27 @@ struct PostView: View {
 }
 
 /// A photo pinned like a polaroid: the picture with a white border, and a caption slip across its bottom edge.
-/// Seed photos have no image, so they show the placeholder color block from the design.
+/// The pin is as wide as always, and as tall as the picture needs: a portrait photo makes a taller pin, a
+/// landscape one a shorter pin. Seed photos have no image, so they show the placeholder color block.
 private struct PhotoPost: View {
     let caption: String
     let rotation: Double
     var image: PostImage?
+    var isPromptAnswer = false
 
-    private let side: CGFloat = 149.6
+    private var width: CGFloat { PhotoMetrics.pinWidth }
+    private var height: CGFloat { width / (image?.pinAspect ?? 1) }
 
     var body: some View {
         ZStack {
             picture
-                .frame(width: side, height: side)
+                .frame(width: width, height: height)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 2))
                 .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
                 .rotationEffect(.degrees(rotation))
                 .overlay(alignment: .top) { Pushpin().offset(y: -4).rotationEffect(.degrees(rotation)) }
+                .overlay(alignment: .topLeading) { if isPromptAnswer { PromptTag().offset(x: 4, y: -8) } }
 
             if !caption.isEmpty {
                 Text(caption)
@@ -49,10 +53,10 @@ private struct PhotoPost: View {
                     .background(.white)
                     .overlay(Rectangle().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
                     .rotationEffect(.degrees(rotation))
-                    .offset(x: 3.5, y: 85.7)
+                    .offset(x: 3.5, y: height / 2 + 10.7)      // across the bottom edge, as in the design
             }
         }
-        .frame(width: side, height: 185, alignment: .top)
+        .frame(width: width, height: height + 35.4, alignment: .top)
     }
 
     @ViewBuilder private var picture: some View {

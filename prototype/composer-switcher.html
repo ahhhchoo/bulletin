@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRD-04 — Where the switch lives</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink50:rgba(0,0,0,.5); --ink20:rgba(0,0,0,.2); --ink05:rgba(0,0,0,.05);
+  --mint:#aee0ce; --pink:#e55bb5; --kb:#d1d2d9; --keyshadow:#898a8d; --gray:#dedede;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+textarea{font:inherit;border:0;outline:0;background:none;resize:none;color:inherit;width:100%}
+
+header.page{max-width:1500px;margin:0 auto 22px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:780px;line-height:1.45}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0 0;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar label{color:#555}
+.bar .seg button,.bar .pill{padding:7px 13px;border-radius:999px;background:var(--ink05);font-weight:510;font-size:13px;margin-left:4px}
+.bar .seg button.on{background:#000;color:#fff}
+.bar .primary{background:#000;color:#fff;padding:8px 16px;border-radius:999px;font-weight:510}
+
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}
+.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#000;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);--sbc:#fff}
+
+.sb{position:absolute;inset:0 0 auto 0;height:44px;display:flex;align-items:center;padding:0 12px;z-index:30;pointer-events:none;color:var(--sbc)}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}.sb .r{flex:1;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-top:6px}
+.sb svg{fill:currentColor}
+.sheet{position:absolute;left:0;right:0;top:62px;bottom:0;background:var(--paper);border-radius:34px 34px 0 0}
+.glass{position:absolute;top:78px;height:44px;padding:0 22px;border-radius:999px;background:rgba(255,255,255,.9);box-shadow:0 6px 18px rgba(0,0,0,.08);font-size:17px;display:grid;place-items:center;z-index:6}
+.glass.cancel{left:16px}.glass.pin{right:16px;font-weight:600}
+.marker{position:absolute;left:197px;top:134px;width:8px;height:34.5px;z-index:2}
+.daylabel{position:absolute;left:0;right:0;top:177px;text-align:center;font-size:17px;font-weight:510;line-height:20px;z-index:2}
+.daylabel small{opacity:.35;font-size:11px;margin-left:6px}
+
+/* the two cards */
+.card{position:absolute;left:50%;top:0;transform-origin:50% 50%;transition:transform .5s cubic-bezier(.2,.9,.25,1.1),opacity .3s}
+.card.write{width:246px;height:246px;margin-left:-123px;background:var(--mint);border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.12);padding:16px 18px}
+.card.write textarea{font-size:17px;line-height:21.5px;font-weight:600;height:100%}
+.card.write textarea::placeholder{color:rgba(0,0,0,.28);opacity:1}
+.card.pic{width:246px;margin-left:-123px}
+.face{position:relative;margin:0 auto;border-radius:4px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.14);background:linear-gradient(160deg,#3fb0b5,#8d7be0 55%,#d8607f)}
+.face::after{content:"";position:absolute;left:38%;width:16%;top:0;bottom:0;background:rgba(255,220,90,.95)}
+.face .x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;z-index:2}
+.cap{display:block;margin:-12px auto 0;width:226px;background:#fff;border:.75px solid rgba(0,0,0,.15);box-shadow:0 1px 2px rgba(0,0,0,.06);padding:12px 14px;font-family:var(--pixel);font-size:15px;line-height:20px;text-align:center;overflow:hidden;position:relative;z-index:1;transition:height .2s}
+.cap::placeholder{color:rgba(0,0,0,.3);opacity:1}
+.cap.up{position:absolute;left:50%;margin-left:-113px;margin-top:0}
+
+/* the switch */
+.switch{position:absolute;left:0;right:0;display:flex;justify-content:center;gap:14px;z-index:5;transition:top .35s cubic-bezier(.2,.9,.25,1.05)}
+.switch button{padding:10px;font-size:16px;font-weight:600;color:var(--ink20);transition:color .2s}
+.switch button.on{color:#000}
+.switch.kbd{background:rgba(245,245,245,.92);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.08);padding:4px 0;height:52px;align-items:center;z-index:21}
+
+/* fake keyboard */
+.kb{position:absolute;left:0;right:0;bottom:0;height:291px;background:var(--kb);z-index:20;padding:8px 5px 0}
+.kb .row{display:flex;gap:6px;margin-bottom:12px;justify-content:center}
+.kb .row.r2{padding:0 19px}
+.kb .key{height:42px;border-radius:4.6px;background:#fff;box-shadow:0 1px 0 var(--keyshadow);display:grid;place-items:center;font-size:22.5px;flex:1;max-width:36px;user-select:none;cursor:pointer}
+.kb .key:active{background:#c8cad1}
+.kb .key.fn{background:#aab0bb;font-size:16px;max-width:none}
+.kb .key.shift{background:#fcfcfe;flex:0 0 44px}.kb .key.del{flex:0 0 44px}
+.kb .key.sp{flex:1;max-width:none;font-size:16px}.kb .key.k123,.kb .key.emoji{flex:0 0 42px}.kb .key.ret{flex:0 0 91px}
+.kb .row.r4{margin-bottom:0}
+.kb .home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:100px;background:#000}
+
+/* a guide line showing where the keyboard starts, and how much room is left */
+.room{position:absolute;left:0;right:0;top:583px;height:0;border-top:1.5px dashed rgba(229,91,181,.0);z-index:19;pointer-events:none}
+.overlap .room{border-top-color:rgba(229,91,181,.9)}
+.warn{position:absolute;left:0;right:0;top:560px;text-align:center;font-size:11px;font-weight:600;color:#c2318a;z-index:22;opacity:0;transition:opacity .2s;pointer-events:none}
+.overlap .warn{opacity:1}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>BRD-04 · Where should write | picture live?</h1>
+  <p>A caption can grow to two lines, and that pushes things down, sometimes right under the keyboard. Five places for the switch. Type in the caption of each (or press <b>Fill captions</b>), change the photo shape, and watch what moves. A pink line and “behind the keyboard” appear when something gets covered.</p>
+  <div class="bar">
+    <label>Photo shape</label>
+    <span class="seg" id="shapes">
+      <button data-s="portrait" class="on">portrait</button><button data-s="square">square</button><button data-s="landscape">landscape</button>
+    </span>
+    <span class="sep"></span>
+    <button class="primary" id="fill">Fill captions (2 lines)</button>
+    <button class="pill" id="short">Short caption</button>
+    <button class="pill" id="clear">Clear</button>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const SHAPES = { portrait:.66, square:1, landscape:1.5 };
+  const BOX = { w:246, h:240 };          // the photo preview is fitted inside this box
+  const LINE = 20, CAP_PAD = 24;
+  const KB_TOP = 583;
+  let shape = 'portrait';
+
+  const KEYS = ['qwertyuiop','asdfghjkl','zxcvbnm'];
+  const kbHTML = `
+    <div class="row">${[...KEYS[0]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row r2">${[...KEYS[1]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}</div>
+    <div class="row"><div class="key shift">⇧</div>${[...KEYS[2]].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('')}<div class="key fn del" data-del>⌫</div></div>
+    <div class="row r4"><div class="key fn k123">123</div><div class="key fn emoji">☺</div><div class="key sp" data-k=" ">space</div><div class="key fn ret">return</div></div>
+    <div class="home"></div>`;
+
+  const VARIANTS = [
+    { id:'below', letter:'A', name:'Under the card, following it',
+      desc:'What you have now. The switch sits right under the card, so when the caption grows to two lines the switch is pushed down with it.',
+      tags:[['plus','Always touching the card it controls'],['minus','Moves when you type, and can end up behind the keyboard']] },
+    { id:'keyboard', letter:'B', name:'Pinned above the keyboard',
+      desc:'The switch is a strip right above the keyboard. Nothing you type can move it, and it is always in the same place for your thumb.',
+      tags:[['plus','Never moves, never hidden'],['plus','Thumb-friendly'],['minus','Far from the card, and you lose the calm look of your frame']] },
+    { id:'reserved', letter:'C', name:'Under the card, room held for 2 lines',
+      desc:'The switch sits below the card, but the space for a two-line caption is always reserved, so it stays put as you type.',
+      tags:[['plus','Close to the card, and it doesn’t move'],['minus','A gap under the sticky on the write side'],['minus','Still low on the screen for a tall photo']] },
+    { id:'top', letter:'D', name:'Above the card, under the day',
+      desc:'The switch moves up between the day label and the card. The caption grows downward and pushes nothing that matters.',
+      tags:[['plus','Can’t be covered or pushed'],['plus','Reads like a header: what kind of post is this?'],['minus','Pushes the card down, so tall photos get tighter']] },
+    { id:'overlay', letter:'E', name:'Caption grows up over the photo',
+      desc:'The caption slip stays anchored to the photo’s bottom edge and grows upward over the picture. Nothing below moves, so the switch stays right under the card.',
+      tags:[['plus','Nothing moves, and the layout stays close to your frame'],['minus','The caption covers a little of the photo'],['minus','Differs from the board, where the slip sits across the edge']] }
+  ];
+
+  function build(v){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `
+    <div class="frame"><div class="phone" data-v="${v.id}" data-mode="picture">
+      <div class="sheet"></div>
+      <div class="sb"><span class="t">9:41</span><span class="n"></span><span class="r">
+        <svg width="20" height="14" viewBox="0 0 20 14"><rect x="16.8" y="1" width="3.2" height="12" rx="1"/><rect x="11.5" y="3.2" width="3.2" height="9.8" rx="1"/><rect x="6.2" y="6" width="3.2" height="7" rx="1"/><rect x=".9" y="8.4" width="3.2" height="4.6" rx="1"/></svg>
+        <img src="assets/wifi.svg" width="16" height="11" alt="" style="filter:invert(1)"><img src="assets/battery.svg" width="28" height="14" alt="" style="filter:invert(1)"></span></div>
+      <div class="glass cancel">Cancel</div><div class="glass pin">Pin</div>
+      <img class="marker" src="assets/day-marker.svg" alt="">
+      <div class="daylabel">Tues 11/3<small>▼</small></div>
+
+      <div class="card write"><textarea data-write placeholder="What’s on your mind?"></textarea></div>
+      <div class="card pic"><div class="face"><div class="x">✕</div></div><textarea class="cap" data-cap rows="1" placeholder="Add a caption"></textarea></div>
+
+      <div class="switch ${v.id==='keyboard'?'kbd':''}"><button data-m="write">write</button><button data-m="picture" class="on">picture</button></div>
+      <div class="room"></div><div class="warn">▼ behind the keyboard</div>
+      <div class="kb">${kbHTML}</div>
+    </div></div>
+    <h2><em>${v.letter}</em>${v.name}</h2>
+    <p>${v.desc}</p>
+    <div class="tags">${v.tags.map(([k,t])=>`<b class="${k}">${t}</b>`).join('')}</div>`;
+    const phone = cell.querySelector('.phone');
+    wire(phone, v);
+    return cell;
+  }
+
+  function wire(phone, v){
+    const write = phone.querySelector('.card.write'), pic = phone.querySelector('.card.pic');
+    const face = phone.querySelector('.face'), cap = phone.querySelector('[data-cap]'), sticky = phone.querySelector('[data-write]');
+    const sw = phone.querySelector('.switch');
+    const stageTop = v.id === 'top' ? 262 : 233;
+
+    function faceDims(){
+      const a = SHAPES[shape];
+      const w = Math.min(BOX.w, BOX.h * a), h = w / a;
+      return {w, h};
+    }
+    function capHeight(){
+      cap.style.height = 'auto';
+      let lines = Math.max(1, Math.min(2, Math.round((cap.scrollHeight - CAP_PAD) / LINE)));
+      // two lines at most: trim anything that would spill onto a third
+      while(cap.scrollHeight - CAP_PAD > LINE * 2 + 1 && cap.value.length){ cap.value = cap.value.slice(0, -1); }
+      cap.style.height = (CAP_PAD + LINE * lines) + 'px';
+      return CAP_PAD + LINE * lines;
+    }
+
+    function layout(){
+      const mode = phone.dataset.mode;
+      const {w, h} = faceDims();
+      face.style.width = w + 'px'; face.style.height = h + 'px';
+      const ch = capHeight();
+      const overlay = v.id === 'overlay';
+
+      // caption: under the photo (slip across its bottom edge), or growing upward over it
+      cap.classList.toggle('up', overlay);
+      if(overlay){ cap.style.top = (h - 12 + 34 - ch) + 'px'; }   // bottom edge stays put; grows upward
+      else cap.style.top = '';
+
+      // card blocks
+      write.style.top = stageTop + 'px';
+      pic.style.top = stageTop + 'px';
+      const picBlock = overlay ? h + 22 : h + ch - 12 + 6;
+      const block = mode === 'write' ? 246 : picBlock;
+
+      // peeking: the other card sits off to the side at 60% size
+      const shift = 201 + 18, peek = .608;
+      write.style.transform = mode === 'write' ? 'none' : `translateX(${-shift}px) scale(${peek}) rotate(2.41deg)`;
+      pic.style.transform   = mode === 'picture' ? 'none' : `translateX(${shift}px) translateY(-12px) scale(${peek}) rotate(-2.41deg)`;
+      pic.style.transformOrigin = '50% ' + (h/2) + 'px';
+      pic.querySelector('.x').style.display = mode === 'picture' ? '' : 'none';
+      cap.style.visibility = mode === 'picture' ? '' : 'hidden';
+      write.style.pointerEvents = mode === 'write' ? '' : 'none';
+
+      // where the switch goes
+      let top;
+      if(v.id === 'below')    top = stageTop + block + 18;
+      if(v.id === 'overlay')  top = stageTop + (mode === 'write' ? 246 : h + 22) + 18;
+      if(v.id === 'reserved') top = stageTop + 240 + 2*LINE + CAP_PAD - 12 + 6 + 18;
+      if(v.id === 'top')      top = 212;
+      if(v.id === 'keyboard') top = KB_TOP - 52;
+      sw.style.top = top + 'px';
+
+      // does anything land behind the keyboard?
+      const bottom = v.id === 'keyboard' ? stageTop + block : top + 40;
+      phone.classList.toggle('overlap', bottom > KB_TOP);
+    }
+
+    phone.addEventListener('click', e => {
+      const m = e.target.closest('[data-m]'); if(m){ phone.dataset.mode = m.dataset.m; sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === m)); layout(); (m.dataset.m==='write'?sticky:cap).focus({preventScroll:true}); return; }
+      const peekCard = e.target.closest('.card.pic');
+      if(peekCard && phone.dataset.mode === 'write'){ phone.querySelector('[data-m="picture"]').click(); return; }
+      const k = e.target.closest('.key[data-k]');
+      if(k){ const ta = phone.dataset.mode === 'write' ? sticky : cap; ta.value += k.dataset.k; ta.dispatchEvent(new Event('input')); return; }
+      if(e.target.closest('[data-del]')){ const ta = phone.dataset.mode === 'write' ? sticky : cap; ta.value = ta.value.slice(0,-1); ta.dispatchEvent(new Event('input')); }
+    });
+    cap.addEventListener('input', layout);
+    phone.__layout = layout; phone.__cap = cap;
+    layout();
+  }
+
+  const grid = document.getElementById('grid');
+  VARIANTS.forEach(v => grid.appendChild(build(v)));
+  const phones = () => [...document.querySelectorAll('.phone')];
+  const relayout = () => phones().forEach(p => p.__layout());
+
+  document.getElementById('shapes').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    shape = b.dataset.s;
+    document.querySelectorAll('#shapes button').forEach(x => x.classList.toggle('on', x === b));
+    relayout();
+  });
+  const setCaps = t => { phones().forEach(p => { p.__cap.value = t; }); relayout(); };
+  document.getElementById('fill').onclick  = () => setCaps('sunday at the lake with everyone, so cozy');
+  document.getElementById('short').onclick = () => setCaps('lake day');
+  document.getElementById('clear').onclick = () => setCaps('');
+})();
+</script>
+</body>
+</html>

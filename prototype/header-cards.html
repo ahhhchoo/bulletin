@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRD-01 — Into and prompt cards</title>
+<style>
+:root{
+  --paper:#f5f5f5; --mint:#aee0ce; --pink:#e55bb5; --kb:#d1d2d9; --keyshadow:#898a8d;
+  --into:#ececf1; --promptbg:#e4eaf5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;border:0;outline:0;background:none;color:inherit;width:100%}
+header.page{max-width:1500px;margin:0 auto 10px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:820px;line-height:1.45}
+.rules{max-width:1500px;margin:14px auto 0;background:#fff;border-radius:14px;padding:14px 18px;font-size:14px;line-height:1.55;color:#444}
+.rules b{color:#111}
+.section{max-width:1750px;margin:34px auto 0}
+.section h3{font-size:19px;font-weight:600;margin-bottom:2px}
+.section > p{font-size:14px;color:#666;margin-bottom:6px}
+.grid{display:flex;flex-wrap:wrap;gap:30px 28px}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:16px;font-weight:600;margin:12px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .hint{margin-top:8px;font-size:12.5px;color:#888}
+.cell .reset{margin:8px 2px 0;padding:5px 12px;border-radius:999px;background:#fff;font-size:12.5px;font-weight:510}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:40;pointer-events:none;font-weight:600;font-size:16px;padding:14px 0 0 34px}
+.screen{position:absolute;inset:0;display:none}
+.phone[data-s="board"] .s-board,.phone[data-s="edit"] .s-edit,.phone[data-s="sheet"] .s-sheet,
+.phone[data-s="compose"] .s-compose,.phone[data-s="past"] .s-past,.phone[data-s="after"] .s-board{display:block}
+
+/* ---------- board ---------- */
+.title{position:absolute;left:28px;top:70px;font-size:32px;font-weight:600;letter-spacing:-.6px}
+.cards{position:absolute;left:0;right:0;top:130px;height:100px;display:flex;gap:12px;padding:0 28px;overflow:hidden}
+.card{flex:0 0 300px;height:100px;border-radius:26px;padding:18px 22px;position:relative;text-align:left;transition:transform .3s}
+.card small{display:block;font-size:14px;color:rgba(0,0,0,.5);margin-bottom:3px}
+.card strong{font-weight:510;font-size:17px;line-height:1.2;display:block}
+.card.into{background:var(--into)}
+.card.prompt{background:var(--promptbg)}
+.card.prompt.open{background:transparent;border:1.5px dashed rgba(0,0,0,.28)}
+.card .plus{position:absolute;right:20px;top:50%;margin-top:-17px;width:34px;height:34px;border-radius:50%;border:1.5px dashed rgba(0,0,0,.35);display:grid;place-items:center;font-size:20px;color:rgba(0,0,0,.45);line-height:1}
+.card .thumb{position:absolute;right:16px;top:14px;width:58px;height:72px;border-radius:4px;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.15);transform:rotate(3deg);background:linear-gradient(160deg,#f3a56d,#d9619b)}
+.card .thumb.note{background:var(--mint)}
+.card .dots{position:absolute;right:14px;top:10px;font-size:18px;letter-spacing:1px;color:rgba(0,0,0,.35);padding:2px 6px}
+.card .edited{position:absolute;right:20px;bottom:12px;font-size:11.5px;color:rgba(0,0,0,.38)}
+.pdots{position:absolute;top:244px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.pdots i{width:22px;height:8px;border-radius:5px;background:rgba(0,0,0,.2)}.pdots i+i{width:8px;background:rgba(0,0,0,.1)}
+.pdots.second i{width:8px;background:rgba(0,0,0,.1)}.pdots.second i+i{width:22px;background:rgba(0,0,0,.2)}
+.sheetbg{position:absolute;left:0;right:0;top:272px;bottom:0;background:#fff;border-radius:34px 34px 0 0;overflow:hidden;transition:transform .5s cubic-bezier(.2,.9,.25,1)}
+.sheetbg .inner{padding:24px 28px;transition:transform .6s cubic-bezier(.2,.9,.25,1)}
+.day{font-size:17px;font-weight:510;color:rgba(0,0,0,.45);display:flex;align-items:center;gap:12px;margin:0 0 16px}
+.day::before{content:"";width:10px;height:10px;border-radius:50%;background:#000;margin-left:-4px}
+.posts{display:flex;gap:16px;margin:0 0 30px 12px;flex-wrap:wrap}
+.post{position:relative;width:156px;height:150px;border-radius:2px;background:var(--mint);padding:14px;font-family:var(--pixel);font-size:12.5px;line-height:1.4;box-shadow:0 2px 3px rgba(0,0,0,.12)}
+.post.photo{background:linear-gradient(160deg,#6bb6c9,#a68ae0);border:3px solid #fff;padding:0;height:130px}
+.post.photo span{position:absolute;left:10px;right:10px;bottom:-16px;background:#fff;padding:5px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.post .pin{position:absolute;left:50%;top:-6px;width:14px;height:14px;border-radius:50%;background:#e22;margin-left:-7px;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.post .tag{position:absolute;left:10px;top:-12px;background:#000;color:#fff;font:600 10px var(--ui);padding:3px 8px;border-radius:999px;letter-spacing:.2px}
+.post.pulse{animation:pulse 1.8s ease-out 1}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(229,91,181,.55),0 2px 3px rgba(0,0,0,.12)}35%{box-shadow:0 0 0 14px rgba(229,91,181,.25),0 2px 3px rgba(0,0,0,.12);transform:scale(1.04)}100%{box-shadow:0 0 0 24px rgba(229,91,181,0),0 2px 3px rgba(0,0,0,.12);transform:scale(1)}}
+.menu{position:absolute;right:30px;top:178px;z-index:30;background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;display:none}
+.menu.on{display:block}
+.menu button{display:block;padding:11px 18px;font-size:16px;border-radius:10px;text-align:left;white-space:nowrap}
+.menu button.del{color:#d33}
+
+/* ---------- dim + keyboard ---------- */
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:10}
+.kb{position:absolute;left:0;right:0;bottom:0;height:291px;background:var(--kb);z-index:20;padding:8px 5px 0}
+.kb .row{display:flex;gap:6px;margin-bottom:12px;justify-content:center}
+.kb .row.r2{padding:0 19px}
+.kb .key{height:42px;border-radius:4.6px;background:#fff;box-shadow:0 1px 0 var(--keyshadow);display:grid;place-items:center;font-size:22.5px;flex:1;max-width:36px;user-select:none;cursor:pointer}
+.kb .key:active{background:#c8cad1}
+.kb .key.fn{background:#aab0bb;font-size:16px;max-width:none}
+.kb .key.shift,.kb .key.del{flex:0 0 44px}
+.kb .key.sp{flex:1;max-width:none;font-size:16px}.kb .key.k123,.kb .key.emoji{flex:0 0 42px}.kb .key.ret{flex:0 0 91px}
+.kb .row.r4{margin-bottom:0}
+.kb .home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:100px;background:#000}
+
+/* ---------- A: inline edit ---------- */
+.s-edit .bgdim{position:absolute;inset:0;background:rgba(0,0,0,.28)}
+.editcard{position:absolute;left:16px;right:16px;top:130px;height:100px;border-radius:26px;background:#fff;padding:18px 22px;z-index:12;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.editcard small{display:block;font-size:14px;color:rgba(0,0,0,.5);margin-bottom:3px}
+.editcard input{font-size:19px;font-weight:510;border-bottom:1.5px solid #000;padding-bottom:3px}
+.editcard .done{position:absolute;right:20px;top:16px;font-weight:600;font-size:16px;padding:4px 8px}
+.earlier{position:absolute;left:16px;right:16px;top:248px;z-index:12}
+.earlier h4{font-size:13px;font-weight:510;color:#fff;opacity:.85;margin:0 8px 8px;letter-spacing:.2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(255,255,255,.92);border-radius:999px;padding:8px 14px;font-size:15px}
+.chip i{font-style:normal;color:rgba(0,0,0,.4);font-size:12.5px;margin-right:6px}
+
+/* ---------- B: sheet ---------- */
+.minisheet{position:absolute;left:0;right:0;bottom:291px;background:#fff;border-radius:28px 28px 0 0;z-index:15;padding:20px 24px 14px;box-shadow:0 -6px 30px rgba(0,0,0,.15)}
+.minisheet .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.minisheet .top b{font-size:16px;font-weight:600}
+.minisheet .top button{font-size:16px;padding:4px 6px;color:rgba(0,0,0,.5)}
+.minisheet .top button.save{color:#000;font-weight:600}
+.minisheet input{font-size:20px;font-weight:510;border:1.5px solid rgba(0,0,0,.15);border-radius:14px;padding:12px 14px;background:var(--paper)}
+.minisheet h4{font-size:13px;font-weight:510;color:rgba(0,0,0,.45);margin:16px 2px 8px}
+.timeline{display:flex;flex-direction:column;max-height:170px;overflow:hidden}
+.timeline div{display:flex;gap:14px;padding:8px 2px;border-top:1px solid rgba(0,0,0,.06);font-size:15.5px}
+.timeline div span{width:64px;color:rgba(0,0,0,.4);font-size:13.5px;padding-top:2px}
+.timeline div.now{font-weight:510}
+
+/* ---------- composer (C) ---------- */
+.glass{position:absolute;top:60px;height:44px;padding:0 22px;border-radius:999px;background:rgba(255,255,255,.9);box-shadow:0 6px 18px rgba(0,0,0,.08);font-size:17px;display:grid;place-items:center;z-index:6}
+.glass.l{left:16px}.glass.r{right:16px;font-weight:600}
+.glass.r.off{opacity:.35}
+.cmark{position:absolute;left:50%;margin-left:-4px;top:118px;width:8px;height:8px;border-radius:50%;background:var(--pink)}
+.cday{position:absolute;left:0;right:0;top:142px;text-align:center;font-size:17px;font-weight:510}
+.ptag{position:absolute;left:50%;transform:translateX(-50%);top:186px;width:290px;text-align:center;font-size:14px;color:rgba(0,0,0,.55);line-height:1.35}
+.ptag b{display:inline-block;background:#000;color:#fff;font:600 10px var(--ui);padding:3px 8px;border-radius:999px;margin-bottom:6px;letter-spacing:.2px}
+.ptag span{display:block;color:#000;font-weight:510;font-size:17px}
+.paper{position:absolute;left:50%;margin-left:-123px;top:272px;width:246px;height:246px;background:var(--mint);border-radius:2px;padding:16px 18px;font-size:17px;font-weight:500;line-height:21.5px;box-shadow:0 2px 5px rgba(0,0,0,.12);overflow:hidden;word-break:break-word}
+.paper .ph{color:rgba(0,0,0,.28)}
+.paper .caret{display:inline-block;width:1.5px;height:19px;background:#000;vertical-align:-3px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.pface{position:absolute;left:50%;margin-left:-100px;top:272px;width:200px;height:250px;border:3px solid #fff;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.14);background:linear-gradient(160deg,#f3a56d,#d9619b)}
+.pcap{position:absolute;left:50%;margin-left:-107px;top:496px;width:214px;background:#fff;border:.75px solid rgba(0,0,0,.15);padding:11px 14px;font-family:var(--pixel);font-size:15px;line-height:20px;text-align:center;color:rgba(0,0,0,.3)}
+.mswitch{position:absolute;left:0;right:0;bottom:291px;height:48px;display:flex;justify-content:center;gap:10px;align-items:center;background:rgba(245,245,245,.94);border-top:.5px solid rgba(0,0,0,.08);z-index:21}
+.mswitch button{padding:10px;font-size:16px;font-weight:600;color:rgba(0,0,0,.2)}
+.mswitch button.on{color:#000}
+
+/* ---------- past posts picker (D) ---------- */
+.pasthead{position:absolute;left:0;right:0;top:130px;text-align:center}
+.pasthead b{display:block;font-size:19px;font-weight:600}
+.pasthead span{font-size:14px;color:rgba(0,0,0,.5)}
+.pastgrid{position:absolute;left:20px;right:20px;top:200px;bottom:120px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;gap:18px 16px;align-content:start}
+.pastgrid .it{position:relative;cursor:pointer;transition:transform .2s}
+.pastgrid .it .post{width:100%;height:132px;font-size:11.5px;padding:11px}
+.pastgrid .it .post.photo{height:120px}
+.pastgrid .it label{display:block;font-size:12.5px;color:rgba(0,0,0,.45);margin-top:8px;text-align:center}
+.pastgrid .it.sel{transform:scale(1.05)}
+.pastgrid .it.sel::after{content:"✓";position:absolute;right:-6px;top:-8px;width:26px;height:26px;border-radius:50%;background:#000;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;z-index:3}
+.pastgrid .it.sel .post{outline:3px solid var(--pink);outline-offset:2px}
+.usebtn{position:absolute;left:50%;transform:translateX(-50%);bottom:58px;background:#000;color:#fff;padding:14px 26px;border-radius:999px;font-weight:600;font-size:16px;opacity:.25;pointer-events:none;z-index:8;transition:opacity .2s}
+.usebtn.on{opacity:1;pointer-events:auto}
+.pastbar{position:absolute;left:0;right:0;bottom:0;height:48px;display:none}
+.bar{position:absolute;left:0;right:0;bottom:18px;height:40px;display:flex;justify-content:center;gap:10px;align-items:center;z-index:7}
+.bar button{padding:10px;font-size:16px;font-weight:600;color:rgba(0,0,0,.2)}
+.bar button.on{color:#000}
+.note{position:absolute;left:20px;right:20px;top:760px;font-size:12.5px;color:rgba(0,0,0,.42);text-align:center}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>BRD-01 · The “Currently into” and prompt cards</h1>
+  <p>Click through each phone: tap the cards, type on the fake keyboard, pick things. “Reset” puts a phone back to its start.</p>
+</header>
+<div class="rules">
+  <b>What we decided:</b> tapping <b>Currently into</b> shows a small text field (free text), mid-month edits are fine, and old values are remembered so you can look back at each month.
+  The <b>prompt</b> opens the composer with the prompt text visible; you can answer with writing, a photo, or a post you already made. Only <b>one answer</b>; deleting it brings back the dashed “+”. Tapping an answered card scrolls to the post and gives it a <b>soft pulse that fades</b>.
+</div>
+
+<div class="section">
+  <h3>Currently into</h3>
+  <p>Two ways to edit it, and both show your past values.</p>
+  <div class="grid" id="g1"></div>
+</div>
+<div class="section">
+  <h3>Monthly prompt</h3>
+  <p>Answering it, answering with a post you already made, and what happens after.</p>
+  <div class="grid" id="g2"></div>
+</div>
+
+<script>
+(() => {
+  const PAST = [
+    {m:'October', v:'matcha and cozy games'},
+    {m:'September', v:'running in the morning'},
+    {m:'August', v:'film cameras'},
+    {m:'July', v:'learning guitar'}
+  ];
+  const PROMPT = 'What made you smile this week?';
+  const kbRow = s => [...s].map(k=>`<div class="key" data-k="${k}">${k.toUpperCase()}</div>`).join('');
+  const KB = `<div class="kb">
+    <div class="row">${kbRow('qwertyuiop')}</div><div class="row r2">${kbRow('asdfghjkl')}</div>
+    <div class="row"><div class="key fn shift">⇧</div>${kbRow('zxcvbnm')}<div class="key fn del" data-del>⌫</div></div>
+    <div class="row r4"><div class="key fn k123">123</div><div class="key fn emoji">☺</div><div class="key sp" data-k=" ">space</div><div class="key fn ret" data-ret>return</div></div>
+    <div class="home"></div></div>`;
+
+  function posts(answered){
+    return `<div class="day">Tues 3</div>
+      <div class="posts"><div class="post"><i class="pin"></i><span class="ph" style="opacity:.35">…</span></div></div>
+      <div class="day">Mon 2</div>
+      <div class="posts">
+        <div class="post photo" data-ans="1"><i class="pin"></i>${answered?'<b class="tag">prompt</b>':''}<span>lake day</span></div>
+        <div class="post"><i class="pin"></i>Watching this ever-so exciting movie about a group of…</div>
+      </div>
+      <div class="day">Sun 1</div>
+      <div class="posts"><div class="post"><i class="pin"></i>pumpkin carving night</div></div>`;
+  }
+  function board(o){
+    // o: into, prompt: 'open' | 'answered', thumb: 'photo'|'note', edited
+    const p = o.prompt === 'open'
+      ? `<div class="card prompt open" data-act="answer"><small>this month’s prompt</small><strong>${PROMPT}</strong><span class="plus">+</span></div>`
+      : `<div class="card prompt" data-act="goto"><small>this month’s prompt · answered ${o.day||'Mon 2'}</small><strong>${PROMPT}</strong><span class="thumb ${o.thumb==='note'?'note':''}"></span><span class="dots" data-act="menu">•••</span></div>`;
+    return `<div class="title">My November</div>
+      <div class="cards"><div class="card into" data-act="into"><small>currently into:</small><strong data-into>${o.into}</strong>${o.edited?'<span class="edited">updated today</span>':''}</div>${p}</div>
+      <div class="pdots ${o.second?'second':''}"><i></i><i></i></div>
+      <div class="sheetbg"><div class="inner">${posts(o.prompt!=='open')}</div></div>
+      <div class="menu"><button class="del" data-act="remove">Remove answer</button><button data-act="menuclose">Cancel</button></div>`;
+  }
+
+  const COMPOSE = `      <div class="screen s-compose">
+        <div class="glass l" data-act="cancel">Cancel</div><div class="glass r off" data-pin>Pin</div>
+        <div class="cmark"></div><div class="cday">Tues 11/3</div>
+        <div class="ptag"><b>PROMPT</b><span>${PROMPT}</span></div>
+        <div class="paper" data-paper><span class="ph" data-ph>your answer…</span><span data-typed></span><i class="caret"></i></div>
+        <div class="mswitch"><button class="on" data-m="write">write</button><button data-m="picture">picture</button><button data-m="past">from my posts</button></div>
+        ${KB}
+      </div>`;
+  const TEMPLATES = {
+    /* ---------------- A ---------------- */
+    A(){ return {
+      start:{into:'pumpkin spice latte', prompt:'open'},
+      html:(st)=>`
+      <div class="screen s-board"></div>
+      <div class="screen s-edit">
+        <div class="bgdim"></div>
+        <div class="editcard"><small>currently into:</small><input data-input value="" placeholder="what are you into?"><button class="done" data-act="save">Done</button></div>
+        <div class="earlier"><h4>WHAT YOU WERE INTO · tap to reuse</h4><div class="chips">${PAST.slice(0,3).map(p=>`<button class="chip" data-reuse="${p.v}"><i>${p.m.slice(0,3)}</i>${p.v}</button>`).join('')}<button class="chip" data-act="showall" style="opacity:.8"><i>…</i>see all months</button></div></div>
+        ${KB}
+      </div>`,
+      hint:'Tap the “currently into” card. The card lifts into a text field right where it is.'
+    };},
+    /* ---------------- B ---------------- */
+    B(){ return {
+      start:{into:'pumpkin spice latte', prompt:'open'},
+      html:(st)=>`
+      <div class="screen s-board"></div>
+      <div class="screen s-sheet">
+        <div class="dim"></div>
+        <div class="minisheet">
+          <div class="top"><button data-act="cancel">Cancel</button><b>Currently into</b><button class="save" data-act="save">Save</button></div>
+          <input data-input value="" placeholder="what are you into?">
+          <h4>LOOKING BACK</h4>
+          <div class="timeline">
+            <div class="now"><span>November</span><b style="font-weight:510" data-nowtxt>pumpkin spice latte</b></div>
+            ${PAST.map(p=>`<div><span>${p.m}</span>${p.v}</div>`).join('')}
+          </div>
+        </div>
+        ${KB}
+      </div>`,
+      hint:'Tap the “currently into” card. A small sheet rises above the keyboard with a field and your month-by-month history.'
+    };},
+    /* ---------------- C ---------------- */
+    C(){ return {
+      start:{into:'pumpkin spice latte', prompt:'open'},
+      html:()=>`
+      <div class="screen s-board"></div>
+      ${COMPOSE}`,
+      hint:'Tap the dashed “+” card. The prompt stays visible above the paper, and a third option, “from my posts”, sits next to write and picture. Type with the keyboard, then Pin.'
+    };},
+    /* ---------------- D ---------------- */
+    D(){ return {
+      start:{into:'pumpkin spice latte', prompt:'open'},
+      html:()=>`
+      <div class="screen s-board"></div>
+      ${COMPOSE}
+      <div class="screen s-past">
+        <div class="glass l" data-act="cancel">Cancel</div><div class="glass r off" data-pin>Use</div>
+        <div class="pasthead"><b>Answer with a post you made</b><span>${PROMPT}</span></div>
+        <div class="pastgrid">
+          <div class="it" data-pick="photo"><div class="post photo"><i class="pin"></i><span>lake day</span></div><label>Mon 2</label></div>
+          <div class="it" data-pick="note"><div class="post"><i class="pin"></i>Watching this ever-so exciting movie…</div><label>Mon 2</label></div>
+          <div class="it" data-pick="note"><div class="post"><i class="pin"></i>pumpkin carving night</div><label>Sun 1</label></div>
+          <div class="it" data-pick="photo"><div class="post photo" style="background:linear-gradient(160deg,#f3d27a,#e0896b)"><i class="pin"></i><span>sunset walk</span></div><label>Oct 31</label></div>
+        </div>
+        <div class="usebtn" data-act="use">Use this post</div>
+        <div class="bar"><button data-m="write">write</button><button data-m="picture">picture</button><button class="on" data-m="past">from my posts</button></div>
+      </div>`,
+      hint:'Tap the dashed “+”, then switch to “from my posts”. Pick a note or photo you already pinned this month; it stays on its own day and gets a prompt tag.'
+    };},
+    /* ---------------- E ---------------- */
+    E(){ return {
+      start:{into:'pumpkin spice latte', prompt:'answered', thumb:'photo'},
+      html:()=>`<div class="screen s-board"></div>`,
+      hint:'Tap the answered card: the board scrolls to your answer, which pulses softly and fades. Tap “•••” to remove the answer; the card goes back to the dashed “+”.'
+    };}
+  };
+  const TITLES = {
+    A:['A','Edit in place','The card turns into a text field where it sits. Past values show as chips you can tap to reuse.'],
+    B:['B','Small sheet with history','A small sheet above the keyboard with the field and a month-by-month list to look back on.'],
+    C:['C','Answering the prompt','The composer shows the prompt text. “from my posts” joins write and picture.'],
+    D:['D','Answer with an older post','Pick something you already pinned. It stays where it is and gets the prompt tag.'],
+    E:['E','After answering','Tap to jump to it (soft pulse), or remove it to get the dashed “+” back.']
+  };
+
+  function make(id, host){
+    const t = TEMPLATES[id](); let st = {...t.start}; let typed='';
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-s="board"><div class="sb">9:41</div></div></div>
+      <h2><em>${TITLES[id][0]}</em>${TITLES[id][1]}</h2><p>${TITLES[id][2]}</p><div class="hint">${t.hint}</div><button class="reset">Reset</button>`;
+    host.appendChild(cell);
+    const phone = cell.querySelector('.phone');
+    const wrap = document.createElement('div'); wrap.innerHTML = t.html(st);
+    [...wrap.children].forEach(c=>phone.appendChild(c));
+    const boardEl = phone.querySelector('.s-board');
+    let picked=null, mode='write';
+
+    function paintBoard(){ boardEl.innerHTML = board(st); }
+    function go(s){ phone.dataset.s = s;
+      if(s==='edit'||s==='sheet'){ const i=phone.querySelector(`.s-${s} [data-input]`); i.value=st.into; const n=phone.querySelector('[data-nowtxt]'); if(n) n.textContent=st.into; }
+    }
+    function type(ch){
+      const s=phone.dataset.s;
+      if(s==='edit'||s==='sheet'){ const i=phone.querySelector(`.s-${s} [data-input]`); i.value+=ch; const n=phone.querySelector('[data-nowtxt]'); if(n) n.textContent=i.value; }
+      if(s==='compose'){ typed+=ch; phone.querySelector('[data-typed]').textContent=typed; phone.querySelector('[data-ph]').style.display=typed?'none':''; phone.querySelector('[data-pin]').classList.toggle('off', !typed.trim()); }
+    }
+    function del(){
+      const s=phone.dataset.s;
+      if(s==='edit'||s==='sheet'){ const i=phone.querySelector(`.s-${s} [data-input]`); i.value=i.value.slice(0,-1); const n=phone.querySelector('[data-nowtxt]'); if(n) n.textContent=i.value; }
+      if(s==='compose'){ typed=typed.slice(0,-1); phone.querySelector('[data-typed]').textContent=typed; phone.querySelector('[data-ph]').style.display=typed?'none':''; phone.querySelector('[data-pin]').classList.toggle('off', !typed.trim()); }
+    }
+    function pulse(){
+      const inner = phone.querySelector('.sheetbg .inner');
+      inner.style.transform='translateY(-150px)';
+      setTimeout(()=>{ const p = inner.querySelector('.post.photo'); if(p){ p.classList.remove('pulse'); void p.offsetWidth; p.classList.add('pulse'); } }, 650);
+    }
+    function reset(){ st={...t.start}; typed=''; picked=null; phone.querySelector('[data-typed]') && (phone.querySelector('[data-typed]').textContent=''); const ph=phone.querySelector('[data-ph]'); if(ph) ph.style.display=''; phone.querySelectorAll('.pastgrid .it').forEach(x=>x.classList.remove('sel')); const ub=phone.querySelector('.usebtn'); ub&&ub.classList.remove('on'); paintBoard(); go('board'); }
+
+    phone.addEventListener('click', e=>{
+      const k = e.target.closest('.key[data-k]'); if(k){ type(k.dataset.k); return; }
+      if(e.target.closest('[data-del]')){ del(); return; }
+      if(e.target.closest('[data-ret]')){ const a=phone.dataset.s; if(a==='edit'||a==='sheet') save(); return; }
+      const r = e.target.closest('[data-reuse]'); if(r){ phone.querySelector('.s-edit [data-input]').value=r.dataset.reuse; return; }
+      const m = e.target.closest('[data-m]'); if(m){ if(m.dataset.m==='past') go('past'); else if(m.dataset.m==='write') go('compose'); else if(m.dataset.m==='picture'){ st.prompt='answered'; st.thumb='photo'; paintBoard(); go('after'); } return; }
+      const pk = e.target.closest('[data-pick]'); if(pk){ phone.querySelectorAll('.pastgrid .it').forEach(x=>x.classList.remove('sel')); pk.classList.add('sel'); picked=pk.dataset.pick; phone.querySelector('.usebtn').classList.add('on'); phone.querySelector('[data-pin]').classList.remove('off'); return; }
+      const a = e.target.closest('[data-act]'); const act = a && a.dataset.act;
+      if(e.target.closest('[data-pin]') && !e.target.closest('[data-pin]').classList.contains('off')){
+        if(phone.dataset.s==='compose'){ st.prompt='answered'; st.thumb='note'; paintBoard(); go('after'); }
+        else if(picked){ useIt(); } return; }
+      if(!act) return;
+      if(act==='into'){ go(id==='B'?'sheet':'edit'); }
+      else if(act==='save'){ save(); }
+      else if(act==='cancel'){ paintBoard(); go('board'); }
+      else if(act==='answer'){ go('compose'); }
+      else if(act==='use'){ useIt(); }
+      else if(act==='goto'){ if(e.target.closest('[data-act="menu"]')) return; pulse(); }
+      else if(act==='menu'){ phone.querySelector('.menu').classList.add('on'); }
+      else if(act==='menuclose'){ phone.querySelector('.menu').classList.remove('on'); }
+      else if(act==='remove'){ st.prompt='open'; paintBoard(); }
+      else if(act==='showall'){ go('sheet'); }
+    });
+    function save(){ const s=phone.dataset.s; const i=phone.querySelector(`.s-${s} [data-input]`); if(i && i.value.trim()){ st.edited = i.value.trim()!==t.start.into; st.into=i.value.trim(); } paintBoard(); go('board'); }
+    function useIt(){ st.prompt='answered'; st.thumb=picked==='note'?'note':'photo'; st.day='Mon 2'; paintBoard(); go('after'); setTimeout(pulse,400); }
+    cell.querySelector('.reset').onclick = reset;
+    paintBoard();
+  }
+
+  ['A','B'].forEach(i=>make(i, document.getElementById('g1')));
+  ['C','D','E'].forEach(i=>make(i, document.getElementById('g2')));
+})();
+</script>
+</body>
+</html>

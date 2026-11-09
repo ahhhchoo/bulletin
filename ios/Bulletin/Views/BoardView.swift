@@ -3,12 +3,12 @@ import SwiftUI
 /// BRD-01 Board / today
 struct BoardView: View {
     @Environment(BoardStore.self) private var store
-    @State private var showComposer = false
     /// 0 = masthead fully open, 1 = squeezed down to the title bar. Driven by scrolling the board.
     @State private var squeeze: CGFloat = 0
     @State private var scrollToTop = 0
     @State private var captionDraft = ""
     @State private var deleteTitle = "Delete this?"      // kept while the dialog fades out
+    @State private var editingInto = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -22,17 +22,20 @@ struct BoardView: View {
                 BoardSheet(squeeze: $squeeze, scrollToTop: scrollToTop)
             }
 
-            HeaderView(squeeze: squeeze, onChipTap: promptChipTapped)
+            HeaderView(squeeze: squeeze, onChipTap: promptChipTapped, onIntoTap: { withAnimation(.snappy(duration: 0.25)) { editingInto = true } })
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            ComposerPill { showComposer = true }
-                .padding(.bottom, 8)
+        .overlay {
+            if editingInto {
+                IntoEditor { withAnimation(.snappy(duration: 0.3)) { editingInto = false } }
+                    .transition(.opacity)
+            }
         }
-        .sheet(isPresented: $showComposer, onDismiss: { store.answeringPrompt = false }) {
+        .toolbarVisibility(editingInto ? .hidden : .automatic, for: .tabBar)
+        .sheet(isPresented: composing, onDismiss: { store.answeringPrompt = false }) {
             PostComposerView(todayID: store.todayID)
         }
         .onChange(of: store.answeringPrompt) { _, answering in
-            if answering { showComposer = true }
+            if answering { store.isComposing = true }
         }
         // tap a sticky or photo: it opens as a card in place
         .overlay {
@@ -77,6 +80,10 @@ struct BoardView: View {
         }
     }
 
+    private var composing: Binding<Bool> {
+        Binding(get: { store.isComposing }, set: { store.isComposing = $0 })
+    }
+
     /// A Bool view of "is this request set", for sheets, alerts and dialogs. Clearing it clears the request.
     private func flag(_ path: ReferenceWritableKeyPath<BoardStore, Post.ID?>) -> Binding<Bool> {
         Binding(get: { store[keyPath: path] != nil }, set: { if !$0 { store[keyPath: path] = nil } })
@@ -90,10 +97,10 @@ struct BoardView: View {
         }
     }
 
-    /// Unanswered: point the next post at the prompt. Answered: open the masthead back up.
+    /// Unanswered: point the next post at the prompt. Answered: jump to the answer.
     private func promptChipTapped() {
-        if store.promptAnswerID == nil { store.answeringPrompt = true }
-        else { scrollToTop += 1 }
+        if let id = store.promptAnswerID { store.highlightRequest = id }
+        else { store.answeringPrompt = true }
     }
 }
 
@@ -106,6 +113,7 @@ private struct HeaderView: View {
     @State private var page: Int? = 0
     let squeeze: CGFloat                // 0...1
     let onChipTap: () -> Void
+    let onIntoTap: () -> Void
 
     // content heights below the status bar (design: 214 and 101 in total with the 44pt status bar)
     static let fullHeight: CGFloat = 170
@@ -124,10 +132,16 @@ private struct HeaderView: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 5) {
                     HeaderCard(background: "CardInto", tag: 0) {
-                        CardText(label: "currently into:", value: store.currentlyInto)
+                        Button(action: onIntoTap) {
+                            CardText(label: "currently into:", value: store.currentlyInto)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(PressableStyle())
+                        .accessibilityHint("Change what you are into")
                     }
                     HeaderCard(background: "CardPrompt", tag: 1) {
-                        PromptCardContent()
+                        PromptCardContent(onTap: onChipTap)
                     }
                 }
                 .scrollTargetLayout()
@@ -228,14 +242,65 @@ private struct CardText: View {
 
 private struct PromptCardContent: View {
     @Environment(BoardStore.self) private var store
+    let onTap: () -> Void
 
     var body: some View {
-        HStack {
-            CardText(label: "this month's prompt:", value: store.prompt)
-            Spacer(minLength: 0)
-            PromptButton()
-                .padding(.trailing, 16)
+        let answer = store.promptAnswerID.flatMap { store.post($0) }
+        HStack(spacing: 0) {
+            Button(action: onTap) {
+                HStack {
+                    CardText(label: "this month's prompt:", value: store.prompt)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxHeight: .infinity)
+                .contentShape(.rect)
+            }
+            .buttonStyle(PressableStyle())
+
+            if let answer {
+                AnswerThumb(post: answer)
+                    .padding(.trailing, 6)
+                    .onTapGesture(perform: onTap)
+                Menu {
+                    Button("Show my answer", systemImage: "arrow.down.to.line", action: onTap)
+                    Button("Remove answer", systemImage: "xmark", role: .destructive) {
+                        withAnimation(.snappy) { store.removePromptAnswer() }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.4))
+                        .frame(width: 30, height: 44)
+                        .contentShape(.rect)
+                }
+                .padding(.trailing, 8)
+                .accessibilityLabel("Prompt answer options")
+            } else {
+                PromptButton()
+                    .padding(.trailing, 16)
+            }
         }
+    }
+}
+
+/// A tiny pinned copy of your answer, shown on the prompt card once you've answered.
+private struct AnswerThumb: View {
+    let post: Post
+
+    var body: some View {
+        Group {
+            if let image = post.image?.uiImage {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Color("Sticky")
+            }
+        }
+        .frame(width: 40, height: 50)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.white, lineWidth: 2))
+        .shadow(color: .black.opacity(0.14), radius: 2, y: 1)
+        .rotationEffect(.degrees(3))
+        .accessibilityLabel("Your answer")
     }
 }
 
@@ -243,32 +308,24 @@ private struct PromptButton: View {
     @Environment(BoardStore.self) private var store
 
     var body: some View {
-        let answered = store.promptAnswerID != nil
         Button {
-            guard !answered else { return }
             withAnimation(.snappy) { store.answeringPrompt = true }
         } label: {
-            ZStack {
-                if answered {
-                    Circle().fill(Color("Sticky"))
-                    Text("Tue 3").font(.system(size: 11, weight: .medium))
-                } else {
-                    Circle()
-                        .strokeBorder(.black.opacity(0.35), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+            Circle()
+                .strokeBorder(.black.opacity(0.35), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+                .overlay {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(.black.opacity(0.5))
                 }
-            }
-            .frame(width: 40, height: 40)
-            .contentTransition(.symbolEffect(.replace))
+                .frame(width: 40, height: 40)
         }
         .buttonStyle(PressableStyle())
-        .accessibilityLabel(answered ? "Prompt answered" : "Answer the prompt")
+        .accessibilityLabel("Answer the prompt")
     }
 }
 
-private struct PageDots: View {
+struct PageDots: View {
     let current: Int
     let count: Int
 
@@ -307,8 +364,9 @@ private struct BoardSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Color.clear.frame(height: 0).id("board-top")
-                    ForEach(store.days) { day in
-                        DayRow(day: day, isLast: day.id == store.days.last?.id)
+                    // newest day at the top, oldest at the bottom
+                    ForEach(store.days.reversed()) { day in
+                        DayRow(day: day, isLast: day.id == store.days.first?.id)
                             .id("day-\(day.id)")
                     }
                 }
@@ -318,7 +376,7 @@ private struct BoardSheet: View {
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
-            .contentMargins(.bottom, 150, for: .scrollContent)   // lets the last day scroll up above the pill and tab bar
+            .contentMargins(.bottom, 110, for: .scrollContent)   // lets the last day scroll up above the tab bar
             .onScrollGeometryChange(for: Metrics.self) { g in
                 Metrics(y: g.contentOffset.y + g.contentInsets.top,
                         // Where the board really ends. (Adding contentInsets.bottom here put "the end" past the
@@ -363,6 +421,17 @@ private struct BoardSheet: View {
                     }
                 }
             }
+            .onChange(of: store.highlightRequest) { _, id in
+                guard let id else { return }
+                store.highlightRequest = nil
+                Task {
+                    try? await Task.sleep(for: .milliseconds(450))     // let a closing composer get out of the way
+                    lockedUntil = Date.now.addingTimeInterval(1.2)
+                    withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo(id, anchor: .center) }
+                    try? await Task.sleep(for: .milliseconds(650))
+                    store.highlightedPostID = id
+                }
+            }
             .onChange(of: scrollToTop) {
                 withAnimation(.smooth(duration: 0.5)) { proxy.scrollTo("board-top", anchor: .top) }
             }
@@ -385,11 +454,19 @@ private struct DayRow: View {
                 .foregroundStyle(.black.opacity(0.5))
                 .frame(height: 17)
 
+            // "Whats on your mind" sits in today's row, right under its label, instead of floating over the board
+            if day.id == store.todayID {
+                ComposerPill { store.isComposing = true }
+                    .padding(.top, 14)
+                    .padding(.leading, 8)
+            }
+
             if day.posts.isEmpty {
                 Text("its kinda empty...")
                     .font(Typo.scaled(14, .regular, relativeTo: .subheadline).italic())
                     .foregroundStyle(.black.opacity(0.5))
-                    .padding(.top, 5)
+                    .padding(.top, day.id == store.todayID ? 16 : 5)   // clear of the button in today's row
+                    .padding(.leading, day.id == store.todayID ? 8 : 0)
                     .transition(.opacity)
             } else {
                 busyAwarePosts

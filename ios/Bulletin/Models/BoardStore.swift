@@ -1,9 +1,20 @@
 import SwiftUI
 
+enum PhotoMetrics {
+    /// Photos are pinned at a fixed width; their height follows the picture's shape.
+    static let pinWidth: CGFloat = 149.6
+}
+
 /// A photo on a post. Wraps the image so `Post` can stay Hashable (identity is the id).
 struct PostImage: Hashable, Identifiable {
     let id = UUID()
     let uiImage: UIImage
+
+    /// Width over height, as shot.
+    var aspect: CGFloat { uiImage.size.width / max(uiImage.size.height, 1) }
+    /// The shape it is pinned at: the photo's own, but kept within a tall portrait and a wide panorama,
+    /// so one extreme photo can't break a day's layout (the picture is cropped a little at the extremes).
+    var pinAspect: CGFloat { min(max(aspect, 0.66), 1.6) }
 
     static func == (lhs: PostImage, rhs: PostImage) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
@@ -42,11 +53,17 @@ struct Post: Identifiable, Hashable {
     /// Rough height on the board, used to decide when a day gets busy. Close enough beats measuring.
     var estimatedHeight: CGFloat {
         switch kind {
-        case .photo: 190
+        case .photo: (PhotoMetrics.pinWidth / (image?.pinAspect ?? 1)) + 40   // picture plus the caption slip
         case .sticky: 150
         case .journal: 156
         }
     }
+}
+
+struct IntoEntry: Identifiable, Hashable {
+    let id = UUID()
+    var month: String
+    var text: String
 }
 
 struct BoardDay: Identifiable {
@@ -73,11 +90,27 @@ final class BoardStore {
     ]
 
     var currentlyInto = "pumpkin spice late"
+    /// What you were into in earlier months, newest first. This is a journal: it is kept so you can look back.
+    var intoHistory: [IntoEntry] = [
+        IntoEntry(month: "October", text: "matcha and cozy games"),
+        IntoEntry(month: "September", text: "running in the morning"),
+        IntoEntry(month: "August", text: "film cameras"),
+    ]
+    /// Earlier values from this month, before you changed it. Newest first.
+    var intoEarlierThisMonth: [String] = []
+    let monthName = "November"
     let prompt = "what made you smile lately?"
+
+    /// The composer sheet. Opened by the inline "Whats on your mind" button and by the prompt.
+    var isComposing = false
 
     /// Set when the user taps the prompt card's "+": the next post answers it.
     var answeringPrompt = false
     var promptAnswerID: Post.ID?
+    /// Ask the board to scroll to a post and give it a soft pulse (tapping the answered prompt card).
+    var highlightRequest: Post.ID?
+    /// The post that is pulsing right now.
+    var highlightedPostID: Post.ID?
 
     /// Busy days that are currently opened out. Everything else folds its overflow into a stack.
     var expandedDays: Set<Int> = []
@@ -122,6 +155,40 @@ final class BoardStore {
         }
         for (k, post) in posts.enumerated() where post.isPromptAnswer { keep.insert(k) }
         return keep
+    }
+
+    // MARK: currently into
+
+    /// Changing it mid-month is fine; the old value is kept under this month's history.
+    func setInto(_ text: String) {
+        let new = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !new.isEmpty, new != currentlyInto else { return }
+        intoEarlierThisMonth.removeAll { $0 == new || $0 == currentlyInto }
+        intoEarlierThisMonth.insert(currentlyInto, at: 0)
+        currentlyInto = new
+    }
+
+    // MARK: the prompt
+
+    /// Only one post answers the prompt. Using an older post tags it; it stays on its own day.
+    func answerPrompt(with id: Post.ID) {
+        guard post(id) != nil else { return }
+        setPromptAnswer(nil)
+        setPromptAnswer(id)
+        highlightRequest = id
+    }
+
+    /// The post stays on the board; it just stops being the prompt's answer.
+    func removePromptAnswer() { setPromptAnswer(nil) }
+
+    private func setPromptAnswer(_ id: Post.ID?) {
+        for d in days.indices {
+            for p in days[d].posts.indices {
+                let isIt = days[d].posts[p].id == id
+                if isIt || days[d].posts[p].id == promptAnswerID { days[d].posts[p].isPromptAnswer = isIt }
+            }
+        }
+        promptAnswerID = id
     }
 
     // MARK: existing posts
@@ -196,9 +263,9 @@ final class BoardStore {
             post.addedLabel = "\(shortLabel(todayID)) at \(time)"
         }
         if answeringPrompt {
+            setPromptAnswer(nil)          // one answer only: a new one replaces any older one
             post.isPromptAnswer = true
             promptAnswerID = post.id
-            answeringPrompt = false
         }
 
         if let i = days.firstIndex(where: { $0.id == dayID }) {

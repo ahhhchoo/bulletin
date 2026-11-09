@@ -20,11 +20,22 @@ struct PostCell: View {
 
     @State private var frame: CGRect = .zero
     @State private var dropTargeted = false
+    @State private var glow = 0.0               // the soft pulse after tapping the answered prompt card
 
     var body: some View {
         PostView(post: post)
             .opacity(store.openedPostID == post.id ? 0 : 1)       // the opened card stands in for it
-            .scaleEffect(dropTargeted ? 1.05 : 1)
+            .shadow(color: Color("DayPink").opacity(0.75 * glow), radius: 22)
+            .scaleEffect((dropTargeted ? 1.05 : 1) + 0.04 * glow)
+            .onChange(of: store.highlightedPostID) { _, id in
+                guard id == post.id else { return }
+                store.highlightedPostID = nil
+                withAnimation(.easeOut(duration: 0.3)) { glow = 1 }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    withAnimation(.easeOut(duration: 1.7)) { glow = 0 }       // soft, then it fades
+                }
+            }
             .animation(.spring(duration: 0.28, bounce: 0.35), value: dropTargeted)
             .contentShape(.rect)
             .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
