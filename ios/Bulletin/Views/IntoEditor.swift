@@ -47,9 +47,12 @@ struct IntoEditor: View {
                 .overlay(alignment: .leading) {
                     HStack(spacing: 5) {
                         intoCard
-                        Color("CardPrompt")
+                        PromptChat(question: store.prompt,
+                                   answer: store.promptAnswerID.flatMap { store.post($0) },
+                                   allowsAnswering: true, onAnswer: {})
                             .frame(width: 348, height: 76)
-                            .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
+                            .background(Color("CardPrompt"), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
+                            .allowsHitTesting(false)
                     }
                     .padding(.leading, 27)
                     .fixedSize()
@@ -87,17 +90,20 @@ struct IntoEditor: View {
     }
 
     private var intoCard: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text("currently into:").foregroundStyle(.black.opacity(0.5))
+        VStack(alignment: .leading, spacing: 2) {
+            Text("currently into")
+                .font(Typo.scaled(11, .medium, relativeTo: .caption))
+                .foregroundStyle(.black.opacity(0.5))
             TextField("what are you into?", text: $draft)
+                .font(Typo.scaled(20, .medium, relativeTo: .title3))
                 .foregroundStyle(.black)
                 .focused($focused)
                 .submitLabel(.done)
                 .onSubmit(commit)
                 .tint(.black)
         }
-        .font(Typo.scaled(14, .medium, relativeTo: .subheadline))
         .padding(.leading, 20)
+        .padding(.trailing, 8)
         .frame(width: 348, height: 76, alignment: .leading)
         .background(Color("CardInto"), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
     }

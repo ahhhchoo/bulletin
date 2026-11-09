@@ -7,11 +7,7 @@ struct RootTabView: View {
                 BoardView()
             }
             Tab("friends", image: "TabFriends") {
-                ContentUnavailableView(
-                    "Friends",
-                    systemImage: "person.2",
-                    description: Text("Doorbell and boards you can see. FRN-01 isn't designed yet.")
-                )
+                FriendsView()
             }
             Tab("shelf", image: "TabShelf") {
                 ContentUnavailableView(

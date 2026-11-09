@@ -133,7 +133,7 @@ private struct HeaderView: View {
                 LazyHStack(spacing: 5) {
                     HeaderCard(background: "CardInto", tag: 0) {
                         Button(action: onIntoTap) {
-                            CardText(label: "currently into:", value: store.currentlyInto)
+                            BigWord(label: "currently into", value: store.currentlyInto)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                                 .contentShape(.rect)
                         }
@@ -141,7 +141,17 @@ private struct HeaderView: View {
                         .accessibilityHint("Change what you are into")
                     }
                     HeaderCard(background: "CardPrompt", tag: 1) {
-                        PromptCardContent(onTap: onChipTap)
+                        PromptChat(
+                            question: store.prompt,
+                            answer: store.promptAnswerID.flatMap { store.post($0) },
+                            allowsAnswering: true,
+                            onAnswer: onChipTap,
+                            actions: [
+                                ChatAction(title: "Show my answer", icon: "arrow.down.to.line", run: onChipTap),
+                                ChatAction(title: "Remove answer", icon: "xmark", destructive: true) {
+                                    withAnimation(.snappy) { store.removePromptAnswer() }
+                                },
+                            ])
                     }
                 }
                 .scrollTargetLayout()
@@ -223,105 +233,6 @@ private struct HeaderCard<Content: View>: View {
             .background(Color(background), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
             .containerRelativeFrame(.horizontal) { length, _ in length - 54 }
             .id(tag)
-    }
-}
-
-private struct CardText: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(label).foregroundStyle(.black.opacity(0.5))
-            Text(value).foregroundStyle(.black)
-        }
-        .font(Typo.scaled(14, .medium, relativeTo: .subheadline))
-        .padding(.leading, 20)
-    }
-}
-
-private struct PromptCardContent: View {
-    @Environment(BoardStore.self) private var store
-    let onTap: () -> Void
-
-    var body: some View {
-        let answer = store.promptAnswerID.flatMap { store.post($0) }
-        HStack(spacing: 0) {
-            Button(action: onTap) {
-                HStack {
-                    CardText(label: "this month's prompt:", value: store.prompt)
-                    Spacer(minLength: 0)
-                }
-                .frame(maxHeight: .infinity)
-                .contentShape(.rect)
-            }
-            .buttonStyle(PressableStyle())
-
-            if let answer {
-                AnswerThumb(post: answer)
-                    .padding(.trailing, 6)
-                    .onTapGesture(perform: onTap)
-                Menu {
-                    Button("Show my answer", systemImage: "arrow.down.to.line", action: onTap)
-                    Button("Remove answer", systemImage: "xmark", role: .destructive) {
-                        withAnimation(.snappy) { store.removePromptAnswer() }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.4))
-                        .frame(width: 30, height: 44)
-                        .contentShape(.rect)
-                }
-                .padding(.trailing, 8)
-                .accessibilityLabel("Prompt answer options")
-            } else {
-                PromptButton()
-                    .padding(.trailing, 16)
-            }
-        }
-    }
-}
-
-/// A tiny pinned copy of your answer, shown on the prompt card once you've answered.
-private struct AnswerThumb: View {
-    let post: Post
-
-    var body: some View {
-        Group {
-            if let image = post.image?.uiImage {
-                Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                Color("Sticky")
-            }
-        }
-        .frame(width: 40, height: 50)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.white, lineWidth: 2))
-        .shadow(color: .black.opacity(0.14), radius: 2, y: 1)
-        .rotationEffect(.degrees(3))
-        .accessibilityLabel("Your answer")
-    }
-}
-
-private struct PromptButton: View {
-    @Environment(BoardStore.self) private var store
-
-    var body: some View {
-        Button {
-            withAnimation(.snappy) { store.answeringPrompt = true }
-        } label: {
-            Circle()
-                .strokeBorder(.black.opacity(0.35), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
-                .overlay {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundStyle(.black.opacity(0.5))
-                }
-                .frame(width: 40, height: 40)
-        }
-        .buttonStyle(PressableStyle())
-        .accessibilityLabel("Answer the prompt")
     }
 }
 
