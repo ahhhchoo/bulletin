@@ -6,7 +6,6 @@ struct BoardView: View {
     /// 0 = masthead fully open, 1 = squeezed down to the title bar. Driven by scrolling the board.
     @State private var squeeze: CGFloat = 0
     @State private var scrollToTop = 0
-    @State private var captionDraft = ""
     @State private var deleteTitle = "Delete this?"      // kept while the dialog fades out
     @State private var editingInto = false
 
@@ -30,7 +29,7 @@ struct BoardView: View {
                     .transition(.opacity)
             }
         }
-        .toolbarVisibility(editingInto ? .hidden : .automatic, for: .tabBar)
+        .toolbarVisibility(editingInto || store.openedPostID != nil ? .hidden : .automatic, for: .tabBar)
         .sheet(isPresented: composing, onDismiss: { store.answeringPrompt = false }) {
             PostComposerView(todayID: store.todayID)
         }
@@ -53,20 +52,8 @@ struct BoardView: View {
                 PostComposerView(todayID: store.todayID, editing: (post, day))
             }
         }
-        // long-press > Edit caption (photos)
-        .alert("Edit caption", isPresented: flag(\.captionRequest)) {
-            TextField("Caption", text: $captionDraft)
-            Button("Save") {
-                if let id = store.captionRequest { store.updateCaption(id, caption: captionDraft) }
-                store.captionRequest = nil
-            }
-            Button("Cancel", role: .cancel) { store.captionRequest = nil }
-        }
         .onChange(of: store.deleteRequest) { _, id in
             if let id, let post = store.post(id) { deleteTitle = title(forDeleting: post) }
-        }
-        .onChange(of: store.captionRequest) { _, id in
-            if let id, case .photo(let caption)? = store.post(id)?.kind { captionDraft = caption }
         }
         // long-press > Delete: always confirmed, it can't be undone
         .confirmationDialog(deleteTitle, isPresented: flag(\.deleteRequest), titleVisibility: .visible) {

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stickies on the board: four options</title>
+<style>
+:root{
+  --paper:#f5f5f5; --mint:#aee0ce; --pink:#e55bb5; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button,textarea{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:920px;line-height:1.45}
+.bar{max-width:1500px;margin:12px auto 0;background:#fff;border-radius:14px;padding:12px 16px;font-size:13.5px;line-height:1.55;color:#444}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.reset{margin:8px 2px 0;padding:5px 12px;border-radius:999px;background:#fff;font-size:12.5px;font-weight:510}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;touch-action:none}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .ic{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .ic i{display:block;background:#111;border-radius:2px}
+.who{position:absolute;left:25px;top:58px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:510}
+.who i{width:28px;height:28px;border-radius:50%;background:#f9cdd6;display:block}
+.x{position:absolute;right:16px;top:54px;font-size:20px;padding:4px 8px}
+.cards{position:absolute;left:12px;right:12px;top:100px;display:flex;gap:8px}
+.cards div{height:76px;border-radius:23px;padding:16px 18px;font-size:13px;font-weight:510}
+.cards .a{width:152px;background:#eceef2}.cards .a small{display:block;font-size:10.5px;color:var(--ink50);margin-bottom:2px}.cards .a b{font-size:17px;font-weight:500}
+.cards .b{flex:1;background:#e4eaf5;padding:10px 12px}
+.cards .b span{display:block;background:#fff;border-radius:11px 11px 11px 3px;padding:4px 9px;font-size:11px;color:var(--ink50);width:fit-content}
+.cards .b em{display:block;background:var(--pink);color:#fff;border-radius:11px 11px 3px 11px;padding:4px 9px;font-style:normal;font-size:11px;width:fit-content;margin:5px 0 0 auto}
+.sheet{position:absolute;left:0;right:0;top:192px;bottom:0;background:#fff;border-radius:24px 24px 0 0;overflow:hidden}
+.tl{position:absolute;left:27px;top:28px;bottom:0;width:3px;background:rgba(0,0,0,.1)}
+.day{position:absolute;left:44px;top:22px;font-size:14px;font-weight:510;color:var(--ink50)}
+.day::before{content:"";position:absolute;left:-19px;top:5px;width:8px;height:8px;border-radius:50%;background:#000}
+.post{position:absolute;z-index:5;transition:top .35s cubic-bezier(.2,.8,.2,1)}
+.post .img{position:relative;background:#fff;padding:3px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.post .img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+.post .img::before{content:"";position:absolute;top:-5px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c;z-index:2}
+.post .cap{position:absolute;left:12px;right:12px;background:#fff;font-family:var(--pixel);font-size:11.5px;padding:6px 8px;box-shadow:0 1px 2px rgba(0,0,0,.2);z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post.target .img{outline:3px dashed var(--pink);outline-offset:5px}
+.sn{position:absolute;width:118px;height:92px;background:var(--mint);font-family:var(--pixel);font-size:12px;line-height:1.35;padding:16px 10px 16px;box-shadow:0 2px 3px rgba(0,0,0,.2)}
+.sn::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.sn p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.sn small{position:absolute;left:10px;bottom:4px;font:600 9.5px var(--ui);color:rgba(0,0,0,.45)}
+.sn.mine{background:#bfe9d9}
+.sn.bot{display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px 22px}
+.sn.bot::before{top:auto;bottom:-4px}
+.sn.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(1.4);opacity:0}}
+.un{position:absolute;width:118px;height:92px;background:#9fd6c2;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.cnt{position:absolute;background:#000;color:#fff;font:600 11px var(--ui);border-radius:999px;padding:3px 8px;z-index:9}
+.land{position:absolute;width:118px;height:92px;border:2.5px dashed var(--pink);border-radius:3px;background:rgba(229,91,181,.1);z-index:8;pointer-events:none;display:none}
+.land.on{display:block}
+.tag{position:absolute;z-index:9;pointer-events:none;background:var(--pink);color:#fff;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;display:none;white-space:nowrap}
+.tag.on{display:block}
+.dock{position:absolute;left:0;right:0;bottom:0;height:130px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:26px;gap:8px;background:linear-gradient(rgba(255,255,255,0),#fff 55%);pointer-events:none}
+.dock .tiles{display:flex;gap:56px;align-items:flex-end;pointer-events:auto}
+.tile{width:52px;height:52px;background:var(--mint);border-radius:3px;transform:rotate(8deg);box-shadow:0 2px 3px rgba(0,0,0,.14);display:grid;place-items:center;font-size:30px;color:rgba(0,0,0,.35);cursor:grab;touch-action:none}
+.dock small{font-size:13px;color:rgba(0,0,0,.45)}
+.ghost{position:absolute;z-index:80;width:118px;height:92px;background:var(--mint);box-shadow:0 12px 24px rgba(0,0,0,.28);transform:translate(-50%,-50%) rotate(-4deg) scale(1.05);display:none;pointer-events:none;opacity:.92}
+.phone.dragging .ghost{display:block}
+.compose{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:95;display:none;flex-direction:column;align-items:center;padding-top:150px;gap:14px}
+.phone[data-c="1"] .compose{display:flex}
+.compose .pad{position:relative;width:240px;min-height:150px;background:var(--mint);padding:22px 14px 12px;box-shadow:0 8px 20px rgba(0,0,0,.3);transform:rotate(-2deg)}
+.compose .pad::before{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.compose textarea{width:100%;height:96px;background:none;border:0;outline:0;resize:none;font-family:var(--pixel);font-size:14px;line-height:1.35}
+.compose .to{font:600 11px var(--ui);color:rgba(0,0,0,.5)}
+.compose .btns{display:flex;gap:10px}
+.compose .btns button{padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;background:#fff}
+.compose .btns button.go{background:#000;color:#fff}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Stickies on the board: four options</h1>
+  <p>Same four photos, same full-size stickies, newest on top with older notes underneath. The difference is where a photo’s notes sit. Drag the green sticky from the dock onto any photo in any phone to try it; the dashed sticky shows where it will go. Reset puts the notes back.</p>
+</header>
+<div class="bar"><b>Common rules:</b> a note belongs to the nearest photo · only the newest note is readable on the board, the rest are underneath with a +N count · tapping a pile would open the thread · one note per person per photo.</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const W = 150, GAPY = 48, NW = 118, NH = 92, CAP = 25;
+  const PICS = [
+    {w:W,h:170,img:'sample-food.jpg',cap:'Rained all day'},
+    {w:W,h:96, img:'sample-wide.jpg',cap:'this is a picture'},
+    {w:W,h:170,img:'sample-p3.jpg',cap:'dinner'},
+    {w:W,h:96, img:'sample-p4.jpg',cap:'soup arc'}
+  ];
+  const COLS = [[0,3],[1,2]], COLX = [52,222], TOP = 96;
+  const NAMES = ['Liam','Emma','Noah','Ava','Sophia','Mia','Lucas','Zoe'];
+  const TEXTS = ['that looks so good','where is this??','save me one','omg the sauce','dinner of the year','take me next time','jealous','recipe please'];
+  const esc = s => s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // ---- where the posts are (option D makes room under any photo that has notes)
+  function layout(mode, notes){
+    const pos = PICS.map((p,i)=>({id:i,w:p.w,h:p.h,x:0,y:0}));
+    COLS.forEach((col,ci)=>{ let y = TOP; col.forEach(id=>{ pos[id].x=COLX[ci]; pos[id].y=y;
+      y += PICS[id].h + 35 + GAPY + (mode==='D' && notes.some(n=>n.post===id) ? NH-4 : 0); }); });
+    return pos;
+  }
+  // ---- where a photo's pile sits for each option: top-left of the newest sticky
+  const pileAt = (mode,p,n) => ({
+    A:{x:p.x+(p.w-NW)/2+6, y:p.y-52},                    // tucked behind the top edge, peeking up
+    B:{x:p.x+(p.w-NW)/2-6, y:p.y+p.h+CAP+30-NH},         // tucked behind the bottom, peeking out under the caption
+    C:{x:p.x+n.off.x-NW/2, y:p.y+n.off.y-NH/2},          // wherever it was dropped
+    D:{x:p.x+(p.w-NW)/2,   y:p.y+p.h+CAP-6}              // space was made for it
+  })[mode];
+
+  // ---- option C: the nearest spot that covers no more than ~35% of the sticky and never a caption
+  const rectOver = (a,b) => Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+  function snapC(pos, f){
+    for(const limit of [0.35,0.5,0.65,0.85]){            // a crowded board relaxes the limit a little rather than refusing
+      let best=null,bd=1e9;
+      for(let x=48+NW/2;x<=396-NW/2;x+=6) for(let y=44+NH/2;y<=560-NH/2;y+=6){
+        const r={x:x-NW/2,y:y-NH/2,w:NW,h:NH};
+        let over=0, bad=false;
+        pos.forEach(p=>{ over+=rectOver(r,{x:p.x,y:p.y,w:p.w,h:p.h}); if(rectOver(r,{x:p.x+8,y:p.y+p.h-6,w:p.w-16,h:CAP+8})>0) bad=true; });
+        if(bad || over>NW*NH*limit) continue;
+        const d=Math.hypot(x-f.x,y-f.y); if(d<bd){bd=d;best={x,y};}
+      }
+      if(best) return best;
+    }
+    return {x:f.x,y:f.y};
+  }
+  const near = (pos,f) => { let b=null,bd=1e9; pos.forEach(p=>{const dx=Math.max(p.x-f.x,0,f.x-(p.x+p.w)),dy=Math.max(p.y-f.y,0,f.y-(p.y+p.h+CAP));const d=Math.hypot(dx,dy);if(d<bd){bd=d;b=p}}); return bd<=90?b:null; };
+
+  const seed = () => [{post:0,n:6},{post:2,n:2},{post:3,n:1}].flatMap(s=>Array.from({length:s.n},(_,k)=>({post:s.post,off:{x:W/2+(k%2?30:-30),y:PICS[s.post].h+60},by:NAMES[(s.post*3+k)%8],text:TEXTS[(s.post*3+k)%8],mine:false,t:k})));
+
+  const OPTIONS = [
+    {m:'A',t:'Peeks out above the photo',d:'The newest note is tucked behind the top edge of its photo, so you read it as a tab above the picture. Older notes are behind it, edges showing. The photo is never covered.',
+      tags:[['plus','Photo and caption fully visible'],['plus','Newest note “shows at the top”'],['minus','Only the top half of the note is readable, tap for the rest']]},
+    {m:'B',t:'Peeks out below the photo',d:'Same idea from the bottom: the note slides out from behind the photo under its caption, text lined up so the visible strip reads.',
+      tags:[['plus','Photo never covered, notes sit right by the caption'],['minus','Crowds the gap to the next row']]},
+    {m:'C',t:'Pinboard, some overlap',d:'Lands where you let go, on top of photos. A sticky can cover up to about a third of itself on a photo, never a caption. Otherwise it slides to the nearest spot.',
+      tags:[['plus','Feels most like a real pinboard'],['plus','Full note readable'],['minus','Can still hide part of a picture, and it’s crowded when dense']]},
+    {m:'D',t:'The board makes room',d:'Under a photo with notes there’s space for the newest note, full and readable. The photos below it move down. Nothing is ever covered.',
+      tags:[['plus','Everything readable, nothing covered'],['minus','Photos move around as people add notes'],['minus','Board gets longer']]},
+  ];
+
+  function build(o){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-c="0"></div></div><h2><em>${o.m}</em>${o.t}</h2><p>${o.d}</p><div class="tags">${o.tags.map(([k,t])=>`<b class="${k}">${t}</b>`).join('')}</div><button class="reset">Reset</button>`;
+    const phone = cell.querySelector('.phone');
+    const fresh = () => { const ns = seed(); if(o.m==='C'){ const pos = layout('C',ns); ns.forEach(n=>{ const p=pos[n.post], q=snapC(pos,{x:p.x+n.off.x,y:p.y+n.off.y}); n.off={x:q.x-p.x,y:q.y-p.y}; }); } return ns; };
+    let notes = fresh(), compose = null, lastId = null;
+    const mine = pid => notes.find(n=>n.mine && n.post===pid);
+
+    const render = () => {
+      const pos = layout(o.m, notes); let piles='', posts='';
+      pos.forEach(p=>{
+        const pic = PICS[p.id];
+        const all = notes.filter(n=>n.post===p.id).sort((a,b)=>a.t-b.t), top = all[all.length-1], older = all.length-1;
+        posts += `<div class="post" data-post="${p.id}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px"><div class="img" style="height:${p.h}px"><img src="assets/${pic.img}" alt=""></div><div class="cap" style="top:${p.h-10}px">${pic.cap}</div></div>`;
+        if(!top) return;
+        const a = pileAt(o.m,p,top), z = o.m==='C' ? 6 : (o.m==='D' ? 3 : 2);
+        const u = (dx,dy,r) => `<div class="un" style="z-index:${z-1>0?z-1:1};left:${a.x+dx}px;top:${a.y+dy}px;transform:rotate(${r}deg)"></div>`;
+        const dy = o.m==='B' ? 6 : (o.m==='A' ? -6 : 5);
+        piles += (older>=2?u(-8,dy,-6):'') + (older>=1?u(7,dy+(o.m==='B'?3:2),5):'') +
+          `<div class="sn ${o.m==='B'?'bot':''} ${top.mine?'mine':''} ${top===lastId?'pop':''}" style="z-index:${z};left:${a.x}px;top:${a.y}px;transform:rotate(${((top.t*37+p.id*11)%7)-3}deg)"><p>${esc(top.text)}</p><small>${top.mine?'you':top.by}</small></div>`+
+          (older>0?`<div class="cnt" style="left:${a.x+NW-22}px;top:${o.m==='B'?a.y+NH-8:a.y-8}px">+${older}</div>`:'');
+      });
+      phone.innerHTML = `<div class="sb"><span class="t">9:41</span><span class="ic"><i style="width:17px;height:10px"></i><i style="width:15px;height:11px;border-radius:6px"></i><i style="width:26px;height:12px;border-radius:4px"></i></span></div>
+        <div class="who"><i></i>Liam’s Bulletin</div><button class="x">✕</button>
+        <div class="cards"><div class="a"><small>currently into</small><b>sourdough</b></div><div class="b"><span>what made you smile lately?</span><em>my cat asleep in…</em></div></div>
+        <div class="sheet"><div class="tl"></div><div class="day">Wed 4</div>${piles}${posts}<div class="land"></div><div class="tag"></div></div>
+        <div class="dock"><div class="tiles"><div class="tile" data-drag>+</div></div><small>Drag a sticky onto a photo</small></div>
+        <div class="ghost"></div>
+        <div class="compose">${compose?`<div class="pad"><div class="to">To Liam, about this photo</div><textarea maxlength="140" placeholder="Write something…">${esc(compose.text||'')}</textarea></div><div class="btns"><button data-cancel>Cancel</button><button class="go" data-send>Stick it</button></div>`:''}</div>`;
+      phone.dataset.c = compose ? '1' : '0'; lastId = null;
+    };
+
+    let dragging=false, cur=null;
+    const kk = () => phone.getBoundingClientRect().width/402;
+    const loc = e => { const r = phone.getBoundingClientRect(); return {gx:(e.clientX-r.left)/kk(), gy:(e.clientY-r.top)/kk(), x:(e.clientX-r.left)/kk(), y:(e.clientY-r.top)/kk()-192}; };
+    const update = e => {
+      const f = loc(e), g = phone.querySelector('.ghost'); g.style.left=f.gx+'px'; g.style.top=f.gy+'px';
+      const pos = layout(o.m, notes), target = near(pos,f), land = phone.querySelector('.land'), tag = phone.querySelector('.tag');
+      phone.querySelectorAll('.post').forEach(el=>el.classList.toggle('target', !!target && +el.dataset.post===target.id));
+      land.classList.remove('on'); tag.classList.remove('on'); cur=null; if(!target) return;
+      let at;
+      if(o.m==='C'){ const s = snapC(pos,f); at = {x:s.x-NW/2,y:s.y-NH/2,off:{x:s.x-target.x,y:s.y-target.y}}; }
+      else { const a = pileAt(o.m,target,{off:{x:0,y:0}}); at = {x:a.x,y:a.y,off:{x:0,y:0}}; if(o.m==='D' && !notes.some(n=>n.post===target.id)) at.y = target.y+target.h+CAP-6; }
+      cur = {post:target.id, at};
+      land.style.left=at.x+'px'; land.style.top=at.y+'px'; land.classList.add('on');
+      tag.textContent = notes.some(n=>n.post===target.id) ? 'On top of this photo’s notes' : 'Stick it to this photo';
+      tag.style.left=Math.max(10,Math.min(target.x,402-190))+'px'; tag.style.top=(target.y-30)+'px'; tag.classList.add('on');
+    };
+    phone.addEventListener('pointerdown', e => { if(!e.target.closest('[data-drag]')) return; dragging=true; phone.classList.add('dragging'); phone.setPointerCapture(e.pointerId); update(e); });
+    phone.addEventListener('pointermove', e => { if(dragging) update(e); });
+    const end = () => { if(!dragging) return; dragging=false; phone.classList.remove('dragging');
+      phone.querySelectorAll('.post').forEach(el=>el.classList.remove('target')); ['.land','.tag'].forEach(q=>phone.querySelector(q)?.classList.remove('on'));
+      if(cur){ const m = mine(cur.post); compose = {post:cur.post, off:cur.at.off, text:m?m.text:''}; render(); } };
+    phone.addEventListener('pointerup', end); phone.addEventListener('pointercancel', end);
+    phone.addEventListener('click', e => {
+      if(e.target.closest('[data-cancel]')){ compose=null; render(); return; }
+      if(e.target.closest('[data-send]')){
+        const text = phone.querySelector('textarea').value.trim(); if(!text) return;
+        notes = notes.filter(n=>!(n.mine&&n.post===compose.post));
+        const n = {post:compose.post,off:compose.off,by:'Jules',text,mine:true,t:Date.now()};
+        notes.push(n); lastId=n; compose=null; render();
+      }
+    });
+    cell.querySelector('.reset').onclick = () => { notes=fresh(); compose=null; render(); };
+    render(); return cell;
+  }
+  const grid = document.getElementById('grid');
+  OPTIONS.forEach(o => grid.appendChild(build(o)));
+})();
+</script>
+</body>
+</html>

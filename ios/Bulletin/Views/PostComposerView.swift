@@ -46,6 +46,11 @@ struct PostComposerView: View {
         switch editing?.post.kind {
         case .sticky(let t)?:
             _text = State(initialValue: t)
+        case .photo(let c)?:
+            // Editing a photo means editing its caption: the picture stays as it was pinned.
+            _caption = State(initialValue: c)
+            _photo = State(initialValue: editing?.post.image)
+            _mode = State(initialValue: .picture)
         case .journal(let t, let b)?:
             _title = State(initialValue: t)
             _text = State(initialValue: b)
@@ -77,7 +82,7 @@ struct PostComposerView: View {
     private var canSubmit: Bool {
         switch mode {
         case .write: !trimmed.isEmpty
-        case .picture: photo != nil
+        case .picture: photo != nil || isEditingPhoto
         case .past: false          // choosing from your posts happens in its own picker
         }
     }
@@ -86,6 +91,8 @@ struct PostComposerView: View {
     private var modes: [Mode] { answeringPrompt ? [.write, .picture, .past] : [.write, .picture] }
     /// Editing a post is only ever about its words, so the picture side is not offered there.
     private var offersPicture: Bool { editing == nil }
+    /// Editing a photo post opens on the picture page, with the caption ready to change.
+    private var isEditingPhoto: Bool { if case .photo? = editing?.kind { return true } else { return false } }
 
     private var answeringPrompt: Bool { store.answeringPrompt && editing == nil }
 
@@ -149,15 +156,21 @@ struct PostComposerView: View {
                 dismiss()
             }
         }
-        .onAppear { focused = true }
+        .onAppear {
+            if isEditingPhoto {
+                Task { try? await Task.sleep(for: .milliseconds(350)); captionFocused = true }
+            } else {
+                focused = true
+            }
+        }
         .onChange(of: pickedItem) { _, item in
             guard let item else { return }
             Task { await attach(item) }
         }
         .onChange(of: caption) { _, new in
-            // a caption is a short line, not a story
+            // Write as much as you like (up to a point). The board shows two lines of it; tapping the photo shows all.
             let flat = new.replacingOccurrences(of: "\n", with: " ")
-            if flat.count > 38 { caption = String(flat.prefix(38)) } else if flat != new { caption = flat }
+            if flat.count > PhotoMetrics.captionLimit { caption = String(flat.prefix(PhotoMetrics.captionLimit)) } else if flat != new { caption = flat }
         }
         .onChange(of: available) {
             // an opened page fills the room above the keyboard, whatever the device
@@ -179,12 +192,14 @@ struct PostComposerView: View {
 
         return VStack(spacing: 0) {
             ZStack {
-                paper
-                    .modifier(PageSlot(mode: mode, own: .write, shift: shift, peek: peek, lift: 0))
-                    .allowsHitTesting(mode == .write)
-                    .accessibilityHidden(mode != .write)
+                if !isEditingPhoto {
+                    paper
+                        .modifier(PageSlot(mode: mode, own: .write, shift: shift, peek: peek, lift: 0))
+                        .allowsHitTesting(mode == .write)
+                        .accessibilityHidden(mode != .write)
+                }
 
-                if offersPicture && !isPage {
+                if (offersPicture || isEditingPhoto) && !isPage {
                     pictureCard
                         .modifier(PageSlot(mode: mode, own: .picture, shift: shift, peek: peek, lift: -12))
                         .transition(.opacity)
@@ -326,9 +341,12 @@ struct PostComposerView: View {
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: photo == nil ? 2 : 3))
             .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
             .contentShape(.rect)
-            .onTapGesture { if active { showPicker = true } else { go(.picture, opening: true) } }
+            .onTapGesture {
+                guard !isEditingPhoto else { return }          // the pinned picture stays as it is
+                if active { showPicker = true } else { go(.picture, opening: true) }
+            }
             .overlay(alignment: .topTrailing) {
-                if active, photo != nil {
+                if active, photo != nil, !isEditingPhoto {
                     Button {
                         withAnimation(.spring(duration: 0.4, bounce: 0.2)) { photo = nil }
                     } label: {
@@ -542,7 +560,8 @@ struct PostComposerView: View {
 
     private func save() {
         guard let editing else { return }
-        store.update(editing.id, title: title, body: text, asJournal: isPage)
+        if isEditingPhoto { store.updateCaption(editing.id, caption: caption) }
+        else { store.update(editing.id, title: title, body: text, asJournal: isPage) }
         dismiss()
     }
 

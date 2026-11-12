@@ -9,14 +9,18 @@
 /* Begin PBXBuildFile section */
 		1FC4D148A675F2A0FE2EF50C /* BusyDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CDF12456E914EC4738A488 /* BusyDay.swift */; };
 		21FC3DB33B96B773AB63361A /* ComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */; };
+		2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */; };
+		313BFF4891586F9848CD837A /* StickerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C312A0A792F70ADFDA0806 /* StickerViews.swift */; };
 		4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */; };
 		6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A5D966DE41D297451011D3 /* FriendsStore.swift */; };
 		6F132531FB1FE8318B13F782 /* PastPostPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610A4C7D810E66D9841718D0 /* PastPostPicker.swift */; };
 		8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FBA78CEE2B666794F5068A /* TopCards.swift */; };
 		8C9B43F02C38DA97A4B69ADF /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E49F1DDB15B3C276A787FC /* BoardView.swift */; };
 		8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD454554D33728F308F5EA68 /* RootTabView.swift */; };
+		92F19270B56A575016517A27 /* NoteViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3D08B3F66B015159EF0C00 /* NoteViews.swift */; };
 		9DE34DB212A358984BAA6B63 /* StickerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A20E413A2C6D425E8F233A9 /* StickerStore.swift */; };
 		A11BB289140580DA4771D603 /* PostViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE29D072C138CB86D05F7054 /* PostViews.swift */; };
+		A14EAB52335DDF0C0A266A9A /* NotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F60256F48D4205B64D8BE4 /* NotesStore.swift */; };
 		ACD841EE9C65B7105EB74932 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88D46AD4A45E0F120516AD5 /* Typography.swift */; };
 		AD18F26EF7D00F42C50B273E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCF11D0E434407DF41CB93EA /* Assets.xcassets */; };
 		B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */; };
@@ -29,6 +33,9 @@
 
 /* Begin PBXFileReference section */
 		14FBA78CEE2B666794F5068A /* TopCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCards.swift; sourceTree = "<group>"; };
+		298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SamplePhotos.swift; sourceTree = "<group>"; };
+		37C312A0A792F70ADFDA0806 /* StickerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerViews.swift; sourceTree = "<group>"; };
+		37F60256F48D4205B64D8BE4 /* NotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesStore.swift; sourceTree = "<group>"; };
 		459C66B2917D97F2127D53D9 /* FriendBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendBoardView.swift; sourceTree = "<group>"; };
 		4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerView.swift; sourceTree = "<group>"; };
 		610A4C7D810E66D9841718D0 /* PastPostPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastPostPicker.swift; sourceTree = "<group>"; };
@@ -42,6 +49,7 @@
 		B7CDF12456E914EC4738A488 /* BusyDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusyDay.swift; sourceTree = "<group>"; };
 		BCF11D0E434407DF41CB93EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CD454554D33728F308F5EA68 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		CE3D08B3F66B015159EF0C00 /* NoteViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteViews.swift; sourceTree = "<group>"; };
 		CF0DA46D4ED66C1C00ED758F /* PostInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostInteractions.swift; sourceTree = "<group>"; };
 		D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntoEditor.swift; sourceTree = "<group>"; };
 		DE29D072C138CB86D05F7054 /* PostViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostViews.swift; sourceTree = "<group>"; };
@@ -55,6 +63,8 @@
 			children = (
 				6CADE96FC36F34D72D340C2D /* BoardStore.swift */,
 				A7A5D966DE41D297451011D3 /* FriendsStore.swift */,
+				37F60256F48D4205B64D8BE4 /* NotesStore.swift */,
+				298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */,
 				8A20E413A2C6D425E8F233A9 /* StickerStore.swift */,
 			);
 			path = Models;
@@ -85,11 +95,13 @@
 				459C66B2917D97F2127D53D9 /* FriendBoardView.swift */,
 				74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */,
 				D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */,
+				CE3D08B3F66B015159EF0C00 /* NoteViews.swift */,
 				610A4C7D810E66D9841718D0 /* PastPostPicker.swift */,
 				8D561ABDD7925727E576172F /* PostComposerView.swift */,
 				CF0DA46D4ED66C1C00ED758F /* PostInteractions.swift */,
 				DE29D072C138CB86D05F7054 /* PostViews.swift */,
 				CD454554D33728F308F5EA68 /* RootTabView.swift */,
+				37C312A0A792F70ADFDA0806 /* StickerViews.swift */,
 				14FBA78CEE2B666794F5068A /* TopCards.swift */,
 				E88D46AD4A45E0F120516AD5 /* Typography.swift */,
 			);
@@ -183,12 +195,16 @@
 				6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */,
 				B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */,
 				CC1E22F81AD616E9359E00D2 /* IntoEditor.swift in Sources */,
+				92F19270B56A575016517A27 /* NoteViews.swift in Sources */,
+				A14EAB52335DDF0C0A266A9A /* NotesStore.swift in Sources */,
 				6F132531FB1FE8318B13F782 /* PastPostPicker.swift in Sources */,
 				E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */,
 				F6A599D3FC2948B5394F6D60 /* PostInteractions.swift in Sources */,
 				A11BB289140580DA4771D603 /* PostViews.swift in Sources */,
 				8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */,
+				2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */,
 				9DE34DB212A358984BAA6B63 /* StickerStore.swift in Sources */,
+				313BFF4891586F9848CD837A /* StickerViews.swift in Sources */,
 				8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */,
 				ACD841EE9C65B7105EB74932 /* Typography.swift in Sources */,
 			);

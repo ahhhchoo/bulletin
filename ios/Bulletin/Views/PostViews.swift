@@ -6,12 +6,19 @@ struct PostView: View {
     var animated = true
     /// 1 = tilted as on the board, 0 = flat. The opened card animates this to straighten up.
     var tilt = 1.0
+    /// On the board a photo's caption shows two lines at most; the opened photo shows all of it.
+    var fullCaption = false
+    /// The caption's size on screen. The opened photo is scaled up, so it passes a smaller number to land on 14.
+    var captionSize: CGFloat?
+    /// The opened photo brings its caption in after it has grown.
+    var captionVisible = true
 
     var body: some View {
         let rotation = post.rotation * tilt
         switch post.kind {
         case .photo(let caption):
-            PhotoPost(caption: caption, rotation: rotation, image: post.image, isPromptAnswer: post.isPromptAnswer)
+            PhotoPost(caption: caption, rotation: rotation, image: post.image, isPromptAnswer: post.isPromptAnswer, fullCaption: fullCaption,
+                      captionSize: captionSize, captionVisible: captionVisible)
         case .sticky(let text):
             StickyPost(text: text, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated)
@@ -30,12 +37,25 @@ private struct PhotoPost: View {
     let rotation: Double
     var image: PostImage?
     var isPromptAnswer = false
+    var fullCaption = false
+    var captionSize: CGFloat?
+    var captionVisible = true
 
     private var width: CGFloat { PhotoMetrics.pinWidth }
     private var height: CGFloat { width / (image?.pinAspect ?? 1) }
 
+    private var captionFont: CGFloat { captionSize ?? 14 }
+
+    /// Extra height for a caption that runs onto a second line on the board. The opened photo adds none:
+    /// its caption just hangs below, so the photo's size never depends on how much was written.
+    private var extraCaptionHeight: CGFloat {
+        guard !fullCaption else { return 0 }
+        let lines = min(2, max(1, (caption.count + PhotoMetrics.captionCharsPerLine - 1) / PhotoMetrics.captionCharsPerLine))
+        return CGFloat(lines - 1) * 18
+    }
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             picture
                 .frame(width: width, height: height)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -47,16 +67,21 @@ private struct PhotoPost: View {
 
             if !caption.isEmpty {
                 Text(caption)
-                    .font(Typo.pixel(14))
+                    .font(Typo.pixel(captionFont))
                     .foregroundStyle(.black)
+                    .lineLimit(fullCaption ? nil : 2)
+                    .truncationMode(.tail)
+                    .multilineTextAlignment(.leading)
                     .padding(10)
                     .background(.white)
                     .overlay(Rectangle().strokeBorder(.black.opacity(0.15), lineWidth: 0.75))
                     .rotationEffect(.degrees(rotation))
-                    .offset(x: 3.5, y: height / 2 + 10.7)      // across the bottom edge, as in the design
+                    .opacity(captionVisible ? 1 : 0)
+                    .animation(.easeOut(duration: 0.25).delay(captionVisible ? 0.25 : 0), value: captionVisible)
+                    .offset(x: 3.5, y: height - 7.8)      // top edge of the slip sits just inside the picture's bottom edge, as in the design
             }
         }
-        .frame(width: width, height: height + 35.4, alignment: .top)
+        .frame(width: width, height: height + 35.4 + extraCaptionHeight, alignment: .top)
     }
 
     @ViewBuilder private var picture: some View {

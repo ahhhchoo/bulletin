@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct RootTabView: View {
+    @Environment(BoardStore.self) private var board
+    @Environment(FriendsStore.self) private var friends
+    @Environment(NotesStore.self) private var notes
+
     var body: some View {
         TabView {
             Tab("bulletin", image: "TabNote") {
@@ -17,5 +21,6 @@ struct RootTabView: View {
                 )
             }
         }
+        .onAppear { notes.seedIfNeeded(board: board, friends: friends) }
     }
 }

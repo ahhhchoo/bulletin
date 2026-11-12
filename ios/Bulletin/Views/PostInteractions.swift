@@ -16,6 +16,7 @@ struct PostToken: Codable, Transferable {
 ///   reorder within its day, like moving apps on the home screen.
 struct PostCell: View {
     @Environment(BoardStore.self) private var store
+    @Environment(NotesStore.self) private var notes
     let post: Post
 
     @State private var frame: CGRect = .zero
@@ -24,6 +25,10 @@ struct PostCell: View {
 
     var body: some View {
         PostView(post: post)
+            .overlay(alignment: .topTrailing) {
+                // friends' notes live under the photo; the board only shows that there are some
+                if case .photo = post.kind, notes.count(post.id) > 0 { NoteBadge(count: notes.count(post.id)).offset(x: 10, y: -10) }
+            }
             .opacity(store.openedPostID == post.id ? 0 : 1)       // the opened card stands in for it
             .shadow(color: Color("DayPink").opacity(0.75 * glow), radius: 22)
             .scaleEffect((dropTargeted ? 1.05 : 1) + 0.04 * glow)
@@ -64,7 +69,7 @@ struct PostCell: View {
     }
 
     private func edit() {
-        if case .photo = post.kind { store.captionRequest = post.id } else { store.editRequest = post.id }
+        store.editRequest = post.id
     }
 
     private func open() {
@@ -79,37 +84,85 @@ struct PostCell: View {
 
 // MARK: - Opened card, in place
 
-/// A sticky or photo opened where it sits: it straightens up, grows, and the board dims behind it.
-/// Tap outside or pull it down to put it back.
+/// A sticky or photo opened where it sits on your own board.
 struct OpenedPostOverlay: View {
     @Environment(BoardStore.self) private var store
     let post: Post
 
+    var body: some View {
+        PostDetailView(post: post,
+                       origin: store.openedFrame,
+                       dayLabel: store.dayID(of: post.id).map(store.fullLabel),
+                       owner: true,
+                       friendName: "") { store.openedPostID = nil }
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: store.openedPostID)
+    }
+}
+
+/// The detailed view: the post straightens up and grows, and the board dims behind it. Tap outside or pull it down
+/// to put it back.
+///
+/// A photo can have notes from friends under it. They are not on the board and not on this screen: a drawer docked
+/// at the bottom opens a layer under the picture (see `NotesLayers`).
+struct PostDetailView: View {
+    let post: Post
+    /// Where it was on screen, so it grows from there. Nil: it grows from the middle (a friend's photo).
+    let origin: CGRect?
+    let dayLabel: String?
+    /// Your own post (read, reply, tuck away) or a friend's (leave a note).
+    let owner: Bool
+    let friendName: String
+    let onClose: () -> Void
+
     @State private var expanded = false
+    @State private var notesOpen = false
     @State private var cardSize = CGSize(width: 156, height: 150)
     @State private var pull: CGFloat = 0
 
+    private var isPhoto: Bool { if case .photo = post.kind { true } else { false } }
+
     var body: some View {
         GeometryReader { geo in
-            let origin = CGPoint(x: store.openedFrame.midX, y: store.openedFrame.midY)
+            let start = origin.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.4)
             let target = CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.40 + pull)
-            let scale = min(1.55, (geo.size.width - 64) / max(cardSize.width, 1))
+            // Photos open bigger than notes: they are the thing you want a good look at.
+            // Wide photos are short, so they can open nearly edge to edge without crowding the screen.
+            let isLandscape = (post.image?.aspect ?? 1) > 1.1
+            let scale = min(isPhoto ? (isLandscape ? 2.4 : 1.9) : 1.55,
+                            (geo.size.width - (isLandscape ? 36 : 48)) / max(cardSize.width, 1),
+                            geo.size.height * 0.6 / max(cardSize.height, 1))
+            // With the notes layer open the photo shrinks back to about its pinned size, up at the top.
+            let small = min(scale, 1.0)
+            let smallTarget = CGPoint(x: geo.size.width / 2, y: 64 + cardSize.height * small / 2)
+            let shownScale = notesOpen ? small : scale
+            let shownTarget = notesOpen ? smallTarget : target
+            // The caption is 14pt on screen whatever the zoom, so a long one runs below the card; keep the date clear of it.
+            let captionHang: CGFloat = {
+                guard case .photo(let c) = post.kind, !c.isEmpty else { return 0 }
+                let size = 14 / shownScale
+                let perLine = max(1, Int((PhotoMetrics.pinWidth - 26) / (size * 0.6)))
+                let lines = (c.count + perLine - 1) / perLine
+                return max(0, CGFloat(lines) * size * 1.3 + 20 - 43)
+            }()
+            let layerTop = smallTarget.y + cardSize.height * small / 2 + 30 + captionHang * small
 
             ZStack {
                 Color.black.opacity(expanded ? 0.3 : 0)
                     .ignoresSafeArea()
-                    .onTapGesture(perform: close)
+                    .onTapGesture { if notesOpen { notesOpen = false } else { close() } }
 
-                PostView(post: post, animated: false, tilt: expanded ? 0 : 1)
+                PostView(post: post, animated: false, tilt: expanded ? 0 : 1, fullCaption: true,
+                         captionSize: 14 / shownScale, captionVisible: expanded)
                     .fixedSize()
                     .onGeometryChange(for: CGSize.self, of: \.size) { cardSize = $0 }
-                    .scaleEffect(expanded ? scale : 1)
+                    .scaleEffect(expanded ? shownScale : 1)
                     .shadow(color: .black.opacity(expanded ? 0.22 : 0), radius: 18, y: 10)
-                    .position(expanded ? target : origin)
+                    .position(expanded ? shownTarget : start)
                     .gesture(
                         DragGesture()
-                            .onChanged { pull = max(0, $0.translation.height) }
+                            .onChanged { if !notesOpen { pull = max(0, $0.translation.height) } }
                             .onEnded { value in
+                                if notesOpen { return }
                                 if value.translation.height > 90 { close() }
                                 else { withAnimation(.spring(duration: 0.35, bounce: 0.3)) { pull = 0 } }
                             }
@@ -117,22 +170,31 @@ struct OpenedPostOverlay: View {
 
                 details
                     .position(x: geo.size.width / 2,
-                              y: target.y + cardSize.height * scale / 2 + 34)
-                    .opacity(expanded ? 1 : 0)
+                              y: target.y + cardSize.height * scale / 2 + 34 + captionHang * scale)
+                    .opacity(expanded && !notesOpen ? 1 : 0)
                     .animation(.easeOut(duration: 0.25).delay(expanded ? 0.2 : 0), value: expanded)
+                    .animation(.easeOut(duration: 0.15), value: notesOpen)
+
+                if isPhoto && expanded {
+                    NotesLayers(post: post, owner: owner, friendName: friendName, open: $notesOpen, layerTop: layerTop)
+                        .transition(.opacity)
+                }
             }
+            .animation(.spring(duration: 0.45, bounce: 0.12), value: notesOpen)
         }
         .ignoresSafeArea()
         .onAppear { withAnimation(.spring(duration: 0.5, bounce: 0.2)) { expanded = true } }
-        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: store.openedPostID)
     }
 
     /// Which day it belongs to, and when it was added if it was clipped on later.
-    private var details: some View {
+    @ViewBuilder private var details: some View {
+        if dayLabel != nil || (post.isClipped && post.addedLabel != nil) { detailsPill }
+    }
+
+    private var detailsPill: some View {
         VStack(spacing: 4) {
-            if let day = store.dayID(of: post.id) {
-                Text(store.fullLabel(day))
-                    .font(.system(size: 15, weight: .medium))
+            if let dayLabel {
+                Text(dayLabel).font(.system(size: 15, weight: .medium))
             }
             if post.isClipped, let added = post.addedLabel {
                 Label("Added \(added)", systemImage: "paperclip")
@@ -150,7 +212,7 @@ struct OpenedPostOverlay: View {
         withAnimation(.spring(duration: 0.42, bounce: 0.12)) { expanded = false; pull = 0 }
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            store.openedPostID = nil
+            onClose()
         }
     }
 }

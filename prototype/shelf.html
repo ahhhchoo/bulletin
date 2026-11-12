@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARC-01 — Shelf options</title>
+<style>
+:root{
+  --paper:#f5f5f5; --pink:#e55bb5; --mint:#aee0ce; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:880px;line-height:1.45}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px auto 0;max-width:1500px;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar label{color:#555}.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar button{padding:7px 13px;border-radius:999px;background:rgba(0,0,0,.05);font-weight:510;font-size:13px}
+.bar button.on{background:#000;color:#fff}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .r{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .r i{display:block;background:#111;border-radius:2px}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:62px 0 130px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.head{padding:0 24px 14px}
+.head h3{font-size:24px;font-weight:500;letter-spacing:-.2px}
+.head p{font-size:14px;color:var(--ink50);margin-top:4px;font-weight:510}
+.head .who{display:flex;align-items:center;gap:10px}
+.head .who i{width:30px;height:30px;border-radius:50%;background:#cdddf9;display:block}
+
+/* tab bar */
+.tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:33px;display:flex;gap:6px;padding:8px 14px;border-radius:32px;background:rgba(255,255,255,.75);backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,.08);z-index:50}
+.tabbar .tb{width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 4px;border-radius:28px;font-size:13px}
+.tabbar .tb.on{background:rgba(0,0,0,.07);font-weight:510}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* covers: the look of the month is the cover's paper */
+.cov{position:relative;width:100%;height:100%;border-radius:6px;overflow:hidden;background:var(--l1);box-shadow:0 2px 6px rgba(0,0,0,.16),inset 0 0 0 1px rgba(0,0,0,.06);cursor:pointer}
+.cov.graph{background-image:linear-gradient(var(--l2) 1px,transparent 1px),linear-gradient(90deg,var(--l2) 1px,transparent 1px);background-size:12px 12px}
+.cov.cork{background-image:radial-gradient(var(--l2) 1.2px,transparent 1.6px);background-size:9px 9px}
+.cov.kraft{background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0 1px,transparent 1px 4px)}
+.cov .pol{position:absolute;left:12%;top:11%;width:70%;aspect-ratio:1;background:var(--p);border:3px solid #fff;border-bottom-width:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);transform:rotate(-3deg)}
+.cov .ttl{position:absolute;left:10%;right:10%;bottom:9%;font-family:var(--pixel);font-size:11px;line-height:1.25;background:#fff;padding:5px 7px;box-shadow:0 1px 2px rgba(0,0,0,.15);transform:rotate(1deg)}
+.cov .stamp{position:absolute;right:8%;top:6%;font:600 9px var(--ui);letter-spacing:.5px;text-transform:uppercase;border:1.5px solid rgba(0,0,0,.55);color:rgba(0,0,0,.6);border-radius:50%;width:34px;height:34px;display:grid;place-items:center;transform:rotate(12deg)}
+.cov.locked{background:#dcdce0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.cov.locked b{font-weight:600;font-size:15px;color:rgba(0,0,0,.6)}.cov.locked small{font-size:11px}
+.cov.locked svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cov.now{background:none;box-shadow:none;border:2px dashed rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:rgba(0,0,0,.5)}
+.cov.now.mini b{font-size:12px}.cov.now.mini small{display:none}
+.cov.now b{font-weight:600;font-size:15px;color:#111}.cov.now small{font-size:11px;text-align:center;line-height:1.3}
+
+/* A: bookshelf */
+.yr{font-size:13px;font-weight:600;color:var(--ink50);padding:6px 24px 8px}
+.row{display:flex;align-items:flex-end;gap:4px;padding:0 22px;min-height:196px;position:relative}
+.row::after{content:"";position:absolute;left:10px;right:10px;bottom:-10px;height:12px;border-radius:3px;background:linear-gradient(#cdb08a,#b89870);box-shadow:0 3px 6px rgba(0,0,0,.14)}
+.rowwrap{margin-bottom:30px}
+.sp{position:relative;width:34px;border-radius:3px 3px 1px 1px;background:var(--l1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s;box-shadow:inset -3px 0 0 rgba(0,0,0,.08),inset 0 0 0 1px rgba(0,0,0,.07)}
+.sp span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:600;font-size:12px;letter-spacing:.4px;color:rgba(0,0,0,.65)}
+.sp.locked{background:#dcdce0}.sp.locked span{color:rgba(0,0,0,.4)}
+.sp.lift{transform:translateY(-16px)}
+.sp.now{background:none;border:2px dashed rgba(0,0,0,.28);transform:rotate(5deg);transform-origin:bottom left;margin-left:6px}
+.pick{position:absolute;left:0;right:0;bottom:118px;z-index:40;display:flex;justify-content:center;pointer-events:none}
+.pick .card{pointer-events:auto;background:#fff;border-radius:20px;padding:12px;display:flex;gap:14px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.16);width:340px}
+.pick .card .c{width:78px;height:104px;flex:none}
+.pick .card b{font-size:17px;font-weight:600;display:block}.pick .card small{font-size:13px;color:var(--ink50);display:block;margin-top:3px;font-weight:510;line-height:1.35}
+.btn{display:inline-block;background:#000;color:#fff;border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px;margin-top:9px}
+
+/* B: grid */
+.zgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px 18px;padding:6px 26px}
+.zgrid .z{aspect-ratio:3/4}.zgrid .z:nth-child(odd){transform:rotate(-1.3deg)}.zgrid .z:nth-child(even){transform:rotate(1.2deg)}
+.zlab{font-size:13px;font-weight:510;color:var(--ink50);margin-top:7px;text-align:center}
+
+/* C: carousel */
+.rail{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;padding:20px 76px 20px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .slot{flex:none;width:250px;height:330px;scroll-snap-align:center;margin-right:-30px;transition:transform .25s,opacity .25s;transform:scale(.8);opacity:.7}
+.rail .slot.cur{transform:scale(1);opacity:1;z-index:2}
+.cap{text-align:center;padding:0 40px}.cap b{font-size:22px;font-weight:600;display:block;letter-spacing:-.2px}
+.cap small{display:block;font-size:14px;color:var(--ink50);margin-top:6px;font-weight:510;line-height:1.4}
+.dots{display:flex;gap:6px;justify-content:center;margin:16px 0 4px}.dots i{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.15)}.dots i.on{background:#000}
+
+/* D: list */
+.lrow{display:flex;gap:14px;align-items:center;padding:9px 24px;cursor:pointer}
+.lrow .c{width:54px;height:72px;flex:none}
+.lrow b{font-size:17px;font-weight:600;display:block}.lrow small{font-size:13px;color:var(--ink50);display:block;margin-top:2px;font-weight:510}
+.lrow .chev{margin-left:auto;color:rgba(0,0,0,.3);font-size:20px}
+.lrow.locked b{color:rgba(0,0,0,.45)}
+.lsep{height:1px;background:rgba(0,0,0,.07);margin:0 24px}
+
+/* opened month (ARC-02) */
+.open{position:absolute;inset:0;background:var(--paper);z-index:45;display:none;flex-direction:column}
+.phone[data-s="open"] .open{display:flex}
+.otop{padding:58px 18px 0;display:flex;align-items:center;gap:6px}
+.otop .x{font-size:22px;padding:6px 10px;color:rgba(0,0,0,.55)}
+.otop .nav{margin:0 auto;display:flex;align-items:center;gap:6px;font-weight:600;font-size:16px}
+.otop .nav button{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.06);font-size:16px}
+.otop .nav button:disabled{opacity:.25;cursor:default}
+.osub{text-align:center;margin-top:8px}
+.osub span{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;font-weight:510;color:var(--ink50);background:rgba(0,0,0,.05);padding:4px 11px;border-radius:999px}
+.otitle{text-align:center;font-size:24px;font-weight:500;margin-top:10px;letter-spacing:-.2px}
+.oboard{flex:1;margin-top:14px;border-radius:24px 24px 0 0;background:var(--l1);padding:20px 0 120px;overflow:auto;position:relative}
+.oboard.graph{background-image:linear-gradient(var(--l2) 1px,transparent 1px),linear-gradient(90deg,var(--l2) 1px,transparent 1px);background-size:16px 16px}
+.oboard.cork{background-image:radial-gradient(var(--l2) 1.4px,transparent 1.8px);background-size:11px 11px}
+.od{font-size:14px;font-weight:510;color:rgba(0,0,0,.55);padding:0 0 0 44px;position:relative;margin-top:6px}
+.od::before{content:"";position:absolute;left:25px;top:5px;width:8px;height:8px;border-radius:50%;background:#000}
+.oitems{display:flex;gap:16px;padding:16px 0 18px 50px;flex-wrap:wrap}
+.pin{position:relative;width:132px;height:132px;background:var(--p);border:4px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.15)}
+.pin::after{content:"";position:absolute;top:-6px;left:50%;width:9px;height:9px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.cap2{position:absolute;left:14px;right:-10px;bottom:-14px;background:#fff;font-family:var(--pixel);font-size:12px;padding:7px 9px;box-shadow:0 1px 2px rgba(0,0,0,.15);transform:rotate(1.5deg)}
+.st{position:relative;width:132px;min-height:100px;background:#aee0ce;padding:18px 12px 12px;font-family:var(--pixel);font-size:12.5px;line-height:1.4;box-shadow:0 2px 3px rgba(0,0,0,.14);transform:rotate(-1.5deg)}
+.st::after{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.st.fr{background:#f9d0e6;transform:rotate(3deg);width:112px;min-height:80px}.st.fr small{display:block;font:510 10px var(--ui);color:rgba(0,0,0,.5);margin-top:6px}
+
+/* ask sheet (friend's shelf, locked month) */
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:70;display:none}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;z-index:71;padding:22px 24px 40px;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.phone[data-sheet="1"] .dim{display:block}.phone[data-sheet="1"] .sheet{transform:none}
+.sheet h4{font-size:20px;font-weight:600}.sheet p{font-size:14.5px;color:var(--ink50);margin-top:6px;line-height:1.4;font-weight:510}
+.sheet .btns{display:flex;gap:10px;margin-top:18px}
+.sheet .btns button{flex:1;padding:13px;border-radius:999px;font-weight:600;font-size:15px;background:rgba(0,0,0,.06)}
+.sheet .btns button.go{background:#000;color:#fff}.sheet .btns button:disabled{opacity:.35;cursor:default}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ARC-01 · Shelf options</h1>
+  <p>The shelf is where sealed months live: each one becomes a zine cover with the month’s look, its title, and a cover chosen from your most-noted post. Tap any month to open it read-only (ARC-02) and flip between months with the arrows. Four ways to lay the shelf out. Switch to a friend’s shelf to see locked covers, and try a long shelf to see how each one holds up.</p>
+</header>
+<div class="bar">
+  <label>Whose shelf</label>
+  <button id="w-mine" class="on">mine</button><button id="w-friend">Maya’s</button>
+  <span class="sep"></span>
+  <label>How many months</label>
+  <button id="n-3" class="on">3 months</button><button id="n-14">14 months</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const LOOKS = {
+    kraft:['#d9bd95','#c8a878'], graph:['#f3f3e8','#dfe3d2'], cork:['#d3a574','#b98a5a'],
+    fridge:['#e8eef0','#d2dde1'], sky:['#cfe2f3','#b5cfe6'], blush:['#f8d7de','#eec0cb']
+  };
+  const LOOKORDER = ['kraft','graph','cork','fridge','sky','blush'];
+  const PHOTOS = ['#aee0ce','#f5c4b3','#b5d4f4','#fac775','#d9c9f3'];
+  const TITLES = ['the month of yzma','', 'film camera era','', 'moving month','soup arc'];
+  const LOCKED = new Set([1,4]);     // on a friend's shelf: sealed months you haven't been given
+  const PRIVATE = new Set([2]);      // "just for me" months: gone entirely from a friend's view
+  let mine = true, count = 3;
+  const asked = new Set();
+
+  function months(n){
+    const out=[]; let y=2026, mi=9;
+    for(let i=0;i<n;i++){
+      out.push({idx:i,name:NAMES[mi],short:NAMES[mi].slice(0,3),year:y,title:TITLES[i%TITLES.length],look:LOOKORDER[i%6],
+        photo:PHOTOS[i%5],pinned:18+((i*7)%30),notes:(i*5)%14+1,busy:['Sat 17','Tues 6','Fri 23','Sun 11'][i%4]});
+      mi--; if(mi<0){mi=11;y--}
+    }
+    return out;
+  }
+  const visible = () => months(count).filter(m => mine || !PRIVATE.has(m.idx));
+  const isLocked = m => !mine && LOCKED.has(m.idx);
+  const lockSvg = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const lookStyle = m => `--l1:${LOOKS[m.look][0]};--l2:${LOOKS[m.look][1]};--p:${m.photo}`;
+
+  const cover = m => isLocked(m)
+    ? `<div class="cov locked">${lockSvg}<b>${m.name}</b><small>${m.year}</small></div>`
+    : `<div class="cov ${m.look}" style="${lookStyle(m)}"><div class="pol"></div><div class="ttl">${m.title||m.name}</div><div class="stamp">${m.short}</div></div>`;
+  const nowCover = (mini) => `<div class="cov now${mini?' mini':''}"><b>${mini?'Nov':'November'}</b><small>in progress<br>seals Nov 30</small></div>`;
+  const sub = m => isLocked(m) ? 'Ask to see this month' : `${m.pinned} pinned · ${m.notes} notes`;
+
+  const ICON = {
+    note:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>',
+    smile:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2"/><circle cx="9" cy="10" r=".6" fill="#000"/><circle cx="15" cy="10" r=".6" fill="#000"/></svg>',
+    book:'<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 7h6"/></svg>'
+  };
+  const tab = `<div class="tabbar"><div class="tb">${ICON.note}bulletin</div><div class="tb">${ICON.smile}friends</div><div class="tb on">${ICON.book}shelf</div></div>`;
+
+  const header = () => mine
+    ? `<div class="head"><h3>My shelf</h3><p>${count} sealed month${count===1?'':'s'}</p></div>`
+    : `<div class="head"><div class="who"><i></i><h3>Maya’s shelf</h3></div><p>Months she’s shared with you</p></div>`;
+
+  // ---------- the four layouts ----------
+  const LAYOUTS = {
+    A(s){
+      const ms = visible(); const byYear = {};
+      ms.forEach(m => (byYear[m.year] ||= []).push(m));
+      const now = `<div class="sp now" style="height:150px" title="November, in progress"><span>November</span></div>`;
+      let html = header();
+      Object.keys(byYear).sort((a,b)=>b-a).forEach((y,yi) => {
+        const row = byYear[y];
+        for(let k=0;k<row.length;k+=7){
+          const chunk = row.slice(k,k+7);
+          html += `<div class="yr">${k===0?y:''}</div><div class="rowwrap"><div class="row">${yi===0&&k===0?now:''}${chunk.map((m,j)=>{
+            const h = 150 + ((m.idx*37)%5)*10;
+            const cls = isLocked(m)?'locked':'';
+            return `<div class="sp ${cls} ${s.pick===m.idx?'lift':''}" data-pick="${m.idx}" style="height:${h}px;${lookStyle(m)}"><span>${isLocked(m)?m.name:(m.title? m.name : m.name)}</span></div>`;
+          }).join('')}</div></div>`;
+        }
+      });
+      if(s.pick!=null){
+        const m = months(count)[s.pick];
+        html += `<div class="pick"><div class="card"><div class="c">${cover(m)}</div><div><b>${isLocked(m)?m.name+' '+m.year:(m.title||m.name)}</b><small>${isLocked(m)?'Locked. Ask Maya to share it.':m.name+' '+m.year+'<br>'+sub(m)}</small><button class="btn" data-open="${m.idx}">${isLocked(m)?'Ask to see':'Open'}</button></div></div></div>`;
+      }
+      return html;
+    },
+    B(s){
+      const ms = visible();
+      return header()+`<div class="zgrid"><div><div class="z">${nowCover()}</div><div class="zlab">November</div></div>${ms.map(m=>`<div data-open="${m.idx}"><div class="z" style="">${cover(m)}</div><div class="zlab">${isLocked(m)?m.name:(m.title? m.name+' · '+m.title.split(' ').slice(0,2).join(' ') : m.name)}</div></div>`).join('')}</div>`;
+    },
+    C(s){
+      const ms = visible(); const cur = Math.min(s.cur||0, ms.length-1); const m = ms[cur];
+      return header()+`<div class="rail" data-rail>${ms.map((x,i)=>`<div class="slot ${i===cur?'cur':''}" data-slot="${i}" data-open="${x.idx}">${cover(x)}</div>`).join('')}</div>
+        <div class="cap"><b>${isLocked(m)?m.name+' '+m.year:(m.title||m.name)}</b><small>${m.name} ${m.year}<br>${sub(m)}</small></div>
+        <div class="dots">${ms.slice(0,9).map((_,i)=>`<i class="${i===cur?'on':''}"></i>`).join('')}</div>`;
+    },
+    D(s){
+      const ms = visible(); const byYear = {};
+      ms.forEach(m => (byYear[m.year] ||= []).push(m));
+      let html = header()+`<div class="lrow"><div class="c">${nowCover(true)}</div><div><b>November</b><small>In progress · seals Nov 30</small></div></div><div class="lsep"></div>`;
+      Object.keys(byYear).sort((a,b)=>b-a).forEach(y => {
+        html += `<div class="yr" style="padding-top:14px">${y}</div>`;
+        html += byYear[y].map(m=>`<div class="lrow ${isLocked(m)?'locked':''}" data-open="${m.idx}"><div class="c">${cover(m)}</div><div><b>${isLocked(m)?m.name:(m.title||m.name)}</b><small>${isLocked(m)?'Locked · ask to see':m.name+' · '+sub(m)}</small></div><span class="chev">›</span></div><div class="lsep"></div>`).join('');
+      });
+      return html;
+    }
+  };
+
+  const VARIANTS = [
+    {id:'A',name:'Bookshelf',desc:'Months stand on a shelf as spines, a row per stretch of the year. Tap a spine to pull it out and see the cover.',
+     tags:[['plus','Literally a shelf, and a lot of months fit on screen'],['plus','Locked months are just plain gray spines'],['minus','Covers hide behind spines until you pull one out'],['minus','Vertical month names are harder to read']]},
+    {id:'B',name:'Zine grid',desc:'Covers laid out two across, a little crooked, like zines spread on a table. November sits first as a dashed “in progress” cover.',
+     tags:[['plus','Covers are the star, so titles and photos show'],['plus','Simple to scan'],['minus','Gets long after a year']]},
+    {id:'C',name:'Swipe through the stack',desc:'One big cover at a time with the neighbors peeking at the sides. Swipe through, tap the cover to open it.',
+     tags:[['plus','The most like flipping through zines'],['plus','Room for the title and stats'],['minus','You only see one month at a time'],['minus','Slow for finding an old month']]},
+    {id:'D',name:'List by year',desc:'A list with a small cover for each month, grouped by year, with the title and a line of stats.',
+     tags:[['plus','Scales to years of months'],['plus','Easy to find a month, locked ones read clearly'],['minus','Plainest of the four, covers are small']]},
+  ];
+
+  // ---------- opened month (ARC-02) ----------
+  function openScreen(phone, s){
+    const all = months(count);
+    const m = all[s.open];
+    const ok = i => i>=0 && i<all.length && (mine || !PRIVATE.has(i)) && !(!mine && LOCKED.has(i));
+    const step = d => { let i=s.open+d; while(i>=0&&i<all.length&&!ok(i)) i+=d; return ok(i)?i:null; };
+    const older = step(1), newer = step(-1);
+    const o = phone.querySelector('.open');
+    o.innerHTML = `<div class="otop"><button class="x" data-close>✕</button><div class="nav"><button data-nav="${older??''}" ${older==null?'disabled':''}>‹</button><span>${m.name} ${m.year}</span><button data-nav="${newer??''}" ${newer==null?'disabled':''}>›</button></div><span style="width:44px"></span></div>
+      <div class="osub"><span>${lockSvg.replace('<svg','<svg width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2"')} sealed · no new notes</span></div>
+      ${m.title?`<div class="otitle">${m.title}</div>`:''}
+      <div class="oboard ${m.look}" style="${lookStyle(m)}">
+        <div class="od">${m.busy}</div><div class="oitems"><div class="pin"><div class="cap2">rained all day</div></div><div class="st">${['made soup for everyone','pumpkin carving night','finally finished the book','new haircut!!'][m.idx%4]}</div><div class="st fr">so cozy!!<small>from Liam</small></div></div>
+        <div class="od">${['Wed 4','Mon 12','Thu 2','Sat 28'][m.idx%4]}</div><div class="oitems"><div class="st" style="min-height:80px">${['sunday at the lake','best coffee ever','long walk, no plan','first cold morning'][m.idx%4]}</div></div>
+      </div>`;
+    phone.dataset.s = 'open';
+  }
+
+  function build(v){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-s="shelf" data-sheet="0">
+      <div class="sb"><span class="t">9:41</span><span class="r"><i style="width:17px;height:10px"></i><i style="width:15px;height:11px;border-radius:6px"></i><i style="width:26px;height:12px;border-radius:4px"></i></span></div>
+      <div class="screen"></div>${tab}
+      <div class="open"></div><div class="dim" data-dim></div>
+      <div class="sheet"></div>
+    </div></div><h2><em>${v.id}</em>${v.name}</h2><p>${v.desc}</p><div class="tags">${v.tags.map(([k,t])=>`<b class="${k}">${t}</b>`).join('')}</div>`;
+    const phone = cell.querySelector('.phone');
+    const s = phone.__s = {pick:null, cur:0, open:null, ask:null};
+    const paint = () => {
+      const scr = phone.querySelector('.screen'); const keep = scr.scrollTop;
+      scr.innerHTML = LAYOUTS[v.id](s); scr.scrollTop = keep;
+      const rail = scr.querySelector('[data-rail]');
+      if(rail){
+        rail.scrollLeft = s.railLeft ?? 0;
+        rail.addEventListener('scroll', () => {
+          s.railLeft = rail.scrollLeft;
+          const slots=[...rail.querySelectorAll('.slot')]; const mid=rail.scrollLeft+rail.clientWidth/2; let best=0,bd=1e9;
+          slots.forEach((el,i)=>{const d=Math.abs(el.offsetLeft+el.offsetWidth/2-mid); if(d<bd){bd=d;best=i}});
+          if(best!==s.cur){ s.cur=best; paint(); }
+        }, {passive:true});
+      }
+    };
+    const sheet = idx => {
+      const m = months(count)[idx];
+      const done = asked.has(idx);
+      phone.querySelector('.sheet').innerHTML = `<h4>${m.name} ${m.year} is locked</h4><p>${done?'Asked. Maya will see it quietly, and you won’t hear a no.':'Ask Maya to share it? She’ll get one quiet request for this month.'}</p><div class="btns"><button data-dim-close>${done?'Close':'Not now'}</button><button class="go" data-ask="${idx}" ${done?'disabled':''}>${done?'Asked':'Ask to see'}</button></div>`;
+      phone.dataset.sheet = '1';
+    };
+    phone.addEventListener('click', e => {
+      const t = e.target;
+      let el;
+      if(el = t.closest('[data-ask]')){ asked.add(+el.dataset.ask); sheet(+el.dataset.ask); return; }
+      if(t.closest('[data-dim]') || t.closest('[data-dim-close]')){ phone.dataset.sheet='0'; return; }
+      if(el = t.closest('[data-nav]')){ if(el.dataset.nav!==''){ s.open=+el.dataset.nav; openScreen(phone,s); } return; }
+      if(t.closest('[data-close]')){ phone.dataset.s='shelf'; return; }
+      if(el = t.closest('[data-pick]')){ s.pick = (s.pick===+el.dataset.pick)?null:+el.dataset.pick; paint(); return; }
+      if(el = t.closest('[data-open]')){
+        const idx = +el.dataset.open; const m = months(count)[idx];
+        if(isLocked(m)){ sheet(idx); return; }
+        s.open = idx; openScreen(phone,s); return;
+      }
+    });
+    cell.__paint = () => { phone.dataset.s='shelf'; phone.dataset.sheet='0'; s.pick=null; s.cur=0; s.railLeft=0; paint(); };
+    cell.__paint();
+    return cell;
+  }
+
+  const grid = document.getElementById('grid');
+  const cells = VARIANTS.map(v => { const c = build(v); grid.appendChild(c); return c; });
+  const $ = id => document.getElementById(id);
+  const seg = (a,b,fn) => { $(a).onclick=()=>{fn(false);$(a).classList.add('on');$(b).classList.remove('on');cells.forEach(c=>c.__paint())};
+                            $(b).onclick=()=>{fn(true);$(b).classList.add('on');$(a).classList.remove('on');cells.forEach(c=>c.__paint())}; };
+  seg('w-mine','w-friend', alt => { mine = !alt; });
+  seg('n-3','n-14', alt => { count = alt ? 14 : 3; });
+})();
+</script>
+</body>
+</html>

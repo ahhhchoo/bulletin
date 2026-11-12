@@ -3,6 +3,10 @@ import SwiftUI
 enum PhotoMetrics {
     /// Photos are pinned at a fixed width; their height follows the picture's shape.
     static let pinWidth: CGFloat = 149.6
+    /// The most a caption can hold. The board shows two lines of it; the opened photo shows it all.
+    static let captionLimit = 200
+    /// About how many characters fit on one line of the caption slip, for estimating its height.
+    static let captionCharsPerLine = 15
 }
 
 /// A photo on a post. Wraps the image so `Post` can stay Hashable (identity is the id).
@@ -53,7 +57,7 @@ struct Post: Identifiable, Hashable {
     /// Rough height on the board, used to decide when a day gets busy. Close enough beats measuring.
     var estimatedHeight: CGFloat {
         switch kind {
-        case .photo: (PhotoMetrics.pinWidth / (image?.pinAspect ?? 1)) + 40   // picture plus the caption slip
+        case .photo(let c): (PhotoMetrics.pinWidth / (image?.pinAspect ?? 1)) + 40 + (c.count > PhotoMetrics.captionCharsPerLine ? 18 : 0)   // picture plus the caption slip (one or two lines)
         case .sticky: 150
         case .journal: 156
         }
@@ -79,8 +83,8 @@ final class BoardStore {
 
     var days: [BoardDay] = [
         BoardDay(id: 2, posts: [
-            Post(kind: .photo(caption: "Rained all day"), rotation: -2.41),
-            Post(kind: .photo(caption: "this is a picture"), rotation: 2.6),
+            Post(kind: .photo(caption: "Rained all day"), rotation: -2.41, image: SamplePhotos.image(1)),
+            Post(kind: .photo(caption: "this is a picture"), rotation: 2.6, image: SamplePhotos.image(0)),
             Post(kind: .sticky(text: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays"), rotation: -1.2),
             Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: 2.2),
             Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: -2.0),
@@ -121,7 +125,6 @@ final class BoardStore {
     var openedJournalID: Post.ID?         // folded notes open as a full page
     var editRequest: Post.ID?
     var deleteRequest: Post.ID?
-    var captionRequest: Post.ID?
 
     var postCount = 0             // drives haptics
     var lastPostedDayID: Int?     // where the board scrolls to after posting
@@ -235,7 +238,7 @@ final class BoardStore {
         guard let d = dayID(of: id),
               let i = days.firstIndex(where: { $0.id == d }),
               let p = days[i].posts.firstIndex(where: { $0.id == id }) else { return }
-        days[i].posts[p].kind = .photo(caption: caption.trimmingCharacters(in: .whitespacesAndNewlines))
+        days[i].posts[p].kind = .photo(caption: String(caption.trimmingCharacters(in: .whitespacesAndNewlines).prefix(PhotoMetrics.captionLimit)))
     }
 
     func expand(_ dayID: Int) { expandedDays.insert(dayID) }

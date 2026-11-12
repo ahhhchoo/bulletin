@@ -37,18 +37,6 @@ extension Friend {
     static func color(at i: Int) -> Color { palette[i % palette.count] }
 }
 
-/// A note or sticker someone stuck on a friend's board, at a spot in the board's content.
-struct BoardItem: Identifiable, Hashable {
-    enum Kind: Hashable { case note(String), sticker(Sticker) }
-    let id = UUID()
-    var kind: Kind
-    /// Where it sits, measured from the top-left of the board's scrolling content.
-    var position: CGPoint
-    var rotation: Double
-    /// Left by you, so you can still take it back while their month is live.
-    var mine: Bool
-}
-
 /// Friends tab state: people who put you on their list, your own guest list, and the doorbell queue.
 @Observable
 final class FriendsStore {
@@ -76,41 +64,17 @@ final class FriendsStore {
 
     /// What each friend has on their board (placeholder content until real boards exist).
     private(set) var boards: [Friend.ID: [BoardDay]] = [:]
-    /// Notes and stickers stuck on each friend's board, yours and other visitors'.
-    var items: [Friend.ID: [BoardItem]] = [:]
 
     init() {
-        for f in friends {
-            var posts = [Post(kind: .photo(caption: f.latest.isEmpty ? "Rained all day" : f.latest), rotation: -2.41)]
+        for (i, f) in friends.enumerated() {
+            var posts = [Post(kind: .photo(caption: f.latest.isEmpty ? "Rained all day" : f.latest), rotation: -2.41, image: SamplePhotos.image(i))]
             switch f.answer {
             case .text(let t): posts.append(Post(kind: .sticky(text: t), rotation: 1.8, isPromptAnswer: true))
-            case .photo(let c): posts.append(Post(kind: .photo(caption: c), rotation: 2.4, isPromptAnswer: true))
+            case .photo(let c): posts.append(Post(kind: .photo(caption: c), rotation: 2.4, isPromptAnswer: true, image: SamplePhotos.image(i + 2)))
             case .existing: posts[0].isPromptAnswer = true
             }
             boards[f.id] = [BoardDay(id: 4, posts: posts), BoardDay(id: 3, posts: [])]
         }
-        // another visitor's note, so you can see that notes are shared
-        if let maya = friends.first {
-            items[maya.id] = [BoardItem(kind: .note("so cozy!!"), position: CGPoint(x: 260, y: 150), rotation: 4, mine: false)]
-        }
-    }
-
-    @discardableResult
-    func place(_ kind: BoardItem.Kind, on friend: Friend.ID, at position: CGPoint) -> BoardItem.ID {
-        let tilt = Double.random(in: -7...7)
-        let item = BoardItem(kind: kind, position: position, rotation: tilt, mine: true)
-        items[friend, default: []].append(item)
-        return item.id
-    }
-
-    /// Used right after placing: if it was dropped over a post it slides to the nearest free spot.
-    func move(_ item: BoardItem.ID, on friend: Friend.ID, to position: CGPoint) {
-        guard let i = items[friend]?.firstIndex(where: { $0.id == item }) else { return }
-        items[friend]?[i].position = position
-    }
-
-    func take(_ item: BoardItem.ID, from friend: Friend.ID) {
-        items[friend]?.removeAll { $0.id == item }
     }
 
     var spotsLeft: Int { Self.guestCap - guestCount }
