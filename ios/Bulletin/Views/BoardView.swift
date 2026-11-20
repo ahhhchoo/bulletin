@@ -15,7 +15,7 @@ struct BoardView: View {
                     .transition(.opacity)
             }
         }
-        .toolbarVisibility(editingInto || store.openedPostID != nil ? .hidden : .automatic, for: .tabBar)
+        .toolbarVisibility(editingInto || store.openedPostID != nil || store.openedJournalID != nil ? .hidden : .automatic, for: .tabBar)
         .sheet(isPresented: composing, onDismiss: { store.answeringPrompt = false }) {
             PostComposerView(todayID: store.todayID)
         }
@@ -28,10 +28,11 @@ struct BoardView: View {
                 OpenedPostOverlay(post: post)
             }
         }
-        // tap a folded note: it opens as a full page
-        .sheet(isPresented: flag(\.openedJournalID)) {
+        // tap a folded note: it opens as a full page over the blurred board
+        .overlay {
             if let id = store.openedJournalID, let post = store.post(id) { JournalPage(post: post) }
         }
+        .animation(.snappy(duration: 0.3), value: store.openedJournalID)
         // long-press > Edit
         .sheet(isPresented: flag(\.editRequest)) {
             if let id = store.editRequest, let post = store.post(id), let day = store.dayID(of: id) {
@@ -128,6 +129,7 @@ private struct BoardScroller: View {
                 .onChange(of: store.highlightRequest) { _, id in
                     guard let id else { return }
                     store.highlightRequest = nil
+                    if let day = store.dayID(of: id) { withAnimation(.smooth) { store.openDay(day) } }
                     Task {
                         try? await Task.sleep(for: .milliseconds(450))     // let a closing composer get out of the way
                         withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo(id, anchor: .center) }
@@ -183,7 +185,7 @@ private enum Mast {
 }
 
 /// Settles a scroll that ends halfway through the masthead: open or closed, by the direction of the flick.
-private struct MastheadSnap: ScrollTargetBehavior {
+struct MastheadSnap: ScrollTargetBehavior {
     let range: CGFloat
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
         let y = target.rect.minY
@@ -289,11 +291,11 @@ struct ChatAnswer: View {
                     .lineLimit(image == nil ? nil : 3)
             }
                 .padding(image == nil ? 12 : 10)
-                .frame(width: 196, alignment: .leading)
                 .background(.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.black.opacity(0.05), lineWidth: 1))
         }
         .buttonStyle(PressableStyle())
+        .frame(maxWidth: 196, alignment: .trailing)          // wraps at 196, but a short answer hugs its words
         .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
@@ -350,7 +352,7 @@ private struct MastGap: View {
 }
 
 /// The area just outside two rounded top corners: what shows black beside a rounded sheet.
-private struct OutsideTopCorners: Shape {
+struct OutsideTopCorners: Shape {
     let radius: CGFloat
     func path(in r: CGRect) -> Path {
         var p = Path(r)
@@ -441,15 +443,47 @@ private struct DayRow: View {
     private let gutter: CGFloat = 44
     private let dot: CGFloat = 8
 
+    private var collapsed: Bool { store.collapsedDays.contains(day.id) }
+
+    /// The date. With posts under it, tapping it folds the day away (and a second tap opens it again).
+    @ViewBuilder private var dateLabel: some View {
+        let label = HStack(spacing: 4) {
+            if day.id == store.todayID {
+                Text("today").font(Typo.pixel(14)).foregroundStyle(.black)
+            }
+            Text("Nov \(day.id)").font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.5))
+            if !day.posts.isEmpty {
+                if collapsed {
+                    Text("· \(day.posts.count) post\(day.posts.count == 1 ? "" : "s")")
+                        .font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.35))
+                        .transition(.opacity)
+                }
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.black.opacity(0.35))
+                    .rotationEffect(.degrees(collapsed ? -90 : 0))
+                    .padding(.leading, 2)
+            }
+        }
+        .frame(height: 17)
+
+        if day.posts.isEmpty {
+            label
+        } else {
+            label
+                .padding(.trailing, 24)           // a little more to tap
+                .contentShape(.rect)
+                .onTapGesture { withAnimation(.smooth(duration: 0.4)) { store.toggleDay(day.id) } }
+                .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: collapsed)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Nov \(day.id), \(collapsed ? "folded" : "open")")
+                .accessibilityHint(collapsed ? "Opens this day" : "Folds this day away")
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 4) {
-                if day.id == store.todayID {
-                    Text("today").font(Typo.pixel(14)).foregroundStyle(.black)
-                }
-                Text("Nov \(day.id)").font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.5))
-            }
-            .frame(height: 17)
+            dateLabel
 
             if day.posts.isEmpty {
                 Text("its kinda empty...")
@@ -457,9 +491,10 @@ private struct DayRow: View {
                     .foregroundStyle(.black.opacity(0.5))
                     .padding(.top, 5)
                     .transition(.opacity)
-            } else {
-                busyAwarePosts
+            } else if !collapsed {
+                DayPosts(posts: day.posts)
                     .padding(.top, 9)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topLeading)))
             }
         }
         .padding(.leading, gutter)
@@ -478,34 +513,8 @@ private struct DayRow: View {
             }
         }
         .animation(.smooth, value: day.posts.isEmpty)
+        .animation(.smooth(duration: 0.4), value: collapsed)
         .padding(.top, 20)   // cushion above the label, so scrollTo(day, anchor: .top) isn't flush with the sheet edge
-    }
-}
-
-extension DayRow {
-    /// Folds the overflow of a busy day into a stack. Expanded days show everything plus a "Stack back up" pill.
-    @ViewBuilder fileprivate var busyAwarePosts: some View {
-        let keep = BoardStore.visibleIndices(in: day.posts)
-        let stacked = day.posts.indices.filter { !keep.contains($0) }
-        let isBusy = !stacked.isEmpty
-        let expanded = store.expandedDays.contains(day.id)
-        let folded = isBusy && !expanded
-
-        DayPosts(
-            posts: day.posts,
-            shown: folded ? day.posts.indices.filter { keep.contains($0) } : Array(day.posts.indices),
-            stackedCount: folded ? stacked.count : 0,
-            stackPreview: folded ? stacked.first.map { day.posts[$0] } : nil,
-            showPill: isBusy && expanded,
-            onExpand: {
-                withAnimation(.spring(duration: 0.6, bounce: 0.18)) { store.expand(day.id) }
-            },
-            onCollapse: {
-                // Folding a day never moves the viewport.
-                withAnimation(.spring(duration: 0.55, bounce: 0.12)) { store.collapse(day.id) }
-            }
-        )
-        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.6), trigger: expanded)
     }
 }
 

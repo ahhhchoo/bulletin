@@ -77,7 +77,7 @@ struct PostComposerView: View {
         static let pageHeight: CGFloat = 485
         // The sticky holds as much text as fits in its square, minus padding. Past that, it becomes a page.
         // Measured as rendered height, so wrapped lines and blank lines both count.
-        static let stickyInnerWidth: CGFloat = stickyWidth - 20 - 20
+        static let stickyInnerWidth: CGFloat = stickyWidth - 16 - 16
         static let stickyMaxTextHeight: CGFloat = stickyHeight - 24 - 20
         static let switchBackSlack: CGFloat = 24    // about one line of hysteresis, so it doesn't flicker at the edge
         static let stage1Height: CGFloat = 270      // crease-led: first stage is shallow
@@ -479,7 +479,7 @@ struct PostComposerView: View {
     private var paper: some View {
         let padding = isPage
             ? EdgeInsets(top: 22, leading: 22, bottom: 18, trailing: 22)
-            : EdgeInsets(top: 24, leading: 20, bottom: 20, trailing: 20)
+            : EdgeInsets(top: 24, leading: 16, bottom: 20, trailing: 16)
 
         return VStack(alignment: .leading, spacing: 0) {
             if isPage {

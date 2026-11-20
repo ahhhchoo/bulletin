@@ -102,8 +102,7 @@ struct OpenedPostOverlay: View {
 /// The detailed view: the post straightens up and grows, and the board dims behind it. Tap outside or pull it down
 /// to put it back.
 ///
-/// A photo can have notes from friends under it. They are not on the board and not on this screen: a drawer docked
-/// at the bottom opens a layer under the picture (see `NotesLayers`).
+/// A photo can have notes from friends under it; photos open in `PhotoDetailView`, where the notes pile up as you scroll.
 struct PostDetailView: View {
     let post: Post
     /// Where it was on screen, so it grows from there. Nil: it grows from the middle (a friend's photo).
@@ -122,6 +121,15 @@ struct PostDetailView: View {
     private var isPhoto: Bool { if case .photo = post.kind { true } else { false } }
 
     var body: some View {
+        // photos open the new way: a flat dark backdrop, a big portrait photo and friends' notes piling up under it
+        if isPhoto {
+            PhotoDetailView(post: post, origin: origin, dayLabel: dayLabel, owner: owner, friendName: friendName, onClose: onClose)
+        } else {
+            stickyBody
+        }
+    }
+
+    private var stickyBody: some View {
         GeometryReader { geo in
             let start = origin.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.4)
             let target = CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.40 + pull)
@@ -144,7 +152,6 @@ struct PostDetailView: View {
                 let lines = (c.count + perLine - 1) / perLine
                 return max(0, CGFloat(lines) * size * 1.3 + 20 - 43)
             }()
-            let layerTop = smallTarget.y + cardSize.height * small / 2 + 30 + captionHang * small
 
             ZStack {
                 ZStack {
@@ -178,10 +185,6 @@ struct PostDetailView: View {
                     .animation(.easeOut(duration: 0.25).delay(expanded ? 0.2 : 0), value: expanded)
                     .animation(.easeOut(duration: 0.15), value: notesOpen)
 
-                if isPhoto && expanded {
-                    NotesLayers(post: post, owner: owner, friendName: friendName, open: $notesOpen, layerTop: layerTop)
-                        .transition(.opacity)
-                }
             }
             .animation(.spring(duration: 0.45, bounce: 0.12), value: notesOpen)
         }
@@ -225,7 +228,6 @@ struct PostDetailView: View {
 /// Folded notes open into a full page for reading, set in the same type as the card on the board.
 struct JournalPage: View {
     @Environment(BoardStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
     let post: Post
 
     private var title: String { if case .journal(let t, _) = post.kind { t } else { "" } }
@@ -233,51 +235,68 @@ struct JournalPage: View {
     private var readMinutes: Int { max(1, text.split(separator: " ").count / 200) }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let day = store.dayID(of: post.id) {
-                        Text("Nov \(day)")
-                            .font(Typo.pixel(14))
-                            .foregroundStyle(.black.opacity(0.5))
-                    }
-                    if !title.isEmpty {
-                        Text(title)
-                            .font(Typo.scaled(24, .semibold, relativeTo: .title2))
-                    }
-                    Text(text)
-                        .font(Typo.scaled(16, .medium, relativeTo: .body))
-                        .foregroundStyle(.black.opacity(0.75))
-                        .lineSpacing(5)
-                    Text("\(readMinutes) min read")
-                        .font(Typo.scaled(12, .regular, relativeTo: .caption))
-                        .foregroundStyle(.black.opacity(0.6))
-                }
-                .foregroundStyle(.black)
-                .padding(24)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(CutCornerShape().fill(.white))
-                .overlay(alignment: .bottomTrailing) {
-                    PaperFold().fill(.black.opacity(0.05)).frame(width: 26.6, height: 26.6)
-                }
-                .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-            }
-            .scrollContentBackground(.hidden)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundStyle(.black) }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
-        .presentationBackground {                         // the board shows through, darkened with a hint of blur
+        ZStack(alignment: .top) {
+            // the board behind it, darkened with a hint of blur: the same backdrop as an opened sticky
             ZStack {
                 Rectangle().fill(.ultraThinMaterial).opacity(0.4)
                 Color.black.opacity(0.5)
             }
+            .ignoresSafeArea()
+            .contentShape(.rect)
+            .onTapGesture(perform: close)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Button(action: close) {
+                    Text("Close")
+                        .font(.system(size: 17))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 20).padding(.vertical, 12)
+                        .background(.white.opacity(0.9), in: Capsule())
+                        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+                }
+                .buttonStyle(PressableStyle())
+                .padding(.horizontal, 20).padding(.top, 6)
+
+                ScrollView {
+                    page
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
+                        .padding(.bottom, 40)
+                }
+                .scrollIndicators(.hidden)
+            }
         }
-        .tint(.black)
+        .transition(.opacity)
     }
+
+    private var page: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let day = store.dayID(of: post.id) {
+                Text("Nov \(day)")
+                    .font(Typo.pixel(14))
+                    .foregroundStyle(.black.opacity(0.5))
+            }
+            if !title.isEmpty {
+                Text(title)
+                    .font(Typo.scaled(24, .semibold, relativeTo: .title2))
+            }
+            Text(text)
+                .font(Typo.scaled(16, .medium, relativeTo: .body))
+                .foregroundStyle(.black.opacity(0.75))
+                .lineSpacing(5)
+            Text("\(readMinutes) min read")
+                .font(Typo.scaled(12, .regular, relativeTo: .caption))
+                .foregroundStyle(.black.opacity(0.6))
+        }
+        .foregroundStyle(.black)
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CutCornerShape().fill(.white))
+        .overlay(alignment: .bottomTrailing) {
+            PaperFold().fill(.black.opacity(0.05)).frame(width: 26.6, height: 26.6)
+        }
+        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+    }
+
+    private func close() { withAnimation(.snappy(duration: 0.3)) { store.openedJournalID = nil } }
 }

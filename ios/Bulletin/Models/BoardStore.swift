@@ -55,6 +55,8 @@ struct Post: Identifiable, Hashable {
     var isClipped = false
     /// Shown when you tap the paperclip, e.g. "Tues 3 at 9:14 PM". Only set for clipped posts.
     var addedLabel: String?
+    /// When it was posted, to the minute: "Nov 13, 2026 at 11:58 PM" on an opened photo.
+    var postedAt = Date()
 
     /// Rough height on the board, used to decide when a day gets busy. Close enough beats measuring.
     var estimatedHeight: CGFloat {
@@ -63,6 +65,21 @@ struct Post: Identifiable, Hashable {
         case .sticky: 160
         case .journal: 160
         }
+    }
+}
+
+extension Date {
+    /// "Nov 13, 2026 at 11:58 PM": how a post's time reads on the Friends tab and on an opened photo.
+    var postStamp: String { Self.stampFormatter.string(from: self) }
+    private static let stampFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, yyyy 'at' h:mm a"
+        return f
+    }()
+
+    /// A moment in November 2026 (the month the board is set in).
+    static func nov(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour, minute: minute)) ?? Date()
     }
 }
 
@@ -85,12 +102,12 @@ final class BoardStore {
 
     var days: [BoardDay] = [
         BoardDay(id: 2, posts: [
-            Post(kind: .photo(caption: "Rained all day"), rotation: -2.41, image: SamplePhotos.image(1)),
-            Post(kind: .photo(caption: "this is a picture"), rotation: 2.6, image: SamplePhotos.image(0)),
-            Post(kind: .sticky(text: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays"), rotation: -1.2),
-            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: 2.2),
-            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: -2.0),
-            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: 1.4),
+            Post(kind: .photo(caption: "Rained all day"), rotation: -2.41, image: SamplePhotos.image(1), postedAt: .nov(2, 9, 14)),
+            Post(kind: .photo(caption: "this is a picture"), rotation: 2.6, image: SamplePhotos.image(0), postedAt: .nov(2, 11, 58)),
+            Post(kind: .sticky(text: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays"), rotation: -1.2, postedAt: .nov(2, 13, 20)),
+            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: 2.2, postedAt: .nov(2, 15, 5)),
+            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: -2.0, postedAt: .nov(2, 18, 40)),
+            Post(kind: .journal(title: "short rant", body: "Watching this ever-so exciting movie that is about a group of elderly people who get together on Thursdays to solve cold murder cases."), rotation: 1.4, postedAt: .nov(2, 21, 12)),
         ]),
         BoardDay(id: 3, posts: [])
     ]
@@ -118,8 +135,8 @@ final class BoardStore {
     /// The post that is pulsing right now.
     var highlightedPostID: Post.ID?
 
-    /// Busy days that are currently opened out. Everything else folds its overflow into a stack.
-    var expandedDays: Set<Int> = []
+    /// Days you have folded away by tapping their date. Everything else shows all of its posts.
+    var collapsedDays: Set<Int> = []
 
     // What the user is doing with an existing post (tap to open, long-press for the menu)
     var openedPostID: Post.ID?            // sticky or photo opened as a card in place
@@ -138,29 +155,6 @@ final class BoardStore {
 
     /// Days you can post to: this month, up to today. Newest first.
     var postableDays: [Int] { Array((1...todayID).reversed()) }
-
-    // MARK: busy days
-
-    /// A day shows about two rows before the rest folds into a stack.
-    static let dayHeightBudget: CGFloat = 380
-
-    /// Which posts stay visible when a day is folded: as many whole rows (two across, in posting
-    /// order) as fit the height budget, plus prompt answers, which never go in the stack.
-    static func visibleIndices(in posts: [Post]) -> Set<Int> {
-        var keep = Set<Int>()
-        var used: CGFloat = 0
-        var i = 0
-        while i < posts.count {
-            let row = posts[i..<min(i + 2, posts.count)]
-            let rowHeight = row.map(\.estimatedHeight).max() ?? 0
-            if used + rowHeight > dayHeightBudget && i > 0 { break }
-            used += rowHeight
-            for k in i..<min(i + 2, posts.count) { keep.insert(k) }
-            i += 2
-        }
-        for (k, post) in posts.enumerated() where post.isPromptAnswer { keep.insert(k) }
-        return keep
-    }
 
     // MARK: currently into
 
@@ -244,8 +238,13 @@ final class BoardStore {
         days[i].posts[p].kind = .photo(caption: String(caption.trimmingCharacters(in: .whitespacesAndNewlines).prefix(PhotoMetrics.captionLimit)))
     }
 
-    func expand(_ dayID: Int) { expandedDays.insert(dayID) }
-    func collapse(_ dayID: Int) { expandedDays.remove(dayID) }
+    /// Fold a day away, or open it back up.
+    func toggleDay(_ dayID: Int) {
+        if collapsedDays.contains(dayID) { collapsedDays.remove(dayID) } else { collapsedDays.insert(dayID) }
+    }
+
+    /// Make sure a day is open (a new post lands in it, or something is about to scroll to it).
+    func openDay(_ dayID: Int) { collapsedDays.remove(dayID) }
 
     // MARK: posting
 
@@ -264,6 +263,9 @@ final class BoardStore {
         )
         post.image = photo
         post.stickyColor = stickyColor
+        // the board's calendar is November 2026; the time of day is now's
+        let clock = Calendar.current.dateComponents([.hour, .minute], from: .now)
+        post.postedAt = .nov(dayID, clock.hour ?? 12, clock.minute ?? 0)
         post.isClipped = dayID != todayID
         if post.isClipped {
             let time = Date.now.formatted(date: .omitted, time: .shortened)
@@ -282,10 +284,7 @@ final class BoardStore {
             let at = days.firstIndex(where: { $0.id > dayID }) ?? days.endIndex
             days.insert(BoardDay(id: dayID, posts: [post]), at: at)
         }
-        if let i = days.firstIndex(where: { $0.id == dayID }),
-           !Self.visibleIndices(in: days[i].posts).contains(days[i].posts.count - 1) {
-            expandedDays.insert(dayID)
-        }
+        openDay(dayID)
         lastPostedDayID = dayID
         postCount += 1
     }

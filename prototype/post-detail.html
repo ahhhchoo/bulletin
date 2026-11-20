@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post detail: options</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf") format("truetype");font-weight:400 500}
+:root{
+  --paper:#f5f5f5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"JetBrains Mono","SF Mono",ui-monospace,"Courier New",monospace;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.intro{max-width:1500px;margin:0 auto}
+header.intro h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.intro p{margin-top:6px;color:#555;font-size:15px;max-width:860px;line-height:1.45}
+.bar{max-width:1500px;margin:16px auto 0;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:14px}
+.bar label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1650px;margin:26px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h3{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h3 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .re{margin:8px 2px 0;font-size:12.5px;font-weight:510;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.07)}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#000;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;-webkit-user-select:none}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1;color:#fff}
+
+/* the board behind, a stand-in */
+.bg{position:absolute;inset:0;background:#000}
+.bg .top{position:absolute;left:0;right:0;top:0;height:121px;background:var(--paper);border-radius:0 0 24px 24px}
+.bg .tt{position:absolute;left:28px;top:67px;font-size:18px;font-weight:510}
+.bg .mm{position:absolute;right:27px;top:70px;font:400 18px var(--pixel);color:rgba(0,0,0,.4)}
+.bg .sheet{position:absolute;left:0;right:0;top:130px;bottom:0;background:var(--paper);border-radius:24px 24px 0 0;overflow:hidden}
+.bg .ph{position:absolute;border:2px solid #fff;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.1);overflow:hidden}
+.bg .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.bg .stk{position:absolute;width:140px;height:160px;background:#f4e8c4;border-radius:12px;padding:16px 13px;font-size:14px;font-weight:590;line-height:1.2}
+.bg .day{position:absolute;left:44px;font-size:14px;font-weight:510;color:rgba(0,0,0,.5)}
+.dim{position:absolute;inset:-4px -18px;background:rgba(0,0,0,.7);z-index:20;opacity:0;transition:opacity .35s ease}
+.on .dim{opacity:1}
+
+/* the enlarged photo, from the design: 262 x 328, 4pt white edge, 24.6 radius */
+.big{position:absolute;left:50%;top:94px;width:262px;height:328px;margin-left:-131px;border:4px solid #fff;border-radius:24.6px;box-shadow:0 4px 8px rgba(0,0,0,.1);overflow:hidden;z-index:30;background:#ddd;
+  transform:translateY(120px) scale(.5);opacity:0;transition:transform .55s var(--spring),opacity .25s ease}
+.big img{width:100%;height:100%;object-fit:cover;display:block}
+.on .big{transform:none;opacity:1}
+.cap{position:absolute;left:50%;top:414px;z-index:31;transform:translateX(-50%) translateY(10px);opacity:0;background:#fff;border:.75px solid rgba(0,0,0,.15);padding:10px;font-size:12px;white-space:nowrap;transition:all .4s var(--spring) .25s}
+.on .cap{opacity:1;transform:translateX(-50%)}
+.when{position:absolute;left:0;right:0;top:460px;text-align:center;z-index:31;font-size:11px;font-weight:510;color:rgba(255,255,255,.8);opacity:0;transition:opacity .4s ease .45s}
+.on .when{opacity:1}
+
+/* a note, taped on */
+.note{background:var(--paper);border-radius:18px;position:relative;width:328px;min-height:81px;padding:16px 20px 14px;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.note .t{font-size:12px;font-weight:510;line-height:1.35;padding-right:30px}
+.note .by{font-size:11px;margin-top:22px}
+.note .av{position:absolute;right:16px;bottom:12px;width:24px;height:24px;border-radius:50%}
+.tape{position:absolute;left:50%;top:-24px;width:77px;height:34px;margin-left:-38px;background:linear-gradient(135deg,rgba(214,214,208,.95),rgba(190,190,184,.92));transform:rotate(-2deg);
+  clip-path:polygon(0 8%,4% 0,9% 10%,14% 0,20% 9%,26% 0,33% 8%,40% 0,47% 9%,54% 0,61% 8%,68% 0,75% 10%,82% 0,89% 9%,95% 0,100% 8%,100% 92%,96% 100%,90% 91%,84% 100%,77% 92%,70% 100%,63% 91%,56% 100%,49% 92%,42% 100%,35% 91%,28% 100%,21% 92%,14% 100%,8% 91%,3% 100%,0 92%);
+  box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.drop{opacity:0;transform:translateY(40px) rotate(2deg);transition:all .55s var(--spring) .55s}
+.on .drop{opacity:1;transform:none}
+
+/* A */
+/* B: a deck */
+.deck{position:absolute;left:41px;top:626px;width:328px;height:110px;z-index:32}
+.deck .note{position:absolute;left:0;top:6px;transition:transform .45s var(--spring),opacity .3s ease}
+.deck .note:nth-child(1){z-index:3}.deck .note:nth-child(2){z-index:2;transform:translateY(8px) rotate(2.4deg) scale(.97)}.deck .note:nth-child(3){z-index:1;transform:translateY(14px) rotate(-2.2deg) scale(.94)}
+.deck .note.gone{transform:translateX(-380px) rotate(-12deg)!important;opacity:0}
+.cnt{position:absolute;left:0;right:0;top:748px;text-align:center;font-size:12px;font-weight:510;color:rgba(255,255,255,.85);z-index:32}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:6px}.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35)}.dots i.on{background:#fff}
+/* C: scroll */
+.scroller{position:absolute;inset:0;overflow-y:auto;z-index:35;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.scroller .photoWrap{position:sticky;top:0;height:0;z-index:2}
+.scroller .big{position:absolute;top:94px}
+.scroller .spacer{height:540px}
+.scroller .notes{display:flex;flex-direction:column;gap:40px;padding:34px 0 120px;align-items:center}
+.C .big,.C .cap,.C .when{position:absolute}
+/* D: pinned around */
+.pinned{position:absolute;z-index:32;cursor:pointer;transition:transform .35s var(--spring)}
+.pinned .note{width:150px;min-height:0;padding:11px 12px 12px;border-radius:12px}
+.pinned .note .t{font-size:11px;padding-right:0}
+.pinned .note .by{font-size:10px;margin-top:8px}
+.pinned .note .av{display:none}
+.pinned .tape{width:46px;height:20px;margin-left:-23px;top:-12px}
+.pinned.open{transform:scale(1.18) rotate(0deg)!important;z-index:40}
+.pinned.open .note{width:200px}
+
+.reply{position:absolute;left:41px;width:328px;height:46px;border-radius:23px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.7);font-size:13px;padding:0 18px;display:flex;align-items:center;z-index:33}
+.hintbot{max-width:560px;margin:34px auto 0;text-align:center;font-size:12.5px;line-height:1.5;color:#666}
+.diff{max-width:860px;margin:22px auto 0;background:#fff;border-radius:14px;padding:18px 22px;font-size:14px;line-height:1.55}
+.diff h2{font-size:16px;margin-bottom:8px}
+.diff table{border-collapse:collapse;width:100%;font-size:13.5px}
+.diff td,.diff th{text-align:left;padding:7px 10px;border-top:1px solid #eee;vertical-align:top}
+.diff th{color:#777;font-weight:510;border-top:0}
+</style>
+</head>
+<body>
+<header class="intro">
+  <h1>Post detail: your new design and four ways to take it further</h1>
+  <p>A is your "POST-comment" frame as drawn. B, C and D are different answers to the same question: what should happen when a photo has more than one comment, and how much of it should you see without doing anything?</p>
+</header>
+
+<div class="diff">
+  <h2>What changed from what the app does now</h2>
+  <table>
+    <tr><th></th><th>Now in the app</th><th>Your new frame</th></tr>
+    <tr><td>Behind the photo</td><td>Board blurred a little and dimmed 50%</td><td>Flat black at 70%, no blur. It covers the title bar too</td></tr>
+    <tr><td>Photo</td><td>Scales up 1.9 times, keeps its shape, has a red pin</td><td>Always 262 x 328 (portrait), a thicker 4 pt white edge and rounder 24.6 corners. No pin</td></tr>
+    <tr><td>Caption</td><td>Large JetBrains Mono slip, tilted, hanging off the photo</td><td>A small straight slip in SF Pro 12, centered under the photo</td></tr>
+    <tr><td>Date</td><td>A glass pill saying "Wed 11/4"</td><td>Plain white text under the caption: the full date and time</td></tr>
+    <tr><td>Comments</td><td>Hidden in a drawer at the bottom ("Add a note"); opening it pushes the photo up</td><td>On the screen already: the comment sits in a paper card, taped on, with the commenter's name and a color dot</td></tr>
+    <tr><td>Where the eye goes</td><td>The photo, then a drawer you have to find</td><td>Photo, caption, then the person's reaction, top to bottom</td></tr>
+  </table>
+</div>
+
+<div class="bar">
+  <span>Try:</span>
+  <label><input type="radio" name="who" value="mine" checked> my photo (people commented)</label>
+  <label><input type="radio" name="who" value="friend"> a friend's photo (I can leave a note)</label>
+  <label><input type="radio" name="n" value="1" checked> 1 comment</label>
+  <label><input type="radio" name="n" value="3"> 3 comments</label>
+</div>
+<div class="grid" id="grid"></div>
+<p class="hintbot">Not built in the app yet. Tell me which one (or which parts of which) and I'll bring it into SwiftUI.</p>
+
+<script>
+const NOTES=[
+  {t:'Super cute, did y’all have a good time?',by:'Elise',c:'#aee0ce'},
+  {t:'that cake!! was it chocolate',by:'Mara',c:'#fbc9d4'},
+  {t:'best birthday boy',by:'Jo',c:'#cddcfb'}
+];
+const BOARD=`<div class="bg"><div class="top"></div><div class="tt">Prompts</div><div class="mm">November</div>
+ <div class="sheet"><div class="day" style="top:40px">Nov 15</div>
+  <div class="ph" style="left:49px;top:66px;width:128px;height:160px"><img src="assets/pic-a.jpg"></div>
+  <div class="stk" style="left:210px;top:73px">Watching this ever-so exciting movie that is about a group of elderly people.</div>
+  <div class="ph" style="left:49px;top:269px;width:128px;height:160px"><img src="assets/pic-b.jpg"></div>
+  <div class="stk" style="left:203px;top:276px;background:#fff">Cookie cake recipe</div></div></div>`;
+const noteEl=(n,tape=true)=>`<div class="note">${tape?'<div class="tape"></div>':''}<div class="t">${n.t}</div><div class="by">- ${n.by}</div><div class="av" style="background:${n.c}"></div></div>`;
+const frameTop=(inner,cls,fn)=>`<div class="sb">9:41</div>${BOARD}<div class="dim"></div>${inner}`;
+const photo=(extra='')=>`<div class="big"><img src="assets/pic-a.jpg"></div><div class="cap">yugi and birthday</div><div class="when">Nov 13, 2026 at 11:58 PM</div>${extra}`;
+
+const V=[
+ {k:'A',t:'As you drew it',d:'Your frame: darker backdrop, big photo with a small caption and the full date, and the comment taped on below. With 3 comments it shows the newest and says how many there are.',
+  html:(s)=>photo(
+     s.who==='mine'
+       ?`<div style="position:absolute;left:41px;top:632px;z-index:32" data-drop>${noteEl(NOTES[0])}</div>${s.n>1?`<div class="cnt" style="top:722px">+${s.n-1} more notes</div>`:''}`
+       :`<div class="reply" style="top:640px" data-drop>Leave a note about this photo…</div>`)},
+ {k:'B',t:'A deck you flip through',d:'All the comments are stacked as taped cards. Tap the top one (or swipe left) and it flies off to show the next. Dots show where you are. Nothing hides in a drawer.',
+  html:(s)=>photo(
+     s.who==='mine'
+       ?`<div class="deck" data-deck data-drop>${NOTES.slice(0,s.n).map((n,i)=>`<div class="note" data-i="${i}">${i===0?'<div class="tape"></div>':''}<div class="t">${n.t}</div><div class="by">- ${n.by}</div><div class="av" style="background:${n.c}"></div></div>`).join('')}</div>
+         <div class="cnt" data-cnt>${s.n>1?`<div>1 of ${s.n}</div><div class="dots">${NOTES.slice(0,s.n).map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}</div>`
+       :`<div class="reply" style="top:640px" data-drop>Leave a note about this photo…</div>`)},
+ {k:'C',t:'One scroll',d:'The detail is a single scrolling page. The photo stays put at the top and shrinks as you scroll, while the comments slide up under it, one taped card each, with a note field at the end.',
+  html:(s)=>`<div class="scroller" data-scroll><div class="photoWrap"><div class="big" data-bigc><img src="assets/pic-a.jpg"></div><div class="cap" data-capc>yugi and birthday</div><div class="when" data-whenc>Nov 13, 2026 at 11:58 PM</div></div>
+     <div class="spacer"></div><div class="notes">${s.who==='mine'?NOTES.slice(0,s.n).map(n=>noteEl(n)).join(''):''}<div class="reply" style="position:relative;left:auto;top:auto">${s.who==='mine'?'Reply…':'Leave a note about this photo…'}</div></div></div>`},
+ {k:'D',t:'Pinned around the photo',d:'Each comment is a small taped note stuck around the photo at a slight angle, like things stuck on a fridge. Tap one and it straightens up and grows to read.',
+  html:(s)=>photo(
+     s.who==='mine'
+       ?NOTES.slice(0,s.n).map((n,i)=>{const pos=[{l:26,t:512,r:-5},{l:226,t:528,r:4},{l:122,t:610,r:-2}][i];return `<div class="pinned" style="left:${pos.l}px;top:${pos.t}px;transform:rotate(${pos.r}deg)" data-pin data-r="${pos.r}">${noteEl(n)}</div>`}).join('')
+       :`<div class="reply" style="top:640px" data-drop>Leave a note about this photo…</div>`)}
+];
+
+const state={who:'mine',n:1};
+const grid=document.getElementById('grid');
+function render(){
+  grid.innerHTML='';
+  V.forEach(v=>{
+    const c=document.createElement('div');c.className='cell';
+    c.innerHTML=`<div class="frame"><div class="phone ${v.k}"></div></div><h3><em>${v.k}</em>${v.t}</h3><p>${v.d}</p><button class="re">Replay</button>`;
+    grid.appendChild(c);
+    const ph=c.querySelector('.phone');
+    const boot=()=>{ph.className='phone '+v.k;ph.innerHTML=frameTop(v.html(state));wire(ph,v.k);requestAnimationFrame(()=>requestAnimationFrame(()=>ph.classList.add('on')));};
+    c.querySelector('.re').onclick=boot;boot();
+  });
+}
+function wire(ph,k){
+  // the comments drop in a beat after the photo
+  ph.querySelectorAll('[data-drop]').forEach(e=>{e.classList.add('drop')});
+  if(k==='B'){
+    const deck=ph.querySelector('[data-deck]');if(!deck)return;
+    let idx=0;const total=deck.querySelectorAll('.note').length;
+    const next=()=>{ if(idx>=total-1)return; const cards=[...deck.querySelectorAll('.note')].sort((a,b)=>a.dataset.i-b.dataset.i);
+      cards[idx].classList.add('gone');idx++;
+      cards.slice(idx).forEach((c,j)=>{c.style.zIndex=10-j;c.style.transform=j===0?'none':`translateY(${8*j}px) rotate(${j%2?2.4:-2.2}deg) scale(${1-.03*j})`});
+      const tape=document.createElement('div');tape.className='tape';if(!cards[idx].querySelector('.tape'))cards[idx].prepend(tape);
+      const cnt=ph.querySelector('[data-cnt]');cnt.innerHTML=`<div>${idx+1} of ${total}</div><div class="dots">${cards.map((_,i)=>`<i class="${i===idx?'on':''}"></i>`).join('')}</div>`;};
+    deck.addEventListener('click',next);
+    let x0=null;deck.addEventListener('pointerdown',e=>x0=e.clientX);deck.addEventListener('pointerup',e=>{if(x0!==null&&x0-e.clientX>40)next();x0=null});
+  }
+  if(k==='C'){
+    const sc=ph.querySelector('[data-scroll]'),big=ph.querySelector('[data-bigc]'),cap=ph.querySelector('[data-capc]'),when=ph.querySelector('[data-whenc]');
+    sc.addEventListener('scroll',()=>{const p=Math.min(1,sc.scrollTop/260);const s=1-.38*p;
+      big.style.transform=`translateY(${-p*60}px) scale(${s})`;big.style.transformOrigin='50% 0';
+      cap.style.transform=`translateX(-50%) translateY(${-p*150}px) scale(${1-.1*p})`;cap.style.opacity=1-p*.4;when.style.opacity=Math.max(0,1-p*1.6);when.style.transform=`translateY(${-p*150}px)`;});
+  }
+  if(k==='D'){
+    ph.querySelectorAll('[data-pin]').forEach(p=>p.addEventListener('click',()=>{const open=p.classList.toggle('open');p.style.transform=open?'':`rotate(${p.dataset.r}deg)`}));
+  }
+}
+document.querySelectorAll('input[name=who],input[name=n]').forEach(i=>i.addEventListener('change',()=>{state.who=document.querySelector('input[name=who]:checked').value;state.n=+document.querySelector('input[name=n]:checked').value;render()}));
+render();
+</script>
+</body>
+</html>

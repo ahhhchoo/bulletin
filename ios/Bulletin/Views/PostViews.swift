@@ -64,7 +64,7 @@ private struct PhotoPost: View {
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white, lineWidth: 2))
                 .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
                 .rotationEffect(.degrees(photoTilt))
-                .overlay(alignment: .top) { Pushpin().offset(y: rotation < 0 ? 29 : -1) }
+                .overlay(alignment: .top) { Pushpin().offset(y: -1) }      // on the top edge, centered, whichever way the photo leans
                 .overlay(alignment: .topLeading) { if isPromptAnswer { PromptTag().offset(x: 4, y: -8) } }
 
             if !caption.isEmpty {

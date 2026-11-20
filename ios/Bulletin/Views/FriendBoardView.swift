@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A friend's board: their look and their days. Nothing on it asks you to join in: to say something about a photo,
-/// open it and go down a layer (see `NotesLayers`).
+/// open it and scroll its notes (see `PhotoDetailView`).
 struct FriendBoardView: View {
     @Environment(FriendsStore.self) private var store
     @Environment(NotesStore.self) private var notes
@@ -12,6 +12,8 @@ struct FriendBoardView: View {
     let onClose: () -> Void
     /// True while you are holding the board, looking at a photo or answering, so a queue waits for you.
     @Binding var busy: Bool
+    /// How dark the strip above the board (the queue's progress bars) should be while something is open, to match the scrim.
+    @Binding var topDim: Double
 
     @State private var openPost: Post?
     @State private var showAnswer = false
@@ -20,19 +22,40 @@ struct FriendBoardView: View {
     private var isBusy: Bool { openPost != nil || showAnswer || touching }
     private var days: [BoardDay] { store.boards[friend.id] ?? [] }
 
+    // The same behavior as your own board: the prompt card is the top of the scrolling content, and scrolling down tucks
+    // it away under a bar with the friend's name; scrolling up brings it back. Let go halfway and it settles open or closed.
+    @State private var offset: CGFloat = 0
+    @State private var viewport: CGFloat = 700
+    @State private var cardHeight: CGFloat = 330
+    @State private var position = ScrollPosition(edge: .top)
+
+    private let barHeight: CGFloat = 48
+    private let gap: CGFloat = 9
+    private let corner: CGFloat = 24
+    private var range: CGFloat { max(1, cardHeight - barHeight) }
+    private var tucked: Bool { offset >= range - 1 }
+
     var body: some View {
         ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 0) {
-                // the same prompt card as your own board: paper with rounded bottom corners over black
-                VStack(spacing: 0) {
-                    header
-                    cards.padding(.top, 14).padding(.bottom, 22)
+            Color("Paper").ignoresSafeArea()      // paper, so a pull past the top or bottom never shows black; black is only the gap and the corners
+            ZStack(alignment: .top) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        card
+                        Color.black.frame(height: gap)
+                        sheet
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .background(UnevenRoundedRectangle(bottomLeadingRadius: 24, bottomTrailingRadius: 24, style: .continuous)
-                    .fill(Color("Paper")).ignoresSafeArea(edges: .top))
-                sheet.padding(.top, 9)
+                .scrollIndicators(.hidden)
+                .scrollPosition($position)
+                .ignoresSafeArea(edges: .bottom)
+                .mask { Rectangle().ignoresSafeArea(edges: .bottom) }      // the card scrolls under the bar, never up into the status bar
+                .scrollTargetBehavior(MastheadSnap(range: range))
+                .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, y in offset = y }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
+                .simultaneousGesture(DragGesture(minimumDistance: 0).updating($touching) { _, s, _ in s = true })
+
+                bar
             }
             if let post = openPost {
                 PostDetailView(post: post, origin: nil,
@@ -44,6 +67,62 @@ struct FriendBoardView: View {
             }
         }
         .onChange(of: isBusy) { _, v in busy = v }
+        .onChange(of: openPost?.id) { _, id in
+            var dim = 0.0
+            if let post = openPost { if case .photo = post.kind { dim = 0.7 } else { dim = 0.5 } }
+            withAnimation(.easeOut(duration: 0.3)) { topDim = dim }
+        }
+    }
+
+    /// The prompt card: paper with rounded bottom corners over black. The header sits on top of it (see `bar`).
+    private var card: some View {
+        ZStack(alignment: .top) {
+            UnevenRoundedRectangle(bottomLeadingRadius: corner, bottomTrailingRadius: corner, style: .continuous)
+                .fill(Color("Paper"))
+            VStack(spacing: 0) {
+                Color.clear.frame(height: barHeight)
+                cards.padding(.top, 14).padding(.bottom, 22)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
+    }
+
+    /// The fixed top bar, like your own board's title bar: while the card scrolls it is a strip of paper behind the
+    /// header; once the card is tucked away it is the rounded bar, in exactly the card's place.
+    private var bar: some View {
+        ZStack(alignment: .topLeading) {
+            ZStack(alignment: .bottom) {
+                if tucked { Color.black.frame(height: corner) }
+                UnevenRoundedRectangle(bottomLeadingRadius: tucked ? corner : 0, bottomTrailingRadius: tucked ? corner : 0, style: .continuous)
+                    .fill(Color("Paper"))
+            }
+            .frame(height: barHeight)
+            .contentShape(.rect)
+            .onTapGesture { withAnimation(.smooth(duration: 0.5)) { position.scrollTo(y: offset < range / 2 ? range : 0) } }
+            .accessibilityHidden(true)
+
+            LinearGradient(colors: [Color("Paper"), Color("Paper").opacity(0)], startPoint: .top, endPoint: .bottom)
+                .frame(height: 22).offset(y: barHeight)
+                .opacity(tucked ? 0 : 1).allowsHitTesting(false)
+
+            Rectangle().fill(.ultraThinMaterial)
+                .mask(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
+                .frame(height: 56).offset(y: barHeight + gap)
+                .opacity(tucked ? 1 : 0).allowsHitTesting(false)
+
+            VStack(spacing: 0) {
+                Color.clear.frame(height: barHeight)
+                Color.black.frame(height: gap)
+                OutsideTopCorners(radius: corner).fill(.black, style: FillStyle(eoFill: true))
+                    .frame(height: corner).clipped()
+            }
+            .opacity(tucked ? 1 : 0).allowsHitTesting(false)
+
+            header.frame(height: barHeight, alignment: .top)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: barHeight, alignment: .top)
     }
 
     // MARK: header and cards
@@ -96,23 +175,21 @@ struct FriendBoardView: View {
     // MARK: the board
 
     private var sheet: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
-                    DayBlock(day: day, isLast: i == days.count - 1, highlightNew: friend.hasNew && i == 0) { post in
-                        withAnimation(.snappy) { openPost = post }
-                    }
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
+                DayBlock(day: day, isLast: i == days.count - 1) { post in
+                    withAnimation(.snappy) { openPost = post }
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 560, alignment: .topLeading)
-            .padding(.bottom, 60)
         }
-        .scrollIndicators(.hidden)
-        .simultaneousGesture(DragGesture(minimumDistance: 0).updating($touching) { _, s, _ in s = true })
-        .frame(maxWidth: .infinity)
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous))
-        .background(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
-            .fill(Color("Paper")).ignoresSafeArea(edges: .bottom))
+        .padding(.bottom, 60)
+        .frame(maxWidth: .infinity, minHeight: max(0, viewport - barHeight - gap), alignment: .topLeading)
+        .background(alignment: .top) {
+            ZStack(alignment: .top) {
+                Color.black.frame(height: corner)
+                UnevenRoundedRectangle(topLeadingRadius: corner, topTrailingRadius: corner, style: .continuous).fill(Color("Paper"))
+            }
+        }
     }
 }
 
@@ -121,7 +198,6 @@ private struct DayBlock: View {
     @Environment(NotesStore.self) private var notes
     let day: BoardDay
     let isLast: Bool
-    let highlightNew: Bool
     let onOpen: (Post) -> Void
 
     var body: some View {
@@ -140,13 +216,6 @@ private struct DayBlock: View {
                             .overlay(alignment: .topTrailing) {
                                 if case .photo = post.kind, notes.count(post.id) > 0 {
                                     NoteBadge(count: notes.count(post.id)).offset(x: 8, y: -9)
-                                }
-                            }
-                            .overlay(alignment: .topLeading) {
-                                if highlightNew {
-                                    Text("new").font(.system(size: 10, weight: .semibold)).foregroundStyle(.white)
-                                        .padding(.horizontal, 8).padding(.vertical, 3)
-                                        .background(Color("DayPink"), in: Capsule()).offset(x: -4, y: -4)
                                 }
                             }
                             .contentShape(.rect)

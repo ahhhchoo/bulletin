@@ -87,6 +87,14 @@ final class FriendsStore {
         for i in friends.indices {
             let ago = friends[i].hasNew ? Double(i) * 3_600 + 600 : Double(i + 2) * 86_400 + 4_000
             friends[i].lastPosted = now.addingTimeInterval(-ago)
+            // their newest post is the one the Friends tab shows, so it carries that same time; earlier ones a few hours before
+            if var days = boards[friends[i].id], !days.isEmpty {
+                let count = days[0].posts.count
+                for k in 0..<count {
+                    days[0].posts[k].postedAt = friends[i].lastPosted.addingTimeInterval(-Double(count - 1 - k) * 7_200)
+                }
+                boards[friends[i].id] = days
+            }
         }
     }
 

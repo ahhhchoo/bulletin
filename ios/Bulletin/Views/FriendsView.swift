@@ -13,25 +13,29 @@ struct FriendsView: View {
     private let columns = [GridItem(.flexible(), spacing: 17), GridItem(.flexible(), spacing: 17)]
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 19) {
-                if friends.addBack != nil { AddBackCard() }
-                LazyVGrid(columns: columns, spacing: 19) {
-                    ForEach(friends.ordered) { friend in
-                        FriendBlock(friend: friend) { open(startingAt: friend) }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 19) {
+                    LazyVGrid(columns: columns, spacing: 19) {
+                        ForEach(friends.ordered) { friend in
+                            FriendBlock(friend: friend) { open(startingAt: friend) }
+                        }
                     }
+                    .animation(.snappy, value: friends.ordered)
+                    GuestListCard { editingGuests = true }
+                        .id("guests")
                 }
-                .animation(.snappy, value: friends.ordered)
-                GuestListCard { editingGuests = true }
+                .padding(.horizontal, 15.5)
+                .padding(.top, 113)
+                .padding(.bottom, 130)
             }
-            .padding(.horizontal, 15.5)
-            .padding(.top, 113)
-            .padding(.bottom, 130)
+            .ignoresSafeArea(edges: .top)
+            .scrollIndicators(.hidden)
+            .background(Color("Paper"))
+            .overlay(alignment: .top) {
+                header { withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo("guests", anchor: .bottom) } }
+            }
         }
-        .ignoresSafeArea(edges: .top)
-        .scrollIndicators(.hidden)
-        .background(Color("Paper"))
-        .overlay(alignment: .top) { header }
         .animation(.snappy, value: friends.addBack)
         .fullScreenCover(item: $queue) { request in
             FriendQueueView(request: request) { queue = nil }
@@ -44,21 +48,40 @@ struct FriendsView: View {
         }
     }
 
-    /// "Shared" and the month, on a strip of paper so the blocks slide under it.
-    private var header: some View {
+    /// "Shared" and, on the right, a person icon that jumps down to the guest list. It carries a blue dot while someone
+    /// has put you on their list and you have not answered yet.
+    private func header(toGuests: @escaping () -> Void) -> some View {
         ZStack(alignment: .topLeading) {
             LinearGradient(stops: [.init(color: Color("Paper"), location: 0.78), .init(color: Color("Paper").opacity(0), location: 1)],
                            startPoint: .top, endPoint: .bottom)
                 .frame(height: 112)
+                .allowsHitTesting(false)
             Text("Shared").font(.system(size: 26, weight: .bold))
                 .padding(.leading, 16).padding(.top, 57)
-            Text("November").font(Typo.pixel(18)).foregroundStyle(.black.opacity(0.4))
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, 26).padding(.top, 64)
+                .allowsHitTesting(false)
+            Button(action: toGuests) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 26, weight: .regular))
+                    .foregroundStyle(.black)
+                    .frame(width: 44, height: 44)
+                    .overlay(alignment: .topTrailing) {
+                        if friends.addBack != nil {
+                            Circle().fill(unseenBlue)
+                                .overlay(Circle().strokeBorder(Color("Paper"), lineWidth: 1.5))
+                                .frame(width: 12, height: 12)
+                                .offset(x: -5, y: 5)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .contentShape(.rect)
+            }
+            .buttonStyle(PressableStyle())
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 16).padding(.top, 53)
+            .accessibilityLabel(friends.addBack != nil ? "Guest list, someone added you" : "Guest list")
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .ignoresSafeArea(edges: .top)
-        .allowsHitTesting(false)
     }
 
     /// Tap a block: the boards with news, in order, starting on that friend. A friend with nothing new: just their board.
@@ -79,12 +102,6 @@ private struct FriendBlock: View {
     let friend: Friend
     let tap: () -> Void
 
-    private static let stamp: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d, yyyy 'at' h:mm a"
-        return f
-    }()
-
     var body: some View {
         Button(action: tap) {
             ZStack(alignment: .topLeading) {
@@ -93,7 +110,7 @@ private struct FriendBlock: View {
                     .foregroundStyle(friend.hasNew ? .black : .black.opacity(0.5))
                     .padding(.leading, 12).padding(.top, 10)
                 preview.padding(.top, 37).frame(maxWidth: .infinity)
-                Text(Self.stamp.string(from: friend.lastPosted))
+                Text(friend.lastPosted.postStamp)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.black.opacity(0.2))
                     .padding(.leading, 10).padding(.top, 214)
@@ -147,46 +164,6 @@ private struct FriendBlock: View {
     }
 }
 
-// MARK: - Add back
-
-private struct AddBackCard: View {
-    @Environment(FriendsStore.self) private var friends
-
-    var body: some View {
-        if let who = friends.addBack {
-            HStack(spacing: 14) {
-                Circle().fill(who.color).frame(width: 48, height: 48)
-                    .overlay(Circle().strokeBorder(.white, lineWidth: 2))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(who.name) put you on her list").font(.system(size: 16, weight: .semibold))
-                    if friends.isFull {
-                        Text("Your list is full. Take someone off first.")
-                            .font(.footnote.weight(.medium)).foregroundStyle(Color("DayPink"))
-                    } else {
-                        Text("Add her to yours?").font(.footnote.weight(.medium)).foregroundStyle(inkSoft)
-                    }
-                }
-                Spacer(minLength: 8)
-                VStack(spacing: 6) {
-                    Button("Add") { friends.addBackTapped() }
-                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 16).padding(.vertical, 8)
-                        .background(.black, in: Capsule())
-                        .opacity(friends.isFull ? 0.25 : 1)
-                        .disabled(friends.isFull)
-                    Button("Not now") { friends.skipAddBack() }
-                        .font(.system(size: 14, weight: .medium)).foregroundStyle(inkSoft)
-                }
-                .buttonStyle(PressableStyle())
-            }
-            .padding(16)
-            .background(.white, in: RoundedRectangle(cornerRadius: 24))
-            .shadow(color: .black.opacity(0.05), radius: 10, y: 2)
-            .transition(.opacity.combined(with: .scale(scale: 0.96)))
-        }
-    }
-}
-
 // MARK: - Guest list
 
 /// The compact card from the design: title, who can see you, Edit, and a row of faces.
@@ -206,6 +183,7 @@ private struct GuestListCard: View {
             }
             .padding(.top, 10)
             .animation(.snappy, value: friends.guestCount)
+            if let who = friends.addBack { request(who).transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top))) }
         }
         .padding(.leading, 19).padding(.top, 17).padding(.bottom, 18).padding(.trailing, 19)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -221,6 +199,40 @@ private struct GuestListCard: View {
             .buttonStyle(PressableStyle())
             .padding(.top, 11).padding(.trailing, 21)
         }
+    }
+
+    /// Someone put you on their list: the answer lives here, with the people who can see you.
+    private func request(_ who: Friend) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Rectangle().fill(.black.opacity(0.18)).frame(height: 1)      // a clear line between who can see you and who is asking
+                .padding(.bottom, 4)
+            HStack(spacing: 10) {
+                Face(color: who.color)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(who.name) put you on her list").font(.system(size: 14, weight: .semibold))
+                    if friends.isFull {
+                        Text("Your list is full. Take someone off first.")
+                            .font(.system(size: 12, weight: .medium)).foregroundStyle(Color("DayPink"))
+                    } else {
+                        Text("Add her to yours?").font(.system(size: 12, weight: .medium)).foregroundStyle(inkSoft)
+                    }
+                }
+            }
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button("Not now") { friends.skipAddBack() }
+                    .font(.system(size: 14, weight: .medium)).foregroundStyle(inkSoft)
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                Button("Add") { friends.addBackTapped() }
+                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 7)
+                    .background(.black, in: Capsule())
+                    .opacity(friends.isFull ? 0.25 : 1)
+                    .disabled(friends.isFull)
+            }
+            .buttonStyle(PressableStyle())
+        }
+        .padding(.top, 16)
     }
 }
 
@@ -356,6 +368,7 @@ private struct FriendQueueView: View {
     @State private var index = 0
     @State private var progress = 0.0
     @State private var busy = false
+    @State private var topDim = 0.0
     @State private var finished = false
     private let tick = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect()
     private var who: [Friend] { request.who }
@@ -392,8 +405,14 @@ private struct FriendQueueView: View {
                             nextLabel: request.auto ? (index == who.count - 1 ? "Finish" : "Next") : nil,
                             onNext: request.auto ? { next() } : nil,
                             onClose: close,
-                            busy: $busy)
+                            busy: $busy, topDim: $topDim)
                 .id(who[index].id)
+        }
+        .overlay(alignment: .top) {
+            // the progress bars sit above the board, outside the scrim, so darken them to match
+            Color.clear.frame(height: 14)
+                .overlay(alignment: .bottom) { Color.black.opacity(topDim).frame(height: 160) }
+                .allowsHitTesting(false)
         }
     }
 

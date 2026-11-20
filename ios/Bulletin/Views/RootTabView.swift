@@ -5,15 +5,25 @@ struct RootTabView: View {
     @Environment(FriendsStore.self) private var friends
     @Environment(NotesStore.self) private var notes
 
+    private enum Page { case bulletin, friends, shelf }
+    @State private var page: Page = .bulletin
+
     var body: some View {
-        TabView {
-            Tab("bulletin", image: "TabNote") {
+        TabView(selection: $page) {
+            Tab("bulletin", image: "TabNote", value: Page.bulletin) {
                 BoardView()
             }
-            Tab("friends", image: "TabFriends") {
+            // a smile when it is not the page you are on; the open-mouthed face when it is
+            Tab(value: Page.friends) {
                 FriendsView()
+            } label: {
+                Label {
+                    Text("friends")
+                } icon: {
+                    Image(page == .friends ? "TabFriends" : "TabFriendsSmile")
+                }
             }
-            Tab("shelf", image: "TabShelf") {
+            Tab("shelf", image: "TabShelf", value: Page.shelf) {
                 ContentUnavailableView(
                     "Shelf",
                     systemImage: "books.vertical",

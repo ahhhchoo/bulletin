@@ -9,6 +9,8 @@ struct PostNote: Identifiable, Hashable {
     var reply: String?
     /// Left by you (when you are the visitor), so you can take it back.
     var mine = false
+    /// Rewritten after it was stuck on.
+    var edited = false
 }
 
 /// Friends' notes on photos, for your own board and for the boards you visit.
@@ -26,6 +28,13 @@ final class NotesStore {
         list.removeAll { $0.mine }
         list.append(PostNote(by: "You", text: text, mine: true))
         byPost[post] = list
+    }
+
+    /// Rewrites the note you left; it keeps its place and says it was edited.
+    func editMine(_ text: String, on post: Post.ID) {
+        guard let i = byPost[post]?.firstIndex(where: \.mine) else { return }
+        byPost[post]?[i].text = text
+        byPost[post]?[i].edited = true
     }
 
     func takeBack(on post: Post.ID) { byPost[post]?.removeAll { $0.mine } }
