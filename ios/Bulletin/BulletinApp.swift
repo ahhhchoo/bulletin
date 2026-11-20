@@ -7,6 +7,8 @@ struct BulletinApp: App {
     @State private var stickers = StickerStore()
     @State private var notes = NotesStore()
 
+    init() { Typo.registerFonts() }
+
     var body: some Scene {
         WindowGroup {
             RootTabView()

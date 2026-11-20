@@ -27,7 +27,7 @@ struct PostCell: View {
         PostView(post: post)
             .overlay(alignment: .topTrailing) {
                 // friends' notes live under the photo; the board only shows that there are some
-                if case .photo = post.kind, notes.count(post.id) > 0 { NoteBadge(count: notes.count(post.id)).offset(x: 10, y: -10) }
+                if case .photo = post.kind, notes.count(post.id) > 0 { NoteBadge(count: notes.count(post.id)).offset(x: 8, y: -9) }
             }
             .opacity(store.openedPostID == post.id ? 0 : 1)       // the opened card stands in for it
             .shadow(color: Color("DayPink").opacity(0.75 * glow), radius: 22)
@@ -147,7 +147,10 @@ struct PostDetailView: View {
             let layerTop = smallTarget.y + cardSize.height * small / 2 + 30 + captionHang * small
 
             ZStack {
-                Color.black.opacity(expanded ? 0.3 : 0)
+                ZStack {
+                    Rectangle().fill(.ultraThinMaterial).opacity(expanded ? 0.4 : 0)   // just a hint of blur
+                    Color.black.opacity(expanded ? 0.5 : 0)
+                }
                     .ignoresSafeArea()
                     .onTapGesture { if notesOpen { notesOpen = false } else { close() } }
 
@@ -219,8 +222,7 @@ struct PostDetailView: View {
 
 // MARK: - Folded note, opened
 
-/// Folded notes open into a full page for reading. (BRD-06 isn't designed yet, so this is a plain
-/// serif page for now.)
+/// Folded notes open into a full page for reading, set in the same type as the card on the board.
 struct JournalPage: View {
     @Environment(BoardStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -233,32 +235,36 @@ struct JournalPage: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 16) {
                     if let day = store.dayID(of: post.id) {
-                        Text(store.fullLabel(day))
-                            .font(.system(size: 14, weight: .medium))
+                        Text("Nov \(day)")
+                            .font(Typo.pixel(14))
                             .foregroundStyle(.black.opacity(0.5))
                     }
                     if !title.isEmpty {
                         Text(title)
-                            .font(.system(size: 28, weight: .semibold, design: .serif))
+                            .font(Typo.scaled(24, .semibold, relativeTo: .title2))
                     }
                     Text(text)
-                        .font(.system(size: 19, design: .serif))
-                        .lineSpacing(7)
+                        .font(Typo.scaled(16, .medium, relativeTo: .body))
+                        .foregroundStyle(.black.opacity(0.75))
+                        .lineSpacing(5)
                     Text("\(readMinutes) min read")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.black.opacity(0.45))
+                        .font(Typo.scaled(12, .regular, relativeTo: .caption))
+                        .foregroundStyle(.black.opacity(0.6))
                 }
                 .foregroundStyle(.black)
-                .padding(26)
+                .padding(24)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.white, in: RoundedRectangle(cornerRadius: 2))
-                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                .background(CutCornerShape().fill(.white))
+                .overlay(alignment: .bottomTrailing) {
+                    PaperFold().fill(.black.opacity(0.05)).frame(width: 26.6, height: 26.6)
+                }
+                .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
             }
-            .background(Color("Paper"))
+            .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundStyle(.black) }
             }
@@ -266,7 +272,12 @@ struct JournalPage: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .presentationBackground(Color("Paper"))
+        .presentationBackground {                         // the board shows through, darkened with a hint of blur
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial).opacity(0.4)
+                Color.black.opacity(0.5)
+            }
+        }
         .tint(.black)
     }
 }

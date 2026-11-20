@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>November Highlights: drag to tear</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf") format("truetype");font-weight:400 500}
+:root{
+  --paper:#f5f5f5; --blue:#0078fc;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"JetBrains Mono","SF Mono",ui-monospace,"Courier New",monospace;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --z:.9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.intro{max-width:1100px;margin:0 auto}
+header.intro h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.intro p{margin-top:6px;color:#555;font-size:15px;max-width:780px;line-height:1.45}
+.row{display:flex;flex-wrap:wrap;gap:44px;justify-content:center;max-width:1100px;margin:26px auto 0;align-items:flex-start}
+.cell{width:calc(402px * var(--z))}
+.cell h3{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .re{margin:8px 2px 0;font-size:12.5px;font-weight:510;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.07)}
+.side{max-width:340px;font-size:14px;line-height:1.55;color:#444;padding-top:6px}
+.side h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.side label{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer}
+.side ul{padding-left:18px;margin:8px 0 14px}.side li{margin-bottom:5px}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;-webkit-user-select:none}
+.phone.shake{animation:shake .32s linear}
+@keyframes shake{0%,100%{transform:scale(var(--z)) translateX(0)}20%{transform:scale(var(--z)) translateX(-3px)}40%{transform:scale(var(--z)) translateX(3px)}60%{transform:scale(var(--z)) translateX(-2px)}80%{transform:scale(var(--z)) translateX(1px)}}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+
+/* ---------- December, underneath ---------- */
+.dec{position:absolute;inset:0;background:#000}
+.dtop{position:absolute;left:0;right:0;top:0;height:121px;background:var(--paper);border-radius:0 0 24px 24px}
+.dtt{position:absolute;left:28px;top:57px;font-size:26px;font-weight:700}
+.dmm{position:absolute;right:27px;top:64px;height:26px;width:110px;overflow:hidden;font:400 18px/26px var(--pixel);color:rgba(0,0,0,.4)}
+.dmm span{position:absolute;right:0;top:0;transition:transform .7s var(--ease)}
+.dmm .a{transform:translateY(-120%)}.dmm .b{transform:translateY(120%)}
+.gone .dmm .b{transform:none;transition-delay:.25s}
+.dsheet{position:absolute;left:0;right:0;top:130px;bottom:0;background:var(--paper);border-radius:24px 24px 0 0;overflow:hidden}
+.din{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .8s var(--spring)}
+.gone .din{opacity:1;transform:none}
+.gone .d1{transition-delay:.9s}.gone .d2{transition-delay:1.05s}
+.ddot{position:absolute;left:25px;top:28px;width:8px;height:8px;border-radius:50%;background:#fd6422}
+.gone .ddot{animation:ring 1.2s ease-out 1.1s 2}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(253,100,34,.55)}100%{box-shadow:0 0 0 14px rgba(253,100,34,0)}}
+.dday{position:absolute;left:44px;top:24px;font:400 14px var(--pixel);color:rgba(0,0,0,.5)}
+.dempty{position:absolute;left:44px;top:50px;font-style:italic;color:rgba(0,0,0,.5);font-size:14px}
+.compose{position:absolute;right:24px;bottom:230px;width:186px;height:51px;border-radius:26px 26px 4px 26px;background:rgba(0,0,0,.05);font:400 12px var(--pixel);color:rgba(0,0,0,.55);display:flex;align-items:center;padding-left:18px;transform-origin:100% 100%;opacity:0}
+.gone .compose{animation:pop .7s var(--spring) 1.45s both}
+@keyframes pop{from{opacity:0;transform:scale(.7) rotate(4deg)}to{opacity:1;transform:none}}
+.caret{display:inline-block;width:1.5px;height:15px;background:rgba(0,0,0,.55);margin-right:1px}
+.gone .caret{animation:blink .65s ease-in-out 2.1s 6 both}
+@keyframes blink{50%{opacity:.1}}
+
+/* ---------- the Highlights page ---------- */
+.pg{position:absolute;left:0;top:0;width:402px;height:663px;background:var(--paper);z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.18);transform-origin:50% 100%}
+.pgi{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:56px 16px 36px;scrollbar-width:none}
+.pgi::-webkit-scrollbar{display:none}
+.fade{position:absolute;left:0;right:0;bottom:3px;height:34px;background:linear-gradient(rgba(245,245,245,0),var(--paper));pointer-events:none;z-index:2}
+.ttl{font-size:26px;font-weight:700;white-space:nowrap;margin:9px 0 13px}
+.c{background:#fff;border-radius:16px;padding:16px 0 17px;margin-bottom:7px;position:relative}
+.lb{font-size:14px;font-weight:590;padding-left:48px;margin-bottom:11px}
+.stats{display:flex;justify-content:center;gap:28px;padding:17px 0 6px}
+.stk{position:relative;width:74px;height:85px;border-radius:12px;background:#F4E8C4;clip-path:polygon(0 0,100% 0,100% 73px,60px 100%,0 100%);text-align:center}
+.stk b{display:block;padding-top:11px;font-size:32px;font-weight:590;line-height:1.15}
+.stk i{position:absolute;left:0;right:0;top:52px;font:400 10px var(--pixel);font-style:normal;transform:rotate(.59deg)}
+.stw{position:relative;width:74px;height:85px}.stw::after{content:"";position:absolute;right:0;bottom:0;width:14px;height:14px;background:linear-gradient(135deg,transparent 50%,#f4cb52 50%)}
+.bub{position:relative;margin:0 0 0 45px;width:282px;min-height:48px;border-radius:26px;background:#f1f1f1;border:1px solid rgba(0,0,0,.08);font:500 14px/18px var(--pixel);padding:14px 19px}
+.bub::after{content:"";position:absolute;bottom:-1px;width:16px;height:14px;background:#f1f1f1;border-bottom:1px solid rgba(0,0,0,.08)}
+.bub.r::after{right:-1px;border-radius:0 0 12px 0;clip-path:polygon(0 0,100% 40%,100% 100%,0 100%)}
+.bub.l::after{left:-1px;border-radius:0 0 0 12px;clip-path:polygon(100% 0,0 40%,0 100%,100% 100%)}
+.dt{margin:0 0 3px 50px;font:400 10px var(--pixel);color:rgba(0,0,0,.4)}
+.gap{height:10px}
+.big{padding-left:48px;font:590 54px/1.05 var(--ui);letter-spacing:-1.5px}
+.sub{padding-left:48px;margin-top:8px;font:400 11px var(--pixel);color:rgba(0,0,0,.45)}
+.pair{display:flex;justify-content:center;align-items:flex-start;gap:30px;padding:2px 0 0}
+.pair .it{text-align:center;font:400 10px var(--pixel);color:rgba(0,0,0,.5)}
+.ph{width:96px;border:2px solid #fff;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.1);overflow:hidden;background:#ddd;margin:0 auto 7px}
+.ph img{display:block;width:100%;height:100%;object-fit:cover}
+.arrow{margin-top:52px;width:36px;border-top:2px dashed rgba(0,0,0,.25);position:relative}
+.arrow::after{content:"";position:absolute;right:-1px;top:-6px;border-left:7px solid rgba(0,0,0,.25);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.line{padding-left:48px;font-size:15px;font-weight:510;line-height:1.35;padding-right:20px}
+.line b{font-weight:700}
+.mini{position:relative;margin:13px 20px 0 48px;height:26px}
+.mini .ticks{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:space-between;align-items:flex-end;height:18px}
+.mini .ticks i{display:block;width:3px;border-radius:2px;background:rgba(0,0,0,.12)}
+.mini .pin{position:absolute;bottom:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#000;box-shadow:0 0 0 3px #fff}
+.mini .lab{position:absolute;top:-2px;transform:translateX(-50%);font:400 10px var(--pixel);color:#000;white-space:nowrap}
+.mini .base{position:absolute;left:0;right:0;bottom:3px;height:3px;border-radius:2px;background:rgba(0,0,0,.1)}
+.essay{display:flex;align-items:center;gap:12px;margin:0 16px 0 16px;width:auto;border-radius:14px;background:#f5f5f5;padding:13px 14px;text-align:left;width:calc(100% - 32px)}
+.essay .t{font-size:14px;font-weight:590}.essay .m{font:400 11px var(--pixel);color:rgba(0,0,0,.45);margin-top:3px}
+.essay .ch{margin-left:auto;color:rgba(0,0,0,.3);font-size:18px}
+.bigstk{position:relative;width:140px;height:160px;margin:0 auto;background:#F4E8C4;border-radius:12px 12px 0 12px;clip-path:polygon(0 0,100% 0,100% 135px,112px 100%,0 100%);padding:16px 13px;font-size:14px;font-weight:590;line-height:1.2}
+.bigw{position:relative;width:140px;height:160px;margin:0 auto}.bigw::after{content:"";position:absolute;right:0;bottom:0;width:27px;height:27px;background:linear-gradient(135deg,transparent 50%,#f4cb52 50%)}
+.colors{display:flex;gap:5px;padding:0 0 0 48px;flex-wrap:wrap;padding-right:30px}
+.colors i{display:block;width:24px;height:26px;border-radius:6px;clip-path:polygon(0 0,100% 0,100% 19px,17px 100%,0 100%)}
+.close{text-align:center;font:500 13px/1.5 var(--pixel);padding:18px 34px 6px;color:rgba(0,0,0,.7)}
+.favp{width:128px;height:89px;margin:0 auto}
+
+.dots{position:absolute;left:0;right:0;bottom:0;height:3px;background:repeating-linear-gradient(90deg,#000 0 2px,transparent 2px 6px);opacity:.9;z-index:3}
+.cutline{position:absolute;left:0;bottom:0;height:3px;width:0;background:#000;z-index:4}
+.hint{position:absolute;left:51px;width:300px;top:688px;text-align:center;font:500 14px/18px var(--pixel);z-index:49;transition:opacity .4s ease}
+.gone .hint{opacity:0}
+.pg.jag{}
+.pg.jag .pgi{clip-path:polygon(0 0,100% 0,100% calc(100% - 7px),94% calc(100% - 1px),88% calc(100% - 8px),82% calc(100% - 2px),75% calc(100% - 7px),68% calc(100% - 1px),62% calc(100% - 8px),55% calc(100% - 2px),48% calc(100% - 7px),42% calc(100% - 1px),35% calc(100% - 8px),29% calc(100% - 2px),22% calc(100% - 7px),16% calc(100% - 1px),10% calc(100% - 8px),5% calc(100% - 2px),0 calc(100% - 6px))}
+.pg.free{transition:transform .5s var(--ease);transform:translateY(8px) rotate(-1.6deg)}
+.pg.away{transition:transform 1.05s cubic-bezier(.6,.02,.9,.45),opacity .5s ease .65s;transform:translate(88px,170px) scale(.06) rotate(-14deg);opacity:0}
+.handle{position:absolute;left:10px;bottom:-14px;width:76px;height:28px;border-radius:14px;background:#000;color:#fff;font-size:12px;font-weight:600;display:grid;place-items:center;cursor:grab;touch-action:none;z-index:5;white-space:nowrap}
+
+/* essay reader */
+.rd-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:70;opacity:0;pointer-events:none;transition:opacity .3s}
+.rd{position:absolute;left:24px;right:24px;top:150px;z-index:71;background:#fff;border-radius:16px;padding:22px 20px;box-shadow:0 10px 34px rgba(0,0,0,.35);transform:translateY(30px) scale(.96);opacity:0;pointer-events:none;transition:all .4s var(--spring)}
+.reading .rd-scrim{opacity:1;pointer-events:auto}.reading .rd{opacity:1;transform:none;pointer-events:auto}
+.rd h4{font-size:24px;font-weight:600;margin-bottom:10px}.rd p{font-size:16px;font-weight:510;line-height:1.35;color:rgba(0,0,0,.75)}.rd small{display:block;margin-top:14px;font:400 12px var(--pixel);color:rgba(0,0,0,.45)}
+
+/* nav + shelf */
+.nav{position:absolute;left:77px;top:775px;width:247px;height:60px;z-index:80;border-radius:30px;background:rgba(255,255,255,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.nav .tab{position:absolute;top:8px;width:49px;height:44px;text-align:center;font-size:13px}
+.nav .tab svg{display:block;margin:0 auto 4px;width:24px;height:24px}
+.nav .on{position:absolute;top:3px;left:5px;width:80px;height:53px;border-radius:26px;background:rgba(0,0,0,.08)}
+.badge{position:absolute;right:-4px;top:-3px;min-width:16px;height:16px;border-radius:8px;background:var(--blue);color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center;padding:0 4px;transform:scale(0)}
+.badge.pop{animation:bpop .6s var(--spring) forwards}
+@keyframes bpop{from{transform:scale(0)}to{transform:scale(1)}}
+.bounce{animation:bounce .7s var(--ease)}
+@keyframes bounce{25%{transform:scale(1.4) rotate(-6deg)}50%{transform:scale(.9) rotate(3deg)}75%{transform:scale(1.08)}100%{transform:none}}
+.wave{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:2px solid var(--blue);opacity:0;pointer-events:none}
+.wave.go{animation:wave .8s ease-out}
+@keyframes wave{from{opacity:.8;transform:scale(.4)}to{opacity:0;transform:scale(2.6)}}
+.spark{position:absolute;left:50%;top:50%;font-size:12px;color:var(--blue);opacity:0;pointer-events:none}
+.spark.go{animation:spark .9s ease-out forwards}
+@keyframes spark{from{opacity:1;transform:translate(0,0) scale(.4)}to{opacity:0;transform:translate(var(--x),var(--y)) scale(1.2) rotate(120deg)}}
+.toast{position:absolute;left:50%;top:150px;transform:translate(-50%,-30px);opacity:0;background:#000;color:#fff;font-size:14px;font-weight:510;padding:10px 16px;border-radius:999px;z-index:95;transition:all .5s var(--spring);white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.hintbot{max-width:560px;margin:34px auto 0;text-align:center;font-size:12.5px;line-height:1.5;color:#666}
+</style>
+</head>
+<body>
+<header class="intro">
+  <h1>November Highlights: drag to tear</h1>
+  <p>Your page, now with more in it. Scroll the page to read it, then drag the scissors along the dotted line to tear it off. Everything on it comes from what you made. Nothing social, no scores.</p>
+</header>
+
+<div class="row">
+  <div class="cell">
+    <div class="frame"><div class="phone" id="phone"></div></div>
+    <h3>Highlights page</h3>
+    <p>Scroll the page, then tear. After the tear: tiny shake, shelf tab ripples, bounces and sparkles, badge pops on.</p>
+    <button class="re" id="re">Replay</button>
+  </div>
+  <div class="side">
+    <h3>What's on it, top to bottom</h3>
+    <ul>
+      <li>Your counts (thoughts, photos, essays)</li>
+      <li>Word of the month</li>
+      <li>You were into, as a short run of bubbles</li>
+      <li>What made you smile</li>
+      <li>Your favorite picture</li>
+      <li>First and last pin of the month</li>
+      <li>Busiest day, with a dot on a mini timeline</li>
+      <li>Longest streak (only if there was one)</li>
+      <li>Longest essay (tap to read)</li>
+      <li>Biggest sticky, at full size</li>
+      <li>The month in sticky colors</li>
+      <li>A closing line (only if it's a good comparison)</li>
+    </ul>
+    <h3>Try the quiet cases</h3>
+    <label><input type="checkbox" id="optStreak" checked> I posted 9 days in a row</label>
+    <label><input type="checkbox" id="optBeat" checked> I posted more than last month</label>
+    <p style="color:#777;font-size:13px;margin-top:6px">Untick either and that line just isn't there.</p>
+  </div>
+</div>
+<p class="hintbot">Not built in the app yet.</p>
+
+<script>
+const NAV=`<div class="nav"><div class="on"></div>
+<div class="tab" style="left:22px"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="2.5" width="18" height="19" rx="5" fill="#000"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>bulletin</div>
+<div class="tab" style="left:101px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="#000"/><circle cx="15" cy="10" r="1" fill="#000"/><ellipse cx="12" cy="16" rx="2" ry="2.4"/></svg>friends</div>
+<div class="tab" id="t3" style="left:180px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6" stroke-linecap="round"/></svg>shelf<span class="badge">1</span><span class="wave"></span></div></div>`;
+
+/* sticky colors from the Figma "colors" frame: [body, flap] */
+const P={yellow:['#F4E8C4','#F4CB52'],green:['#D1F4C4','#9EE086'],red:['#FFCFCF','#F08383'],blue:['#CAECFF','#7CC1F2'],periwinkle:['#CAD6FF','#7C98F2'],purple:['#EAD5FF','#B484E7'],orange:['#FFDDC0','#ECAE82']};
+const MONTH=['yellow','yellow','red','yellow','blue','green','yellow','purple','orange','yellow','periwinkle','green','yellow','red'].map(k=>P[k]);
+const STATE={streak:true,beat:true};
+const ticks=Array.from({length:30},(_,i)=>{const h=[3,5,2,8,4,3,6,2,9,5,4,7,18,6,3,4,2,7,5,3,8,4,6,2,3,9,4,5,7,10][i];return `<i style="height:${h}px"></i>`}).join('');
+
+function PAGE(){
+  const streak=STATE.streak?`<div class="line" style="margin-top:14px">You posted <b>9 days in a row</b></div>`:'';
+  const closing=STATE.beat?`<div class="close">28 pins this month, 9 more than October</div>`:'';
+  return `<div class="sb">9:41</div>
+<div class="dec"><div class="dtop"></div><div class="dtt">Prompts</div><div class="dmm"><span class="a">November</span><span class="b">December</span></div>
+  <div class="dsheet"><div class="dday din d1"><span style="color:#000">today</span> Dec 1</div><div class="ddot din d1"></div>
+  <div class="dempty din d2">its kinda empty...</div><div class="compose"><span class="caret"></span>Whats on your mind...</div></div></div>
+
+<div class="pg" data-pg><div class="pgi" data-scroll>
+  <div class="ttl">November Highlights</div>
+
+  <div class="c"><div class="stats">
+    <div class="stw"><div class="stk"><b>100</b><i>thoughts</i></div></div>
+    <div class="stw"><div class="stk"><b>12</b><i>photos</i></div></div>
+    <div class="stw"><div class="stk"><b>5</b><i>essays</i></div></div></div></div>
+
+  <div class="c"><div class="lb">Word of the month:</div><div class="big">cozy</div><div class="sub">you used it 14 times</div></div>
+
+  <div class="c"><div class="lb">You were into:</div>
+    <div class="dt">Nov 1</div><div class="bub r" style="min-height:44px">ramen, mostly</div><div class="gap"></div>
+    <div class="dt">Nov 14</div><div class="bub l" style="min-height:44px">pottery class</div><div class="gap"></div>
+    <div class="dt">Nov 27</div><div class="bub r">pumpkin space lattes but not from starbucks</div></div>
+
+  <div class="c"><div class="lb">What made you smile:</div><div class="bub l">my cat asleep in a sunbeam</div></div>
+
+  <div class="c"><div class="lb">Your favorite picture:</div><div class="ph favp"><img src="assets/pic-a.jpg"></div></div>
+
+  <div class="c"><div class="lb">The month, start to finish:</div><div class="pair">
+    <div class="it"><div class="ph" style="height:118px"><img src="assets/pic-b.jpg"></div>first pin<br>Nov 1</div><div class="arrow"></div>
+    <div class="it"><div class="ph" style="height:118px"><img src="assets/pic-a.jpg"></div>last pin<br>Nov 30</div></div></div>
+
+  <div class="c"><div class="lb">Your rhythm:</div>
+    <div class="line">Your busiest day was <b>Nov 12</b>, 6 pins</div>
+    <div class="mini"><div class="base"></div><div class="ticks">${ticks}</div><div class="pin" style="left:${(11.5/30)*100}%"></div><div class="lab" style="left:${(11.5/30)*100}%;top:-14px">Nov 12</div></div>
+    ${streak}</div>
+
+  <div class="c"><div class="lb">Your longest essay:</div>
+    <button class="essay" data-essay><div><div class="t">Cookie cake recipe</div><div class="m">3 min read</div></div><div class="ch">›</div></button></div>
+
+  <div class="c"><div class="lb">Your biggest sticky:</div>
+    <div class="bigw"><div class="bigstk">Watching this ever-so exciting movie that is about a group of elderly people. Kind crazy, don’t know.</div></div></div>
+
+  <div class="c"><div class="lb">The month in sticky colors:</div><div class="colors">${MONTH.map(c=>`<i style="background:linear-gradient(135deg,transparent 0 62%,${c[1]} 62%),${c[0]}"></i>`).join('')}</div></div>
+
+  ${closing}
+</div><div class="fade"></div><div class="dots"></div><div class="cutline" data-cut></div><div class="handle" data-handle>✂︎ drag</div></div>
+
+<div class="hint">Drag to tear and start a new Bulletin board</div>
+<div class="rd-scrim" data-rdclose></div>
+<div class="rd"><h4>Cookie cake recipe</h4><p>Honestly, this will be the best cookie cake you’ve ever eaten. Two sticks of butter, brown sugar, and patience. Pull it out when the middle still looks a little underdone.</p><small>3 min read · Nov 22</small></div>
+<div class="toast" data-toast>November is on your shelf</div>
+${NAV}`;
+}
+
+const S=.9, phone=document.getElementById('phone');
+function boot(){
+  phone.className='phone';phone.innerHTML=PAGE();
+  const q=s=>phone.querySelector(s), pg=q('[data-pg]'), toast=q('[data-toast]'), t3=q('#t3'), badge=q('.badge');
+  q('[data-essay]').onclick=()=>phone.classList.add('reading');
+  q('[data-rdclose]').onclick=()=>phone.classList.remove('reading');
+  let done=false;
+  const finish=()=>{done=true;
+    phone.classList.add('shake');setTimeout(()=>phone.classList.remove('shake'),340);
+    pg.classList.add('jag','free');
+    setTimeout(()=>{pg.classList.remove('free');pg.classList.add('away');phone.classList.add('gone')},520);
+    setTimeout(()=>{ // the shelf tab reacts
+      t3.classList.add('bounce');badge.classList.add('pop');q('.wave').classList.add('go');
+      [[-22,-26],[24,-24],[-30,6],[30,8],[0,-34]].forEach(([x,y],i)=>{const sp=document.createElement('span');sp.className='spark';sp.textContent='✦';sp.style.setProperty('--x',x+'px');sp.style.setProperty('--y',y+'px');sp.style.animationDelay=(i*40)+'ms';t3.appendChild(sp);setTimeout(()=>sp.classList.add('go'),10);setTimeout(()=>sp.remove(),1300)});
+      toast.classList.add('show')},1450);
+    setTimeout(()=>toast.classList.remove('show'),3600);
+  };
+  const h=q('[data-handle]'),cut=q('[data-cut]');let drag=false,x0=0;const max=()=>402-96;
+  const set=v=>{h.style.left=(10+v)+'px';cut.style.width=(v+40)+'px'};
+  h.addEventListener('pointerdown',e=>{if(done)return;drag=true;x0=e.clientX/S-(parseFloat(h.style.left)||10)+10;h.setPointerCapture&&h.setPointerCapture(e.pointerId)});
+  h.addEventListener('pointermove',e=>{if(!drag)return;const v=Math.max(0,Math.min(max(),e.clientX/S-x0));set(v);pg.classList.toggle('free',v>max()*.5)});
+  h.addEventListener('pointerup',()=>{if(!drag)return;drag=false;const v=(parseFloat(h.style.left)||10)-10;
+    if(v>max()*.85)finish();else{h.style.transition='left .3s var(--ease)';cut.style.transition='width .3s var(--ease)';set(0);pg.classList.remove('free');setTimeout(()=>{h.style.transition='';cut.style.transition=''},320)}});
+}
+document.getElementById('re').onclick=boot;
+document.getElementById('optStreak').onchange=e=>{STATE.streak=e.target.checked;boot()};
+document.getElementById('optBeat').onchange=e=>{STATE.beat=e.target.checked;boot()};
+boot();
+</script>
+</body>
+</html>

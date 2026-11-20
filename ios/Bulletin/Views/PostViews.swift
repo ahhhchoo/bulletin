@@ -20,7 +20,7 @@ struct PostView: View {
             PhotoPost(caption: caption, rotation: rotation, image: post.image, isPromptAnswer: post.isPromptAnswer, fullCaption: fullCaption,
                       captionSize: captionSize, captionVisible: captionVisible)
         case .sticky(let text):
-            StickyPost(text: text, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
+            StickyPost(text: text, color: post.stickyColor, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated)
         case .journal(let title, let body):
             JournalPost(title: title, text: body, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
@@ -29,9 +29,8 @@ struct PostView: View {
     }
 }
 
-/// A photo pinned like a polaroid: the picture with a white border, and a caption slip across its bottom edge.
-/// The pin is as wide as always, and as tall as the picture needs: a portrait photo makes a taller pin, a
-/// landscape one a shorter pin. Seed photos have no image, so they show the placeholder color block.
+/// A photo as designed in BRD-01: 128 wide with a white edge and rounded corners, a small pin, and a caption slip
+/// across its bottom edge. The height follows the picture's shape. Seed photos have no image, so they show a color block.
 private struct PhotoPost: View {
     let caption: String
     let rotation: Double
@@ -44,25 +43,28 @@ private struct PhotoPost: View {
     private var width: CGFloat { PhotoMetrics.pinWidth }
     private var height: CGFloat { width / (image?.pinAspect ?? 1) }
 
-    private var captionFont: CGFloat { captionSize ?? 14 }
+    private var captionFont: CGFloat { captionSize ?? 10 }
 
     /// Extra height for a caption that runs onto a second line on the board. The opened photo adds none:
     /// its caption just hangs below, so the photo's size never depends on how much was written.
     private var extraCaptionHeight: CGFloat {
         guard !fullCaption else { return 0 }
         let lines = min(2, max(1, (caption.count + PhotoMetrics.captionCharsPerLine - 1) / PhotoMetrics.captionCharsPerLine))
-        return CGFloat(lines - 1) * 18
+        return CGFloat(lines - 1) * 13
     }
+
+    /// The picture hardly tilts; the slip carries the tilt.
+    private var photoTilt: Double { rotation * 0.3 }
 
     var body: some View {
         ZStack(alignment: .top) {
             picture
                 .frame(width: width, height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 2))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white, lineWidth: 2))
                 .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
-                .rotationEffect(.degrees(rotation))
-                .overlay(alignment: .top) { Pushpin().offset(y: -4).rotationEffect(.degrees(rotation)) }
+                .rotationEffect(.degrees(photoTilt))
+                .overlay(alignment: .top) { Pushpin().offset(y: rotation < 0 ? 29 : -1) }
                 .overlay(alignment: .topLeading) { if isPromptAnswer { PromptTag().offset(x: 4, y: -8) } }
 
             if !caption.isEmpty {
@@ -78,10 +80,10 @@ private struct PhotoPost: View {
                     .rotationEffect(.degrees(rotation))
                     .opacity(captionVisible ? 1 : 0)
                     .animation(.easeOut(duration: 0.25).delay(captionVisible ? 0.25 : 0), value: captionVisible)
-                    .offset(x: 3.5, y: height - 7.8)      // top edge of the slip sits just inside the picture's bottom edge, as in the design
+                    .offset(x: 9, y: height - 9.8)      // the slip's top edge sits just inside the picture's bottom edge
             }
         }
-        .frame(width: width, height: height + 35.4 + extraCaptionHeight, alignment: .top)
+        .frame(width: width, height: height + 25.4 + extraCaptionHeight, alignment: .top)
     }
 
     @ViewBuilder private var picture: some View {
@@ -95,9 +97,108 @@ private struct PhotoPost: View {
     }
 }
 
-/// A new sticky note. Lands with a little spring, and the pin drops in after it.
+/// The seven sticky colors from the design: the paper itself and the darker flap folded over its corner.
+enum StickyColor: String, CaseIterable, Hashable, Identifiable {
+    case yellow, green, red, blue, periwinkle, purple, orange
+    var id: String { rawValue }
+
+    /// The paper.
+    var body: Color {
+        switch self {
+        case .yellow: Color(hex: 0xF4E8C4)
+        case .green: Color(hex: 0xD1F4C4)
+        case .red: Color(hex: 0xFFCFCF)
+        case .blue: Color(hex: 0xCAECFF)
+        case .periwinkle: Color(hex: 0xCAD6FF)
+        case .purple: Color(hex: 0xEAD5FF)
+        case .orange: Color(hex: 0xFFDDC0)
+        }
+    }
+
+    /// The folded corner.
+    var flap: Color {
+        switch self {
+        case .yellow: Color(hex: 0xF4CB52)
+        case .green: Color(hex: 0x9EE086)
+        case .red: Color(hex: 0xF08383)
+        case .blue: Color(hex: 0x7CC1F2)
+        case .periwinkle: Color(hex: 0x7C98F2)
+        case .purple: Color(hex: 0xB484E7)
+        case .orange: Color(hex: 0xECAE82)
+        }
+    }
+
+    var label: String { rawValue }
+
+    /// What the color is called when you pick it.
+    var nickname: String {
+        switch self {
+        case .yellow: "banana"
+        case .green: "celery"
+        case .red: "shrimp"
+        case .blue: "shark"
+        case .periwinkle: "urchin"
+        case .purple: "grape"
+        case .orange: "orange"
+        }
+    }
+}
+
+extension Color {
+    /// 0xRRGGBB
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+enum Paper {
+    static let yellow = Color(red: 0.957, green: 0.796, blue: 0.322)      // #F4CB52
+    /// The sticky's body: #F4CB52 at 30% over the board's paper, mixed down to one solid color so it stays opaque
+    /// when it is lifted off the board (opened, or being written).
+    static let stickyFill = Color(red: 0.960, green: 0.911, blue: 0.769)
+    static let width: CGFloat = 140
+    static let minHeight: CGFloat = 160
+}
+
+/// A card with its bottom-right corner cut off, as in BRD-01. `PaperFold` is the flap that lies over the cut.
+struct CutCornerShape: Shape {
+    /// 1 = the 140 x 160 card on the board. Bigger paper (the composer) scales the cut and the corners with it.
+    var scale: CGFloat = 1
+
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let c: CGFloat = 12 * scale
+        p.move(to: CGPoint(x: r.minX + c, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX - c, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + c), control: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - 25 * scale))
+        p.addLine(to: CGPoint(x: r.maxX - 27.344 * scale, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + c, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.maxY - c), control: CGPoint(x: r.minX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.minY + c))
+        p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.minY), control: CGPoint(x: r.minX, y: r.minY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+struct PaperFold: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let c = r.width * 0.45      // 12 on the 26.6 flap
+        p.move(to: CGPoint(x: r.minX, y: r.minY + c))
+        p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.minY), control: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A new sticky note: soft yellow with a folded corner. Lands with a little spring.
 private struct StickyPost: View {
     let text: String
+    var color: StickyColor = .yellow
     let rotation: Double
     let isPromptAnswer: Bool
     let isClipped: Bool
@@ -109,27 +210,28 @@ private struct StickyPost: View {
 
     var body: some View {
         Text(text)
-            .font(Typo.pixel(14))
-            .lineSpacing(3)
+            .font(Typo.scaled(14, .semibold, relativeTo: .subheadline))
             .foregroundStyle(.black)
             .multilineTextAlignment(.leading)
-            .frame(width: 132, alignment: .leading)
-            .frame(minHeight: 96, alignment: .topLeading)
-            .padding(.horizontal, 12)
-            .padding(.top, 20)
-            .padding(.bottom, 14)
-            .background(Color("Sticky"), in: RoundedRectangle(cornerRadius: 3))
-            .shadow(color: .black.opacity(0.12), radius: 2, y: 2)
+            .frame(width: Paper.width - 26, alignment: .topLeading)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 16)
+            .frame(width: Paper.width, alignment: .topLeading)
+            .frame(minHeight: Paper.minHeight, alignment: .topLeading)
+            .background(CutCornerShape().fill(color.body))
+            .overlay(alignment: .bottomTrailing) {
+                PaperFold().fill(color.flap).frame(width: 26.6, height: 26.6).offset(x: 0, y: 0)
+            }
             .overlay(alignment: .top) {
-                Attachment(isClipped: isClipped, addedLabel: addedLabel)
-                    .offset(y: landed ? -4 : -26)
-                    .scaleEffect(landed ? 1 : 1.6)
-                    .opacity(landed ? 1 : 0)
+                if isClipped {
+                    Attachment(isClipped: true, addedLabel: addedLabel)
+                        .offset(y: landed ? -4 : -26).opacity(landed ? 1 : 0)
+                }
             }
             .overlay(alignment: .bottomTrailing) {
                 if isPromptAnswer { PromptTag().offset(x: 6, y: 8) }
             }
-            .rotationEffect(.degrees(landed ? rotation : rotation + 6))
+            .rotationEffect(.degrees(landed ? 0 : 6))
             .scaleEffect(landed ? 1 : 0.88)
             .offset(y: landed ? 0 : -18)
             .opacity(landed ? 1 : 0)
@@ -140,12 +242,14 @@ private struct StickyPost: View {
     }
 }
 
+/// The pin: a solid red dot with a soft drop shadow.
 struct Pushpin: View {
     var body: some View {
         Circle()
-            .fill(Color(red: 0.976, green: 0.176, blue: 0.176))
-            .overlay(Circle().strokeBorder(Color(red: 0.612, green: 0.047, blue: 0.047), lineWidth: 0.75))
-            .frame(width: 9.5, height: 9.5)
+            .fill(Color(red: 0.976, green: 0.176, blue: 0.176))      // #F92D2D
+            .frame(width: 8, height: 8)
+            .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.1), radius: 2, y: 1)
+            .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.05), radius: 2, y: 1)
     }
 }
 
@@ -195,7 +299,8 @@ struct Attachment: View {
     }
 }
 
-/// A long entry on the board: a folded note with an optional title, a snippet, and a read time.
+/// A long entry on the board: a white card with a folded corner, a title, a snippet and a read time, with a
+/// faded sheet peeking out behind it.
 private struct JournalPost: View {
     let title: String
     let text: String
@@ -211,31 +316,46 @@ private struct JournalPost: View {
     private var readMinutes: Int { max(1, text.split(separator: " ").count / 200) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             // No title typed means no title shown: just the start of the entry.
             if !title.isEmpty {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .font(Typo.scaled(14, .semibold, relativeTo: .subheadline))
                     .lineLimit(2)
+                    .padding(.bottom, 13)
             }
             Text(text)
-                .font(Typo.pixel(12))
-                .foregroundStyle(.black.opacity(0.7))
-                .lineLimit(title.isEmpty ? 5 : 3)
+                .font(Typo.scaled(12, .medium, relativeTo: .caption))
+                .foregroundStyle(.black.opacity(0.6))
+                .lineLimit(title.isEmpty ? 7 : 4)
+            Spacer(minLength: 8)
             Text("\(readMinutes) min read")
-                .font(.system(size: 11))
-                .foregroundStyle(.black.opacity(0.45))
-                .padding(.top, 2)
+                .font(Typo.scaled(12, .regular, relativeTo: .caption))
+                .foregroundStyle(.black.opacity(0.6))
         }
         .foregroundStyle(.black)
-        .padding(14)
-        .frame(width: 160, alignment: .leading)
-        .background(.white, in: RoundedRectangle(cornerRadius: 2))
-        .overlay(alignment: .topTrailing) { FoldedCorner() }
-        .shadow(color: .black.opacity(0.12), radius: 2, y: 2)
-        .overlay(alignment: .top) { Attachment(isClipped: isClipped, addedLabel: addedLabel).offset(y: -4) }
+        .frame(width: Paper.width - 26, alignment: .topLeading)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 14)
+        .frame(width: Paper.width, height: Paper.minHeight, alignment: .topLeading)
+        .background(CutCornerShape().fill(.white))
+        .overlay(alignment: .bottomTrailing) {
+            PaperFold().fill(.black.opacity(0.05)).frame(width: 26.6, height: 26.6)
+        }
+        .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.1), radius: 2, y: 1)
+        .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.05), radius: 2, y: 1)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.white.opacity(0.5))
+                .frame(width: Paper.width, height: Paper.minHeight)
+                .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.05), radius: 2, y: 1)
+                .rotationEffect(.degrees(3.4))
+                .offset(x: 4, y: 28)
+        }
+        .overlay(alignment: .top) {
+            if isClipped { Attachment(isClipped: true, addedLabel: addedLabel).offset(y: -4) }
+        }
         .overlay(alignment: .bottomTrailing) { if isPromptAnswer { PromptTag().offset(x: 6, y: 8) } }
-        .rotationEffect(.degrees(landed ? rotation : rotation + 5))
         .scaleEffect(landed ? 1 : 0.9)
         .opacity(landed ? 1 : 0)
         .onAppear {
@@ -245,13 +365,3 @@ private struct JournalPost: View {
     }
 }
 
-private struct FoldedCorner: View {
-    var body: some View {
-        Path { p in
-            p.move(to: .zero); p.addLine(to: CGPoint(x: 16, y: 16)); p.addLine(to: CGPoint(x: 0, y: 16)); p.closeSubpath()
-        }
-        .fill(Color(white: 0.9))
-        .frame(width: 16, height: 16)
-        .shadow(color: .black.opacity(0.1), radius: 1, x: -1, y: 1)
-    }
-}

@@ -34,9 +34,10 @@ struct DayPosts: View {
     /// Where the stack sits in the two-column layout. Posts fan out from, and fly back to, this cell.
     private var stackSlot: Int { shown.count }
 
-    private let columnGap: CGFloat = 18
-    private let rowGap: CGFloat = 28
-    private let cellWidth: CGFloat = 160
+    private let columnGap: CGFloat = 0
+    private let rowGap: CGFloat = 18
+    /// Left column starts at 49 and the right at 210 (BRD-01), so the left cell is 161 wide.
+    private func cellWidth(_ column: Int) -> CGFloat { column == 0 ? 161 : 140 }
 
     var body: some View {
         let all = cells
@@ -45,9 +46,10 @@ struct DayPosts: View {
         VStack(alignment: .leading, spacing: rowGap) {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(alignment: .top, spacing: columnGap) {
-                    ForEach(row) { cell in
+                    ForEach(Array(row.enumerated()), id: \.element.id) { column, cell in
                         cellView(cell)
-                            .frame(width: cellWidth, alignment: .leading)
+                            .frame(width: cellWidth(column), alignment: .leading)
+                            .padding(.top, column == 1 ? 7 : 0)      // the right-hand note hangs a little lower
                     }
                 }
             }
@@ -57,8 +59,7 @@ struct DayPosts: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .leading)))
             }
         }
-        .padding(.leading, 8)
-        .padding(.trailing, 8)
+        .padding(.leading, 5)
     }
 
     @ViewBuilder
@@ -78,7 +79,7 @@ struct DayPosts: View {
     private func offsetFromStack(to index: Int) -> CGSize {
         let dCol = CGFloat((stackSlot % 2) - (index % 2))
         let dRow = CGFloat((stackSlot / 2) - (index / 2))
-        return CGSize(width: dCol * (cellWidth + columnGap), height: dRow * 185)
+        return CGSize(width: dCol * 161, height: dRow * 190)
     }
 }
 
@@ -109,19 +110,18 @@ struct StackCard: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                RoundedRectangle(cornerRadius: 2).fill(Color("Sticky"))
-                    .frame(width: 150, height: 148)
-                    .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
-                    .rotationEffect(.degrees(3))
-                    .offset(x: 11, y: 10)
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.5))
+                    .frame(width: 140, height: 160)
+                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                    .rotationEffect(.degrees(3.4))
+                    .offset(x: 4, y: 12)
                 RoundRectangle(fill: Color(white: 0.957))
                     .rotationEffect(.degrees(1.5))
                     .offset(x: 5, y: 5)
                 frontNote
             }
-            .frame(width: 150, height: 148)
-            .overlay(alignment: .center) { ExpandPill() }
-            .overlay(alignment: .topTrailing) { CountBadge(count: count).offset(x: 8, y: -9) }
+            .frame(width: 140, height: 160)
+            .overlay(alignment: .center) { ExpandPill(count: count) }
         }
         .buttonStyle(PressableStyle())
         .accessibilityLabel("\(count) more posts")
@@ -140,10 +140,10 @@ struct StackCard: View {
         .foregroundStyle(.black)
         .blur(radius: 3)
         .padding(13)
-        .frame(width: 150, height: 148, alignment: .topLeading)
-        .background(.white, in: RoundedRectangle(cornerRadius: 2))
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
+        .frame(width: 140, height: 160, alignment: .topLeading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
     }
 
     private var previewTitle: String {
@@ -164,13 +164,13 @@ struct StackCard: View {
 private struct RoundRectangle: View {
     let fill: Color
     var body: some View {
-        RoundedRectangle(cornerRadius: 2).fill(fill)
-            .frame(width: 150, height: 148)
-            .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
+        RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.5))
+            .frame(width: 140, height: 160)
+            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
     }
 }
 
-private struct CountBadge: View {
+struct CountBadge: View {
     let count: Int
     var body: some View {
         Text("+\(count)")
@@ -183,11 +183,16 @@ private struct CountBadge: View {
 }
 
 private struct ExpandPill: View {
+    let count: Int
+
     var body: some View {
-        Text("Expand")
+        HStack(spacing: 6) {
+            Text("Expand")
+            Text("+\(count)").foregroundStyle(.black.opacity(0.5))
+        }
             .font(.system(size: 15, weight: .medium))
             .foregroundStyle(.black)
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .padding(.vertical, 9)
             .background(.regularMaterial, in: Capsule())
             .overlay(Capsule().strokeBorder(.black.opacity(0.18), lineWidth: 1))

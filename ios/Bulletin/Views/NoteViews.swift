@@ -5,21 +5,13 @@ private let noteGreen = Color(red: 0.68, green: 0.88, blue: 0.81)
 private let mineGreen = Color(red: 0.75, green: 0.91, blue: 0.85)
 private let replyBlue = Color(red: 0.84, green: 0.90, blue: 0.97)
 
-/// "There are notes under this photo": a little envelope with how many.
+/// "There are notes under this photo": the same little count as a stack's, "+4" on a black capsule.
 struct NoteBadge: View {
     let count: Int
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "envelope").font(.system(size: 10, weight: .semibold))
-            Text(count > 9 ? "9+" : "+\(count)").font(.system(size: 11, weight: .semibold))
-        }
-        .foregroundStyle(.white)
-        .padding(.leading, 7).padding(.trailing, 8).padding(.vertical, 5)
-        .background(Color(white: 0.11), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white, lineWidth: 2))
-        .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-        .accessibilityLabel("\(count) note\(count == 1 ? "" : "s") under this photo")
+        CountBadge(count: count)
+            .accessibilityLabel("\(count) note\(count == 1 ? "" : "s") under this photo")
     }
 }
 

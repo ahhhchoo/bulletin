@@ -11,6 +11,8 @@ struct Friend: Identifiable, Hashable {
     var into = "pumpkin spice late"
     /// How they answered this month's prompt. (Everyone gets the same prompt; the app writes it.)
     var answer: PromptAnswer = .text("")
+    /// When they last posted: shown under their block on the Friends tab.
+    var lastPosted = Date()
     /// Stand-in for their profile picture until pictures exist: a soft color, picked by name.
     var color: Color { Friend.palette[colorIndex % Friend.palette.count] }
     var colorIndex: Int { Friend.names.firstIndex(of: name) ?? 0 }
@@ -40,7 +42,7 @@ extension Friend {
 /// Friends tab state: people who put you on their list, your own guest list, and the doorbell queue.
 @Observable
 final class FriendsStore {
-    static let guestCap = 20
+    static let guestCap = 10
 
     var friends: [Friend] = [
         Friend(name: "Maya", hasNew: true, latest: "sunday at the lake", into: "sunday swims", answer: .text("my cat asleep in a sunbeam")),
@@ -57,8 +59,9 @@ final class FriendsStore {
         Friend(name: "Leo", hasNew: false, latest: "", into: "board games", answer: .existing),
     ]
 
-    /// How many people are on your guest list (they can see your bulletin).
-    var guestCount = 17
+    /// The people on your guest list (they can see your bulletin).
+    var guests: [Guest] = (0..<8).map { Guest(name: Friend.names[$0 % Friend.names.count], colorIndex: $0) }
+    var guestCount: Int { guests.count }
     /// Someone who put you on their list and hasn't been answered. Nil once added or skipped.
     var addBack: Friend?  = Friend(name: "Maya", hasNew: false, latest: "", into: "sunday swims", answer: .text("my cat asleep in a sunbeam"))
 
@@ -69,11 +72,21 @@ final class FriendsStore {
         for (i, f) in friends.enumerated() {
             var posts = [Post(kind: .photo(caption: f.latest.isEmpty ? "Rained all day" : f.latest), rotation: -2.41, image: SamplePhotos.image(i))]
             switch f.answer {
-            case .text(let t): posts.append(Post(kind: .sticky(text: t), rotation: 1.8, isPromptAnswer: true))
-            case .photo(let c): posts.append(Post(kind: .photo(caption: c), rotation: 2.4, isPromptAnswer: true, image: SamplePhotos.image(i + 2)))
+            // the prompt answer was posted first; the photo went up later in the day, so it is their latest
+            case .text(let t):
+                var sticky = Post(kind: .sticky(text: t), rotation: 1.8, isPromptAnswer: true)
+                sticky.stickyColor = StickyColor.allCases[i % StickyColor.allCases.count]
+                posts.insert(sticky, at: 0)
+            case .photo(let c): posts.insert(Post(kind: .photo(caption: c), rotation: 2.4, isPromptAnswer: true, image: SamplePhotos.image(i + 2)), at: 0)
             case .existing: posts[0].isPromptAnswer = true
             }
             boards[f.id] = [BoardDay(id: 4, posts: posts), BoardDay(id: 3, posts: [])]
+        }
+        // spread their last posts over the past few weeks: the ones with news posted most recently
+        let now = Date()
+        for i in friends.indices {
+            let ago = friends[i].hasNew ? Double(i) * 3_600 + 600 : Double(i + 2) * 86_400 + 4_000
+            friends[i].lastPosted = now.addingTimeInterval(-ago)
         }
     }
 
@@ -86,8 +99,23 @@ final class FriendsStore {
 
     func addBackTapped() {
         guard !isFull, addBack != nil else { return }
-        guestCount += 1
+        guests.append(Guest(name: addBack?.name ?? "friend", colorIndex: guests.count))
         addBack = nil
+    }
+
+    /// Add someone by username from the Edit sheet. Does nothing when the list is full or they are already on it.
+    func addGuest(name: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !isFull, !guests.contains(where: { $0.name.lowercased() == name.lowercased() }) else { return }
+        guests.append(Guest(name: name, colorIndex: guests.count))
+    }
+
+    func removeGuest(_ id: Guest.ID) { guests.removeAll { $0.id == id } }
+
+    /// The most recent thing on a friend's board, for their block: the newest post of their newest day with posts.
+    /// It may or may not be their prompt answer; posts are added to the end of a day, so the last one is newest.
+    func latestPost(of friend: Friend) -> Post? {
+        boards[friend.id]?.first { !$0.posts.isEmpty }?.posts.last
     }
 
     /// A silent "not now": no one is told.
@@ -97,4 +125,12 @@ final class FriendsStore {
         guard let i = friends.firstIndex(where: { $0.id == id }) else { return }
         friends[i].hasNew = false
     }
+}
+
+/// Someone on your guest list. (Stand-in for a real account until profiles exist.)
+struct Guest: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var colorIndex: Int
+    var color: Color { Friend.color(at: colorIndex) }
 }

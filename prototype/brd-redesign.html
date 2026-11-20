@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board redesign</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --z:1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:18px 16px 40px}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:12px;font-size:13px;color:#555}
+.bar button{padding:7px 14px;border-radius:999px;background:rgba(0,0,0,.06);font-weight:510;font-size:13px}
+.bar button.on{background:#000;color:#fff}
+.hint{max-width:520px;text-align:center;font-size:12.5px;line-height:1.5;color:#666;margin-top:12px}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:40px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 12px 40px rgba(0,0,0,.18);user-select:none;-webkit-user-select:none}
+
+/* status bar */
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;display:flex;align-items:center;padding:0 30px 0 38px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}
+.sb .ic{display:flex;gap:5px;align-items:center;padding-top:4px}
+.sb .ic i{display:block;background:#111}
+
+/* black shows only behind the two rounded corners */
+.corners{position:absolute;left:0;right:0;top:81px;height:98px;background:#000;z-index:5;transition:top .5s var(--ease)}
+.corners::after{content:"";position:absolute;left:30px;right:30px;top:0;bottom:0;background:var(--paper)}
+.open .corners{top:298px}
+/* masthead */
+.mast{position:absolute;left:0;right:0;top:0;height:121px;background:#fff;border-radius:0 0 32px 32px;z-index:30;overflow:hidden;transition:height .5s var(--ease);cursor:pointer;touch-action:none}
+.open .mast{height:338px}
+.mast .title{position:absolute;left:28px;top:57px;font-size:18px;font-weight:500;letter-spacing:-.2px;transition:all .5s var(--ease);transform-origin:left top}
+.open .mast .title{left:16px;top:52px;font-size:26px;font-weight:700}
+.mast .month{position:absolute;right:27px;top:70px;font:400 17px/24px var(--pixel);color:#8a8a8a;letter-spacing:-.2px}
+.chat{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.open .chat{opacity:1;pointer-events:auto;transition:opacity .4s ease .12s}
+.b{position:absolute;border-radius:16px;font:400 13px/16px var(--pixel);display:flex;align-items:center}
+.b.q{background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.0),0 1px 3px rgba(0,0,0,.08);padding:0 18px;height:48px}
+.b.a{background:#ececec;padding:0 13px;border-radius:16px}
+.b.add{border:1.2px dashed #c4c4c4;background:#f3f3f3;color:#a8a8a8;padding:0 13px;height:40px;border-radius:14px;cursor:text}
+.b.add input{background:none;border:0;outline:0;width:100%;font:inherit;color:#111}
+.b.add input::placeholder{color:#a8a8a8}
+.b.a.done{animation:pop .35s var(--ease)}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.grab{position:absolute;left:50%;bottom:8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:rgba(0,0,0,.14)}
+
+/* board */
+.sheet{position:absolute;left:0;right:0;top:130px;bottom:0;background:var(--paper);border-radius:32px 32px 0 0;overflow:hidden;transition:top .5s var(--ease);z-index:10}
+.open .sheet{top:348px}
+.scroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.inner{position:relative;width:402px}
+.abs{position:absolute}
+.line{position:absolute;left:28px;width:3px;background:#cfcfcf}
+.dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#a9a9a9}
+.dot.today{background:#ff6b1f}
+.lbl{position:absolute;left:44px;font:400 14px/17px var(--pixel);color:#8e8e8e}
+.lbl b{font-family:var(--ui);font-weight:600;color:#000;margin-right:4px}
+
+.photo{position:absolute;border-radius:14px;overflow:visible}
+.photo .im{width:100%;height:100%;border-radius:14px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.2);background:#ddd}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.tack{position:absolute;width:8px;height:8px;border-radius:50%;background:#f12727;z-index:3;box-shadow:0 0 0 .6px rgba(120,0,0,.5)}
+.slip{position:absolute;background:#fff;font:400 12px/15px var(--pixel);padding:11px 11px;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap;z-index:4}
+
+.sticky{position:absolute;width:140px;height:160px;background:#f5e5be;border-radius:12px;padding:16px 13px;font-weight:600;font-size:15px;line-height:19px;letter-spacing:-.3px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sticky::after{content:"";position:absolute;right:0;bottom:0;width:28px;height:28px;background:linear-gradient(135deg,#f3c943 50%,#f5e5be 50%);border-top-left-radius:6px;box-shadow:-2px -2px 4px rgba(0,0,0,.08)}
+.sticky.cut{clip-path:polygon(0 0,100% 0,100% calc(100% - 28px),calc(100% - 28px) 100%,0 100%)}
+.cardp{position:absolute;width:140px;height:160px}
+.cardp .back{position:absolute;inset:0;background:#fff;border-radius:14px;opacity:.7;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.cardp .back.b1{transform:translate(8px,-8px) rotate(4deg)}
+.cardp .back.b2{transform:translate(4px,12px) rotate(-1deg);opacity:.55}
+.cardp .face{position:absolute;inset:0;background:#fff;border-radius:14px;padding:16px 13px;box-shadow:0 1px 4px rgba(0,0,0,.1);overflow:hidden}
+.cardp h4{font-size:16px;font-weight:600;line-height:20px;letter-spacing:-.2px}
+.cardp p{margin-top:13px;font-size:13px;line-height:15px;color:#777;font-weight:510}
+.cardp small{position:absolute;left:13px;bottom:16px;font-size:11.5px;color:#777;font-weight:510}
+.cardp .face::after{content:"";position:absolute;right:0;bottom:0;width:28px;height:28px;background:linear-gradient(135deg,#e8e8e8 50%,#fff 50%);border-top-left-radius:6px}
+
+/* composer + nav (fixed above the scroll) */
+.compose{position:absolute;left:191px;top:697px;width:187px;height:51px;z-index:40;transition:top .5s var(--ease)}
+.compose .bub{position:absolute;inset:0 0 0 0;background:#ececec;border-radius:26px 26px 4px 26px;display:flex;align-items:center;padding:0 18px;font:400 13px var(--pixel);color:#999;cursor:text}
+.compose .bub::after{content:"";position:absolute;right:-6px;bottom:0;width:14px;height:12px;background:#ececec;clip-path:polygon(0 0,0 100%,100% 100%);border-bottom-right-radius:2px}
+.compose input{background:none;border:0;outline:0;width:100%;font:inherit;color:#111}
+.compose input::placeholder{color:#999}
+.nav{position:absolute;left:77px;top:781px;width:247px;height:60px;z-index:50;border-radius:30px;background:rgba(255,255,255,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.nav .tab{position:absolute;top:8px;width:49px;height:44px;text-align:center;font-size:13px;font-weight:500}
+.nav .tab svg{display:block;margin:0 auto 4px;width:24px;height:24px}
+.nav .on{position:absolute;left:5px;top:5px;width:80px;height:50px;border-radius:25px;background:rgba(0,0,0,.08)}
+.toast{position:absolute;left:50%;top:60px;transform:translate(-50%,-30px);opacity:0;background:#000;color:#fff;font:400 12px var(--pixel);padding:8px 14px;border-radius:999px;z-index:95;transition:transform .4s var(--ease),opacity .3s}
+.toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button id="bCol" class="on">BRD-01 · collapsed</button>
+  <button id="bOpen">BRD-02 · expanded</button>
+</div>
+
+<div class="frame"><div class="phone" id="phone">
+  <div class="sb"><span class="t">9:41</span><span class="ic">
+    <i style="width:3px;height:5px"></i><i style="width:3px;height:7px"></i><i style="width:3px;height:9px"></i><i style="width:3px;height:11px"></i>
+    <i style="width:22px;height:11px;border-radius:3px;margin-left:5px"></i></span></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="corners" id="corners"></div>
+  <div class="mast" id="mast">
+    <div class="title">Prompts</div>
+    <div class="month">November</div>
+    <div class="chat">
+      <div class="b q" style="left:16px;top:110px;width:151px">Currently into:</div>
+      <div class="b a" style="left:179px;top:134px;width:196px;height:58px">pumpkin space lattes but not from starbucks</div>
+      <div class="b q" style="left:16px;top:206px;width:267px">This month: What made you smile</div>
+      <div class="b add" id="add" style="left:224px;top:268px;width:151px"><span id="addText">Add an answer...</span></div>
+      <div class="grab"></div>
+    </div>
+  </div>
+
+  <div class="sheet" id="sheet"><div class="scroll" id="scroll"><div class="inner" id="inner"></div></div></div>
+
+  <div class="compose" id="compose"><div class="bub"><input id="cin" placeholder="Whats on your mind..." maxlength="60"></div></div>
+
+  <div class="nav">
+    <div class="on"></div>
+    <div class="tab" style="left:22px"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="2.5" width="18" height="19" rx="5" fill="#000"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>bulletin</div>
+    <div class="tab" style="left:103px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="#000"/><circle cx="15" cy="10" r="1" fill="#000"/><ellipse cx="12" cy="16" rx="2" ry="2.4"/></svg>friends</div>
+    <div class="tab" style="left:180px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6" stroke-linecap="round"/></svg>shelf</div>
+  </div>
+</div></div>
+
+<p class="hint">Tap the Prompts card, swipe it down or up, or scroll the board to move between collapsed and expanded. In the expanded card, tap “Add an answer…” to type this month’s answer. The board stays anchored to today.</p>
+
+<script>
+const $=id=>document.getElementById(id);
+const phone=$('phone'), mast=$('mast'), scroll=$('scroll'), inner=$('inner');
+
+/* ---- board content (coords from the Figma frame, board top = 0) ---- */
+const OFF=250;           // an older day above, so there is something to scroll to
+const H=OFF+744;
+inner.style.height=H+'px';
+const el=(html)=>{const d=document.createElement('div');d.innerHTML=html.trim();return d.firstChild};
+const put=(h)=>inner.appendChild(el(h));
+const y=n=>n+OFF;
+
+put(`<div class="line" style="top:${y(27)-OFF+20}px;height:${y(531)-(y(27)-OFF+20)}px"></div>`);
+// older day
+put(`<div class="dot" style="left:25px;top:34px"></div>`);
+put(`<div class="lbl" style="top:30px">Nov 13</div>`);
+put(`<div class="photo" style="left:49px;top:62px;width:128px;height:150px"><div class="im"><img src="assets/sample-p4.jpg"></div><div class="tack" style="left:60px;top:-4px"></div></div>`);
+put(`<div class="slip" style="left:55px;top:200px;transform:rotate(-2.2deg)">morning light</div>`);
+put(`<div class="sticky cut" style="left:210px;top:70px;height:120px;transform:rotate(1.2deg)">finally finished the book</div>`);
+// Nov 15
+put(`<div class="dot" style="left:25px;top:${y(44)}px"></div>`);
+put(`<div class="lbl" style="top:${y(40)}px">Nov 15</div>`);
+put(`<div class="photo" style="left:49px;top:${y(66)}px;width:128px;height:160px"><div class="im"><img src="assets/sample-p3.jpg"></div><div class="tack" style="left:61px;top:25px"></div></div>`);
+put(`<div class="slip" style="left:48px;top:${y(219)}px;width:148px;transform:rotate(2.6deg)">cute ornament i found</div>`);
+put(`<div class="sticky cut" style="left:210px;top:${y(73)}px">Watching this ever-so exciting movie that is about a group of elderly people. Kind crazy, don’t know.</div>`);
+// second post
+put(`<div class="photo" style="left:49px;top:${y(269)}px;width:131px;height:163px"><div class="im"><img src="assets/sample-food.jpg"></div><div class="tack" style="left:63px;top:-3px"></div></div>`);
+put(`<div class="slip" style="left:52px;top:${y(421)}px;width:121px;transform:rotate(-1.4deg)">yugi and birthday</div>`);
+put(`<div class="cardp" style="left:204px;top:${y(276)}px"><div class="back b1"></div><div class="back b2"></div><div class="face"><h4>Cookie cake recipe</h4><p>Honestly, this will be the best cookie cake you’ve ever eaten.</p><small>1 min read</small></div></div>`);
+// today
+put(`<div class="dot today" style="left:25px;top:${y(523)}px"></div>`);
+put(`<div class="lbl" style="top:${y(518)}px"><b>today</b>Nov 16</div>`);
+
+/* keep the bottom of the board anchored while the card moves */
+function pin(){scroll.scrollTop=scroll.scrollHeight}
+function follow(ms){const t0=performance.now();(function f(){pin();if(performance.now()-t0<ms)requestAnimationFrame(f)})()}
+pin();
+
+/* ---- open / collapse ---- */
+let open=false;
+function set(v){
+  if(v===open) return; open=v;
+  phone.classList.toggle('open',open);
+  $('bCol').classList.toggle('on',!open); $('bOpen').classList.toggle('on',open);
+  $('compose').style.top=(open?705:697)+'px';
+  follow(560);
+  if(!open && add.querySelector('input')) cancelAnswer();
+}
+$('bCol').onclick=()=>set(false); $('bOpen').onclick=()=>set(true);
+
+/* tap or swipe the masthead */
+let sy=null, moved=false, onAdd=false;
+mast.addEventListener('pointerdown',e=>{ if(e.target.closest('input')) return; onAdd=!!e.target.closest('#add'); sy=e.clientY;moved=false;if(!onAdd)mast.setPointerCapture(e.pointerId)});
+mast.addEventListener('pointermove',e=>{ if(sy===null)return; const d=(e.clientY-sy)/(+getComputedStyle(document.documentElement).getPropertyValue('--z')||1);
+  if(Math.abs(d)>18){moved=true; if(d>0&&!open){set(true);sy=null} else if(d<0&&open){set(false);sy=null}}});
+mast.addEventListener('pointerup',e=>{ if(sy!==null&&!moved&&!onAdd) set(!open); sy=null});
+
+/* scrolling the board up out of the way collapses it; pulling down at the top opens it */
+scroll.addEventListener('wheel',e=>{
+  if(open && e.deltaY>6){set(false);e.preventDefault()}
+  else if(!open && e.deltaY<-6 && scroll.scrollTop<=0){set(true)}
+},{passive:false});
+let ty=null;
+scroll.addEventListener('pointerdown',e=>{ty=e.clientY});
+scroll.addEventListener('pointermove',e=>{ if(ty===null)return; const d=e.clientY-ty;
+  if(open&&d<-20){set(false);ty=null} else if(!open&&d>30&&scroll.scrollTop<=0){set(true);ty=null}});
+addEventListener('pointerup',()=>ty=null);
+
+/* ---- answer the monthly prompt ---- */
+const add=$('add');
+function cancelAnswer(){const t=add.querySelector('input'); if(t){add.innerHTML='<span id="addText">Add an answer...</span>'}}
+add.addEventListener('click',e=>{
+  e.stopPropagation();
+  if(add.querySelector('input')) return;
+  add.innerHTML='<input maxlength="40" placeholder="Add an answer...">';
+  const i=add.querySelector('input'); i.focus();
+  i.addEventListener('keydown',k=>{
+    if(k.key==='Escape') cancelAnswer();
+    if(k.key==='Enter'&&i.value.trim()){
+      const v=i.value.trim();
+      const a=document.createElement('div'); a.className='b a done';
+      a.style.cssText='left:'+(375-Math.min(240,Math.max(120,v.length*8+28)))+'px;top:260px;width:'+Math.min(240,Math.max(120,v.length*8+28))+'px;height:'+(v.length>22?58:40);
+      a.textContent=v; add.replaceWith(a); toast('answer saved to your November');
+    }
+  });
+});
+$('cin').addEventListener('keydown',k=>{ if(k.key==='Enter'&&k.target.value.trim()){toast('added to today');k.target.value='';k.target.blur()}});
+
+let tt; function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1800)}
+
+/* fit the phone to the window */
+function fit(){const z=Math.min(1,(innerHeight-110)/874,(innerWidth-32)/402);document.documentElement.style.setProperty('--z',z)}
+fit();addEventListener('resize',fit);
+</script>
+</body>
+</html>

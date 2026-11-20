@@ -3,26 +3,12 @@ import SwiftUI
 /// BRD-01 Board / today
 struct BoardView: View {
     @Environment(BoardStore.self) private var store
-    /// 0 = masthead fully open, 1 = squeezed down to the title bar. Driven by scrolling the board.
-    @State private var squeeze: CGFloat = 0
-    @State private var scrollToTop = 0
     @State private var deleteTitle = "Delete this?"      // kept while the dialog fades out
     @State private var editingInto = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color("Backdrop").ignoresSafeArea()
-
-            // The board never changes size, so scrolling can't feed back into its own layout (that made the
-            // masthead jitter on a fast scroll). The masthead is drawn over the board's top instead of pushing
-            // it down, and the board masks its own rounded top edge to sit just below the masthead.
-            VStack(spacing: 0) {
-                Color.clear.frame(height: HeaderView.compactHeight + 8)
-                BoardSheet(squeeze: $squeeze, scrollToTop: scrollToTop)
-            }
-
-            HeaderView(squeeze: squeeze, onChipTap: promptChipTapped, onIntoTap: { withAnimation(.snappy(duration: 0.25)) { editingInto = true } })
-        }
+        BoardScroller(onIntoTap: { withAnimation(.snappy(duration: 0.25)) { editingInto = true } },
+                      onAnswerTap: promptChipTapped)
         .overlay {
             if editingInto {
                 IntoEditor { withAnimation(.snappy(duration: 0.3)) { editingInto = false } }
@@ -91,249 +77,359 @@ struct BoardView: View {
     }
 }
 
-// MARK: - Header
+// MARK: - Scrolling board
 
-/// The masthead: month title, "currently into" and prompt cards. It squeezes to a title bar as the board
-/// scrolls up, and opens back up as soon as you scroll back down the page.
-private struct HeaderView: View {
+/// The Prompts masthead is the top of the board's own scrolling content, so opening and closing it is just
+/// scrolling: nothing resizes and nothing re-anchors while you drag, which is what keeps it smooth.
+/// Today sits at the bottom. The board opens there with the masthead scrolled away, and scrolling up past
+/// the oldest day brings the masthead into view. Let go halfway and it settles open or closed.
+private struct BoardScroller: View {
     @Environment(BoardStore.self) private var store
-    @State private var page: Int? = 0
-    let squeeze: CGFloat                // 0...1
-    let onChipTap: () -> Void
     let onIntoTap: () -> Void
+    let onAnswerTap: () -> Void
 
-    // content heights below the status bar (design: 214 and 101 in total with the 44pt status bar)
-    static let fullHeight: CGFloat = 170
-    static let compactHeight: CGFloat = 57
-    static var range: CGFloat { fullHeight - compactHeight }
+    /// How far the board has scrolled: 0 = masthead fully open, `Mast.range` = tucked up under the title bar.
+    @State private var offset: CGFloat = 0
+    @State private var viewport: CGFloat = 874
+    @State private var position = ScrollPosition(edge: .bottom)
 
-    private var fade: Double { Double(max(0, 1 - squeeze * 1.7)) }
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color("Paper").ignoresSafeArea()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Masthead(onIntoTap: onIntoTap, onAnswerTap: onAnswerTap)
+                        MastGap()
+                        sheet
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                .scrollPosition($position)
+                .defaultScrollAnchor(.bottom)
+                .scrollTargetBehavior(MastheadSnap(range: Mast.range))
+                .ignoresSafeArea(edges: .top)
+                .onScrollGeometryChange(for: CGFloat.self) { g in
+                    g.contentOffset.y + g.contentInsets.top
+                } action: { _, y in
+                    offset = y
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
+                .onChange(of: store.postCount) {
+                    // Show the day the post landed on, just under the title bar.
+                    guard let day = store.lastPostedDayID else { return }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(300))   // let the composer sheet finish dismissing
+                        withAnimation(.smooth(duration: 0.55)) { proxy.scrollTo("day-\(day)", anchor: UnitPoint(x: 0.5, y: 0.2)) }
+                    }
+                }
+                .onChange(of: store.highlightRequest) { _, id in
+                    guard let id else { return }
+                    store.highlightRequest = nil
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(450))     // let a closing composer get out of the way
+                        withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo(id, anchor: .center) }
+                        try? await Task.sleep(for: .milliseconds(650))
+                        store.highlightedPostID = id
+                    }
+                }
+            }
+
+            TitleBar(offset: offset) {
+                withAnimation(.smooth(duration: 0.5)) {
+                    position.scrollTo(y: offset < Mast.range / 2 ? Mast.range : 0)
+                }
+            }
+        }
+    }
+
+    private var sheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(store.days) { day in
+                DayRow(day: day, isLast: day.id == store.days.last?.id)
+                    .id("day-\(day.id)")
+            }
+            // "Whats on your mind..." closes the board: right under today, or at the foot of the page when the board is short
+            Spacer(minLength: 28)
+            ComposerBubble { store.isComposing = true }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 24)
+                .padding(.bottom, 100)     // just enough to clear the tab bar
+        }
+        .frame(maxWidth: .infinity, minHeight: max(0, viewport - Mast.sheetTop), alignment: .topLeading)
+        .background(alignment: .top) {
+            // black only shows in the two corners
+            ZStack(alignment: .top) {
+                Color.black.frame(height: Mast.corner)
+                UnevenRoundedRectangle(topLeadingRadius: Mast.corner, topTrailingRadius: Mast.corner, style: .continuous)
+                    .fill(Color("Paper"))
+            }
+        }
+    }
+}
+
+/// Sizes taken from BRD-01 and BRD-02.
+private enum Mast {
+    static let barHeight: CGFloat = 121       // collapsed: title bar
+    static let openHeight: CGFloat = 338      // expanded: title bar plus the chat
+    static let stripHeight: CGFloat = 100     // the title strip while the card scrolls (clear of the first bubble)
+    static let gap: CGFloat = 9
+    static let corner: CGFloat = 24
+    static var range: CGFloat { openHeight - barHeight }
+    /// Where the board's top edge sits on screen when the masthead is tucked away.
+    static var sheetTop: CGFloat { barHeight + gap }
+}
+
+/// Settles a scroll that ends halfway through the masthead: open or closed, by the direction of the flick.
+private struct MastheadSnap: ScrollTargetBehavior {
+    let range: CGFloat
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        let y = target.rect.minY
+        guard y > 0, y < range else { return }
+        let v = context.velocity.dy
+        let close = abs(v) > 0.25 ? v > 0 : y > range / 2
+        target.rect.origin.y = close ? range : 0
+    }
+}
+
+/// The white card at the top of the board: you ask, the app answers, like a chat. It is part of the scrolled content.
+private struct Masthead: View {
+    @Environment(BoardStore.self) private var store
+    let onIntoTap: () -> Void
+    let onAnswerTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Text("My November")
-                .font(Typo.scaled(24, .medium, relativeTo: .title))
-                .padding(.leading, 28)
-                .offset(y: 15 - 9 * squeeze)
+            // behind the card's rounded bottom corners
+            VStack(spacing: 0) { Spacer(); Color.black.frame(height: Mast.corner) }
 
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 5) {
-                    HeaderCard(background: "CardInto", tag: 0) {
-                        Button(action: onIntoTap) {
-                            BigWord(label: "currently into", value: store.currentlyInto)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                                .contentShape(.rect)
-                        }
-                        .buttonStyle(PressableStyle())
-                        .accessibilityHint("Change what you are into")
-                    }
-                    HeaderCard(background: "CardPrompt", tag: 1) {
-                        PromptChat(
-                            question: store.prompt,
-                            answer: store.promptAnswerID.flatMap { store.post($0) },
-                            allowsAnswering: true,
-                            onAnswer: onChipTap,
-                            actions: [
-                                ChatAction(title: "Show my answer", icon: "arrow.down.to.line", run: onChipTap),
-                                ChatAction(title: "Remove answer", icon: "xmark", destructive: true) {
-                                    withAnimation(.snappy) { store.removePromptAnswer() }
-                                },
-                            ])
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $page)
-            .contentMargins(.horizontal, 27, for: .scrollContent)
-            .frame(height: 76)
-            .scaleEffect(1 - 0.04 * squeeze)
-            .offset(y: 59 - 14 * squeeze)
-            .opacity(fade)
-            .allowsHitTesting(fade > 0.2)
-
-            PageDots(current: page ?? 0, count: 2)
-                .frame(maxWidth: .infinity)
-                .offset(y: 146)
-                .opacity(fade)
-
-            // when squeezed, the prompt stays reachable
-            HStack {
-                Spacer()
-                PromptChip(answered: store.promptAnswerID != nil, action: onChipTap)
-                    .padding(.trailing, 20)
-            }
-            .offset(y: 11)
-            .opacity(Double(min(1, max(0, (squeeze - 0.55) * 2.2))))
-            .allowsHitTesting(squeeze > 0.6)
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: Self.fullHeight - Self.range * squeeze, alignment: .top)
-        .clipped()
-        .background {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            UnevenRoundedRectangle(bottomLeadingRadius: Mast.corner, bottomTrailingRadius: Mast.corner, style: .continuous)
                 .fill(Color("Paper"))
-                .ignoresSafeArea(edges: .top)
+
+            VStack(alignment: .leading, spacing: 0) {
+                question("Currently into:", width: 151)
+                answer(store.currentlyInto, action: onIntoTap)
+                    .padding(.top, -24)
+                    .padding(.leading, 163)
+                question("This month: \(store.prompt)", width: 267).padding(.top, 14)
+                replyRow.padding(.top, 14)
+            }
+            .padding(.leading, 16).padding(.trailing, 27)
+            .padding(.top, 110)
+        }
+        .frame(height: Mast.openHeight)
+    }
+
+    private func question(_ text: String, width: CGFloat) -> some View { ChatQuestion(text: text, width: width) }
+
+    private func answer(_ text: String, action: @escaping () -> Void) -> some View { ChatAnswer(text: text, action: action) }
+
+    @ViewBuilder private var replyRow: some View {
+        let post = store.promptAnswerID.flatMap { store.post($0) }
+        HStack {
+            Spacer(minLength: 0)
+            if let post {
+                ChatAnswer(post: post, action: onAnswerTap)
+            } else {
+                AddAnswerBubble(action: onAnswerTap)
+            }
         }
     }
 }
 
-/// Small prompt status in the squeezed masthead: dashed when unanswered, filled once you have answered.
-private struct PromptChip: View {
-    let answered: Bool
+/// The app's side of the chat: white, left.
+struct ChatQuestion: View {
+    let text: String
+    let width: CGFloat
+    var body: some View {
+        Text(text)
+            .font(Typo.pixel(12))
+            .foregroundStyle(.black)
+            .lineLimit(1)
+            .padding(.leading, 18)
+            .frame(width: width, height: 48, alignment: .leading)
+            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+/// Your side of the chat: faint gray, right.
+struct ChatAnswer: View {
+    let text: String
+    /// A picture answer shows the photo in the bubble, with its caption beside it.
+    var image: UIImage? = nil
     let action: () -> Void
+
+    init(text: String, image: UIImage? = nil, action: @escaping () -> Void) {
+        self.text = text; self.image = image; self.action = action
+    }
+
+    /// An answer made of a post: a photo brings its picture along.
+    init(post: Post, action: @escaping () -> Void) {
+        self.init(text: PromptChat.summary(of: post), image: post.image?.uiImage, action: action)
+    }
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 7) {
-                ZStack {
-                    if answered {
-                        Circle().fill(Color("Sticky"))
-                            .overlay(Circle().strokeBorder(.black.opacity(0.18), lineWidth: 1.5))
-                    } else {
-                        Circle().strokeBorder(.black.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [2.5, 2.5]))
-                    }
+            HStack(alignment: .center, spacing: 10) {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable().scaledToFill()
+                        .frame(width: 46, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white, lineWidth: 2))
+                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                        .rotationEffect(.degrees(-3))
                 }
-                .frame(width: 12, height: 12)
-                Text(answered ? "prompt answered" : "answer the prompt")
-                    .font(.system(size: 12.5, weight: .medium))
+                Text(text)
+                    .font(Typo.pixel(12))
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(image == nil ? nil : 3)
             }
-            .foregroundStyle(.black)
-            .padding(.leading, 9)
-            .padding(.trailing, 12)
-            .padding(.vertical, 7)
-            .background(Color("CardPrompt"), in: Capsule())
+                .padding(image == nil ? 12 : 10)
+                .frame(width: 196, alignment: .leading)
+                .background(.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.black.opacity(0.05), lineWidth: 1))
         }
         .buttonStyle(PressableStyle())
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
-private struct HeaderCard<Content: View>: View {
-    let background: String
-    let tag: Int
-    @ViewBuilder var content: Content
+/// The dashed "Add an answer..." bubble. The first time the card comes into view with nothing answered, the bubble
+/// grows a little with a springy wobble, the dashes march around it for a few seconds and the outline firms up, then
+/// it settles back. Once per launch: a hello, not a nag.
+private struct AddAnswerBubble: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let action: () -> Void
+
+    @MainActor private static var played = false
+
+    @State private var phase: CGFloat = 0
+    @State private var firm = false
+    @State private var grown = false
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(Color(background), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-            .containerRelativeFrame(.horizontal) { length, _ in length - 54 }
-            .id(tag)
-    }
-}
-
-struct PageDots: View {
-    let current: Int
-    let count: Int
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<count, id: \.self) { i in
-                Capsule()
-                    .fill(.black.opacity(i == current ? 0.2 : 0.1))
-                    .frame(width: i == current ? 16 : 7, height: 7)
+        Button(action: action) {
+            Text("Add an answer...")
+                .font(Typo.pixel(12))
+                .foregroundStyle(.black.opacity(firm ? 0.55 : 0.2))
+                .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 10)
+                .frame(width: 151, alignment: .leading)
+                .background(.black.opacity(firm ? 0.08 : 0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(.black.opacity(firm ? 0.55 : 0.15),
+                                  style: StrokeStyle(lineWidth: firm ? 1.4 : 1, dash: [4, 3], dashPhase: phase)))
+        }
+        .buttonStyle(PressableStyle())
+        .scaleEffect(grown ? 1.1 : 1, anchor: .trailing)
+        .rotationEffect(.degrees(grown ? -1.5 : 0), anchor: .trailing)
+        .accessibilityLabel("Answer the prompt")
+        .onScrollVisibilityChange(threshold: 0.7) { visible in
+            guard visible, !reduceMotion, !Self.played else { return }
+            Self.played = true
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                withAnimation(.spring(duration: 0.55, bounce: 0.55)) { grown = true }
+                withAnimation(.easeOut(duration: 0.3)) { firm = true }
+                withAnimation(.linear(duration: 3.2)) { phase = -49 }        // the ants march, once
+                try? await Task.sleep(for: .milliseconds(3200))
+                withAnimation(.spring(duration: 0.7, bounce: 0.4)) { grown = false }
+                withAnimation(.easeInOut(duration: 0.6)) { firm = false }
+                phase = 0
             }
         }
-        .animation(.snappy(duration: 0.25), value: current)
-        .accessibilityHidden(true)
     }
 }
 
-// MARK: - Board sheet
+/// The 9pt between the card and the board: solid black, as in the design.
+private struct MastGap: View {
+    var body: some View { Color.black.frame(height: Mast.gap) }
+}
 
-private struct BoardSheet: View {
-    @Environment(BoardStore.self) private var store
-    @Binding var squeeze: CGFloat
-    let scrollToTop: Int
-
-    /// While the board scrolls itself (to a new post's day), the masthead stays put.
-    @State private var lockedUntil = Date.distantPast
-
-    private struct Metrics: Equatable {
-        var y: CGFloat
-        var maxY: CGFloat
-        var content: CGFloat
-        var container: CGFloat
+/// The area just outside two rounded top corners: what shows black beside a rounded sheet.
+private struct OutsideTopCorners: Shape {
+    let radius: CGFloat
+    func path(in r: CGRect) -> Path {
+        var p = Path(r)
+        p.addPath(UnevenRoundedRectangle(topLeadingRadius: radius, topTrailingRadius: radius, style: .continuous)
+            .path(in: CGRect(x: r.minX, y: r.minY, width: r.width, height: r.height + radius)))
+        return p
     }
+}
+
+/// The fixed title bar: "Prompts" and the month. Once the card has scrolled up out of view it stays as the white bar
+/// (its own bottom edge squares off while the card is opening, so the two read as one).
+private struct TitleBar: View {
+    let offset: CGFloat
+    let onTap: () -> Void
+
+    /// 0 = open, 1 = closed
+    private var f: CGFloat { min(1, max(0, offset / Mast.range)) }
+    private var tucked: Bool { offset >= Mast.range - 1 }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Color.clear.frame(height: 0).id("board-top")
-                    // newest day at the top, oldest at the bottom
-                    ForEach(store.days.reversed()) { day in
-                        DayRow(day: day, isLast: day.id == store.days.first?.id)
-                            .id("day-\(day.id)")
-                    }
-                }
-                // room for the open masthead, which sits over the top of the board
-                .padding(.top, HeaderView.range)
-                .padding(.bottom, 40)
-            }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-            .contentMargins(.bottom, 110, for: .scrollContent)   // lets the last day scroll up above the tab bar
-            .onScrollGeometryChange(for: Metrics.self) { g in
-                Metrics(y: g.contentOffset.y + g.contentInsets.top,
-                        // Where the board really ends. (Adding contentInsets.bottom here put "the end" past the
-                        // real one, so the spring-back after a hard flick looked like scrolling up and
-                        // reopened the masthead.)
-                        maxY: max(0, g.contentSize.height - g.containerSize.height),
-                        content: g.contentSize.height,
-                        container: g.containerSize.height)
-            } action: { old, new in
-                // Ignore rubber-banding past either end so the masthead doesn't twitch.
-                let y = min(max(new.y, 0), new.maxY)
-                let oldY = min(max(old.y, 0), old.maxY)
-                if y <= 0 { squeeze = 0; return }
-                // A change in size moves the scroll offset by itself (the system clamps it); that is not the
-                // user scrolling, so it must not open or close the masthead.
-                guard new.content == old.content, new.container == old.container else { return }
-                guard Date.now >= lockedUntil else { return }
-                squeeze = min(1, max(0, squeeze + (y - oldY) / HeaderView.range))
-            }
-            .background(
-                UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
+        ZStack(alignment: .topLeading) {
+            // While the card is on its way up, the bar is just a strip of the same paper behind the title, square at
+            // the bottom with a soft fade, so nothing shows a hard edge or a second set of corners. Once the card is
+            // tucked away it becomes the rounded title bar, in exactly the card's place.
+            ZStack(alignment: .bottom) {
+                if tucked { Color.black.frame(height: Mast.corner) }
+                UnevenRoundedRectangle(bottomLeadingRadius: tucked ? Mast.corner : 0,
+                                       bottomTrailingRadius: tucked ? Mast.corner : 0, style: .continuous)
                     .fill(Color("Paper"))
-                    .ignoresSafeArea(edges: .bottom)
-            )
-            // the board's visible top edge follows the bottom of the masthead
-            .mask {
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: HeaderView.range * (1 - squeeze))
-                    UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
-                        .ignoresSafeArea(edges: .bottom)
-                }
             }
-            .onChange(of: store.postCount) {
-                // Show the day the post landed on, label at the top (works for clipped posts on past days too).
-                guard let day = store.lastPostedDayID else { return }
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))   // let the composer sheet finish dismissing
-                    lockedUntil = Date.now.addingTimeInterval(1)     // keep the masthead from reopening mid-scroll
-                    withAnimation(.smooth(duration: 0.55)) {
-                        squeeze = 1
-                        proxy.scrollTo("day-\(day)", anchor: .top)
-                    }
-                }
+            .frame(height: tucked ? Mast.barHeight : Mast.stripHeight)
+
+            LinearGradient(colors: [Color("Paper"), Color("Paper").opacity(0)], startPoint: .top, endPoint: .bottom)
+                .frame(height: 26)
+                .offset(y: Mast.stripHeight)
+                .opacity(tucked ? 0 : 1)
+                .allowsHitTesting(false)
+
+            // A soft blur where the board slides up under the title. It sits under the black corners (drawn next), which
+            // stay crisp.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
+                .frame(height: 56)
+                .offset(y: Mast.sheetTop)
+                .opacity(tucked ? 1 : 0)
+                .allowsHitTesting(false)
+
+            // Under the bar the board always starts after a black gap with rounded top corners; the board
+            // scrolls beneath this frame once the card is tucked away.
+            VStack(spacing: 0) {
+                Color.clear.frame(height: Mast.barHeight)
+                Color.black.frame(height: Mast.gap)
+                OutsideTopCorners(radius: Mast.corner).fill(.black, style: FillStyle(eoFill: true))
+                    .frame(height: Mast.corner)
+                    .clipped()      // the cut-out reaches below the corners; keep only the corners
             }
-            .onChange(of: store.highlightRequest) { _, id in
-                guard let id else { return }
-                store.highlightRequest = nil
-                Task {
-                    try? await Task.sleep(for: .milliseconds(450))     // let a closing composer get out of the way
-                    lockedUntil = Date.now.addingTimeInterval(1.2)
-                    withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo(id, anchor: .center) }
-                    try? await Task.sleep(for: .milliseconds(650))
-                    store.highlightedPostID = id
-                }
-            }
-            .onChange(of: scrollToTop) {
-                withAnimation(.smooth(duration: 0.5)) { proxy.scrollTo("board-top", anchor: .top) }
-            }
+            .opacity(tucked ? 1 : 0)      // only once the card is tucked away
+            .allowsHitTesting(false)
+
+            Text("Prompts")
+                .font(.system(size: 18 + 8 * (1 - f), weight: f > 0.5 ? .medium : .bold))
+                .padding(.leading, 16 + 12 * f)
+                .padding(.top, 57 + 12 * f)
+            Text("November")
+                .font(Typo.pixel(18))
+                .foregroundStyle(.black.opacity(0.4))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 27)
+                .padding(.top, 70)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: Mast.barHeight, alignment: .top)
+        .ignoresSafeArea(edges: .top)
+        .contentShape(.rect)
+        .onTapGesture(perform: onTap)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("Prompts")
+        .accessibilityHint(offset < Mast.range / 2 ? "Closes the prompts" : "Opens the prompts")
     }
 }
 
@@ -347,38 +443,33 @@ private struct DayRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(store.shortLabel(day.id))
-                .font(Typo.scaled(14, .medium, relativeTo: .subheadline))
-                .foregroundStyle(.black.opacity(0.5))
-                .frame(height: 17)
-
-            // "Whats on your mind" sits in today's row, right under its label, instead of floating over the board
-            if day.id == store.todayID {
-                ComposerPill { store.isComposing = true }
-                    .padding(.top, 14)
-                    .padding(.leading, 8)
+            HStack(spacing: 4) {
+                if day.id == store.todayID {
+                    Text("today").font(Typo.pixel(14)).foregroundStyle(.black)
+                }
+                Text("Nov \(day.id)").font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.5))
             }
+            .frame(height: 17)
 
             if day.posts.isEmpty {
                 Text("its kinda empty...")
                     .font(Typo.scaled(14, .regular, relativeTo: .subheadline).italic())
                     .foregroundStyle(.black.opacity(0.5))
-                    .padding(.top, day.id == store.todayID ? 16 : 5)   // clear of the button in today's row
-                    .padding(.leading, day.id == store.todayID ? 8 : 0)
+                    .padding(.top, 5)
                     .transition(.opacity)
             } else {
                 busyAwarePosts
-                    .padding(.top, 18)
+                    .padding(.top, 9)
             }
         }
         .padding(.leading, gutter)
         .padding(.bottom, isLast ? 0 : 41)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .topLeading) { Dot().frame(width: dot, height: dot).offset(x: 25, y: 4.5) }
+        .overlay(alignment: .topLeading) { Dot(isToday: day.id == store.todayID).frame(width: dot, height: dot).offset(x: 25, y: 4.5) }
         .background(alignment: .topLeading) {
             if !isLast {
-                // the timeline: from this dot's center down to the next dot's center
-                Rectangle()
+                // the timeline: from this dot's center down to the next day's dot
+                Capsule()
                     .fill(.black.opacity(0.1))
                     .frame(width: 3)
                     .padding(.top, 8.5)
@@ -418,6 +509,7 @@ extension DayRow {
     }
 }
 
-private struct Dot: View {
-    var body: some View { Circle().fill(.black) }
+struct Dot: View {
+    var isToday = false
+    var body: some View { Circle().fill(isToday ? Color(red: 0.992, green: 0.392, blue: 0.133) : Color(white: 0.592)) }
 }

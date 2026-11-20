@@ -2,11 +2,11 @@ import SwiftUI
 
 enum PhotoMetrics {
     /// Photos are pinned at a fixed width; their height follows the picture's shape.
-    static let pinWidth: CGFloat = 149.6
+    static let pinWidth: CGFloat = 128
     /// The most a caption can hold. The board shows two lines of it; the opened photo shows it all.
     static let captionLimit = 200
     /// About how many characters fit on one line of the caption slip, for estimating its height.
-    static let captionCharsPerLine = 15
+    static let captionCharsPerLine = 17
 }
 
 /// A photo on a post. Wraps the image so `Post` can stay Hashable (identity is the id).
@@ -47,6 +47,8 @@ struct Post: Identifiable, Hashable {
     var kind: PostKind
     var rotation: Double          // degrees; items are loose and a little tilted
     var isPromptAnswer = false
+    /// The paper color, for stickies.
+    var stickyColor: StickyColor = .yellow
     /// The picture, for photo posts. Seed photos have none and show a placeholder color block.
     var image: PostImage?
     /// Added to a past day: gets a paperclip instead of a pushpin.
@@ -57,9 +59,9 @@ struct Post: Identifiable, Hashable {
     /// Rough height on the board, used to decide when a day gets busy. Close enough beats measuring.
     var estimatedHeight: CGFloat {
         switch kind {
-        case .photo(let c): (PhotoMetrics.pinWidth / (image?.pinAspect ?? 1)) + 40 + (c.count > PhotoMetrics.captionCharsPerLine ? 18 : 0)   // picture plus the caption slip (one or two lines)
-        case .sticky: 150
-        case .journal: 156
+        case .photo(let c): (PhotoMetrics.pinWidth / (image?.pinAspect ?? 1)) + 26 + (c.count > PhotoMetrics.captionCharsPerLine ? 13 : 0)   // picture plus the caption slip (one or two lines)
+        case .sticky: 160
+        case .journal: 160
         }
     }
 }
@@ -93,7 +95,7 @@ final class BoardStore {
         BoardDay(id: 3, posts: [])
     ]
 
-    var currentlyInto = "pumpkin spice late"
+    var currentlyInto = "pumpkin space lattes but not from starbucks"
     /// What you were into in earlier months, newest first. This is a journal: it is kept so you can look back.
     var intoHistory: [IntoEntry] = [
         IntoEntry(month: "October", text: "matcha and cozy games"),
@@ -103,7 +105,7 @@ final class BoardStore {
     /// Earlier values from this month, before you changed it. Newest first.
     var intoEarlierThisMonth: [String] = []
     let monthName = "November"
-    let prompt = "what made you smile lately?"
+    let prompt = "What made you smile"
 
     /// The composer sheet. Opened by the inline "Whats on your mind" button and by the prompt.
     var isComposing = false
@@ -223,7 +225,7 @@ final class BoardStore {
     }
 
     /// Edit in place: no "edited" marker, as in the rules.
-    func update(_ id: Post.ID, title: String, body: String, asJournal: Bool) {
+    func update(_ id: Post.ID, title: String, body: String, asJournal: Bool, stickyColor: StickyColor = .yellow) {
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let d = dayID(of: id),
               let i = days.firstIndex(where: { $0.id == d }),
@@ -231,6 +233,7 @@ final class BoardStore {
         days[i].posts[p].kind = asJournal
             ? .journal(title: title.trimmingCharacters(in: .whitespacesAndNewlines), body: text)
             : .sticky(text: text)
+        if !asJournal { days[i].posts[p].stickyColor = stickyColor }
         postCount += 1
     }
 
@@ -247,7 +250,7 @@ final class BoardStore {
     // MARK: posting
 
     /// A post is a sticky, a journal entry, or (with `photo`) a photo whose text is its caption.
-    func addPost(title: String, body: String, dayID: Int, asJournal: Bool, photo: PostImage? = nil) {
+    func addPost(title: String, body: String, dayID: Int, asJournal: Bool, photo: PostImage? = nil, stickyColor: StickyColor = .yellow) {
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (!text.isEmpty || photo != nil), (1...todayID).contains(dayID) else { return }
 
@@ -260,6 +263,7 @@ final class BoardStore {
             rotation: .random(in: -3...3)
         )
         post.image = photo
+        post.stickyColor = stickyColor
         post.isClipped = dayID != todayID
         if post.isClipped {
             let time = Date.now.formatted(date: .omitted, time: .shortened)

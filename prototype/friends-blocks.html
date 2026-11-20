@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Friends: shared blocks</title>
+<style>
+:root{
+  --paper:#f5f5f5; --seen:#e9e9e9; --blue:#0a66ff;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"JetBrains Mono","SF Mono",ui-monospace,"Courier New",monospace;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:860px;line-height:1.45}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;-webkit-user-select:none}
+
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 12px}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}.sb .r{flex:1}
+
+/* title (on a paper strip so blocks slide under it) */
+.phone::before{content:"";position:absolute;left:0;right:0;top:0;height:108px;z-index:15;pointer-events:none;background:linear-gradient(var(--paper) 78%,rgba(245,245,245,0))}
+.ttl{position:absolute;left:41px;top:61px;font-size:26px;font-weight:700;z-index:20}
+.mon{position:absolute;right:27px;top:68px;font:500 18px/24px var(--pixel);color:rgba(0,0,0,.4);z-index:20}
+
+/* scrolling area */
+.scroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:112px 33px 150px}
+.scroll::-webkit-scrollbar{display:none}
+.tiles{display:grid;grid-template-columns:160px 160px;gap:19px 16px}
+
+/* one block: name, last post, timestamp */
+.tile{position:relative;width:160px;height:235px;border-radius:12px;background:var(--seen);overflow:hidden;cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s}
+.tile.new{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.tile:active{transform:scale(.97)}
+.tile .nm{position:absolute;left:17px;top:13px;font-size:14px;font-weight:510;color:rgba(0,0,0,.5)}
+.tile.new .nm{color:#000}
+.tile .ts{position:absolute;left:10px;top:214px;font-size:10px;font-weight:510;color:rgba(0,0,0,.2);width:145px}
+.dot{position:absolute;right:-1px;top:-3px;width:12px;height:12px;border-radius:50%;background:var(--blue);z-index:3;opacity:0;transform:scale(.4);transition:all .3s var(--ease)}
+.tile.new + .dot,.wrap.new .dot{opacity:1;transform:none}
+.wrap{position:relative;width:160px;height:235px}
+.wrap .dot{right:-4px;top:-3px}
+.sticky{position:absolute;left:10px;top:43px;width:140px;height:160px;border-radius:12px;background:#f7e8c4;overflow:hidden}
+.tile:not(.new) .sticky{background:#ebdcb8}
+.sticky p{position:absolute;left:13px;top:16px;width:114px;font-size:14px;font-weight:590;line-height:1.2;color:#000}
+.sticky::after{content:"";position:absolute;right:0;bottom:0;width:27px;height:27px;background:linear-gradient(135deg,transparent 50%,#f4cb52 50%);border-radius:0 0 0 0}
+.sticky::before{content:"";position:absolute;right:0;bottom:0;width:0;height:0;border-style:solid;border-width:0 0 28px 28px;border-color:transparent transparent #f5f5f5 transparent;z-index:1}
+.tile:not(.new) .sticky::before{border-bottom-color:var(--seen)}
+.tile.new .sticky::before{border-bottom-color:#fff}
+.photo{position:absolute;left:17px;top:45px;width:128px;border:2px solid #fff;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.1);overflow:hidden;background:#ddd}
+.photo img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* nav */
+.nav{position:absolute;left:77px;top:775px;width:247px;height:60px;z-index:50;border-radius:30px;background:rgba(255,255,255,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.nav .tab{position:absolute;top:8px;width:49px;height:44px;text-align:center;font-size:13px;font-weight:400}
+.nav .tab svg{display:block;margin:0 auto 4px;width:24px;height:24px}
+.nav .on{position:absolute;left:105px;top:3px;width:80px;height:53px;border-radius:26px;background:rgba(0,0,0,.08)}
+.nav .tab.cur{font-weight:510}
+
+/* avatars */
+.av{width:32px;height:32px;border-radius:50%;border:2px solid #fff;flex:none;display:grid;place-items:center;font-size:12px;font-weight:600;color:rgba(0,0,0,.45)}
+.av.empty{background:none;border:1.5px dashed rgba(0,0,0,.25);color:rgba(0,0,0,.35);font-size:16px;font-weight:400}
+
+/* guest list card (the Figma version) */
+.gl{position:relative;width:100%;border-radius:16px;background:rgba(0,0,0,.05);padding:18px 20px 20px;margin-top:20px;overflow:hidden;transition:height .45s var(--ease)}
+.gl h3{font-size:24px;font-weight:510;letter-spacing:-.3px}
+.gl .sub{font-size:14px;font-weight:510;color:rgba(0,0,0,.4);margin-top:8px}
+.edit{position:absolute;right:13px;top:12px;padding:10px 14px;border-radius:14px;background:#e2e2e2;border:1px solid rgba(0,0,0,.1);font-weight:590;font-size:16px}
+.stack{display:flex;margin-top:17px}
+.stack .av{margin-right:-8px}
+
+/* B: inline expand */
+.rows{display:none;margin-top:14px}
+.gl.open .rows{display:block}
+.gl.open .stack{display:none}
+.row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(0,0,0,.06);font-size:15px;font-weight:510}
+.row .x{margin-left:auto;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.07);font-size:14px;line-height:26px;color:rgba(0,0,0,.5)}
+.row.inv{color:rgba(0,0,0,.4)}
+.done{display:none}
+.gl.open .done{display:block}
+.gl.open .edit.e{display:none}
+
+/* C: chips row */
+.chips{display:flex;gap:14px;overflow-x:auto;margin:20px -33px 0;padding:0 33px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .c{flex:none;text-align:center;font-size:12px;font-weight:510;color:rgba(0,0,0,.5)}
+.chips .c .av{width:52px;height:52px;margin:0 auto 5px;font-size:16px;border-width:2px}
+.chips .c .av.empty{font-size:22px}
+.sech{display:flex;align-items:baseline;justify-content:space-between;margin-top:26px}
+.sech b{font-size:17px;font-weight:600}
+.sech span{font-size:13px;color:rgba(0,0,0,.4);font-weight:510}
+
+/* D: dock above nav + sheet */
+.dock{position:absolute;left:19px;right:19px;top:700px;height:64px;border-radius:32px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12);z-index:45;display:flex;align-items:center;padding:0 10px 0 16px;gap:12px;cursor:pointer}
+.dock .stk{display:flex}.dock .stk .av{width:28px;height:28px;margin-right:-9px;font-size:0}
+.dock b{font-size:15px;font-weight:600;margin-left:8px}
+.dock small{display:block;font-size:12px;font-weight:510;color:rgba(0,0,0,.4)}
+.dock .edit{position:static;margin-left:auto;padding:8px 14px;font-size:15px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:70}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:620px;background:var(--paper);border-radius:28px 28px 0 0;z-index:80;transform:translateY(100%);transition:transform .45s var(--ease);padding:12px 20px 0;overflow:hidden}
+.show .scrim{opacity:1;pointer-events:auto}.show .sheet{transform:none}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,.15);margin:0 auto 16px}
+.sheet h3{font-size:24px;font-weight:510;letter-spacing:-.3px}
+.sheet .sub{font-size:14px;font-weight:510;color:rgba(0,0,0,.4);margin:6px 0 14px}
+.sheet .field{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.05);border-radius:14px;padding:11px 14px;font-size:15px;margin-bottom:8px}
+.sheet .field input{flex:1;background:none;border:0;outline:0}
+.sheet .list{overflow-y:auto;max-height:380px;scrollbar-width:none}
+.sheet .row:first-child{border-top:0}
+.sheet .go{position:absolute;left:20px;right:20px;bottom:30px;height:50px;border-radius:25px;background:#000;color:#fff;font-weight:590;font-size:16px}
+.cap{position:absolute;left:0;right:0;bottom:0;text-align:center}
+.hint{max-width:560px;margin:34px auto 0;text-align:center;font-size:12.5px;line-height:1.5;color:#666}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Friends: shared blocks</h1>
+  <p>Each friend is a block: their name, the last thing they posted and when. A blue dot and a white block mean you haven't opened their bulletin yet; once you do, it goes gray. The four phones differ only in how you manage your guest list. Tap a block to open it (the dot goes away), tap Edit to try each version.</p>
+</header>
+
+<div class="grid" id="grid"></div>
+<p class="hint">Not built in the app yet. Pick the guest list you like (or mix them) and I'll implement it in SwiftUI.</p>
+
+<script>
+const FRIENDS=[
+  {n:'sababi',  k:'sticky', t:'Watching this ever-so exciting movie that is about a group of elderly people. Kind crazy, don’t know.', ts:'Nov 18, 2026 at 11:58 PM', fresh:true},
+  {n:'rhett',   k:'photo',  img:'assets/pic-a.jpg', h:160, ts:'Nov 18, 2026 at 11:58 PM', fresh:true},
+  {n:'georgina',k:'sticky', t:'Watching this ever-so exciting movie that is about a group of elderly people. Kind crazy, don’t know.', ts:'Nov 18, 2026 at 11:58 PM'},
+  {n:'frisco',  k:'photo',  img:'assets/pic-b.jpg', h:89,  ts:'Nov 13, 2026 at 11:58 PM'},
+  {n:'maya',    k:'sticky', t:'finally tried the new ramen place. 10/10', ts:'Nov 12, 2026 at 6:20 PM'},
+  {n:'liam',    k:'photo',  img:'assets/pic-b.jpg', h:140, ts:'Nov 10, 2026 at 9:02 AM'}
+];
+const GUESTS=[['sababi','#aee0ce'],['rhett','#fbc9d4'],['georgina','#fde5a7'],['frisco','#cddcfb'],['maya','#dccbf7'],['liam','#fcd4b4'],['ava','#aee0ce'],['noah','#cddcfb']];
+const MAX=10;
+
+const NAVSVG=`<div class="nav"><div class="on"></div>
+<div class="tab" style="left:22px"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="2.5" width="18" height="19" rx="5" fill="#000"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>bulletin</div>
+<div class="tab cur" style="left:101px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="#000"/><circle cx="15" cy="10" r="1" fill="#000"/><ellipse cx="12" cy="16" rx="2" ry="2.4"/></svg>friends</div>
+<div class="tab" style="left:180px"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.7"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6" stroke-linecap="round"/></svg>shelf</div></div>`;
+
+const initial=n=>n[0].toUpperCase();
+const av=(g,cls='')=>`<div class="av ${cls}" style="background:${g[1]}">${initial(g[0])}</div>`;
+
+function tile(f){
+  const body=f.k==='sticky'
+    ? `<div class="sticky"><p>${f.t}</p></div>`
+    : `<div class="photo" style="height:${f.h}px"><img src="${f.img}" alt=""></div>`;
+  return `<div class="wrap ${f.fresh?'new':''}" data-n="${f.n}"><div class="tile ${f.fresh?'new':''}"><div class="nm">${f.n}</div>${body}<div class="ts">${f.ts}</div></div><div class="dot"></div></div>`;
+}
+const tiles=()=>`<div class="tiles">${FRIENDS.map(tile).join('')}</div>`;
+
+/* ---------- the four guest list versions ---------- */
+function optA(){ // as in the Figma
+  return `<div class="gl"><h3>Guest list (${GUESTS.length}/${MAX})</h3><div class="sub">People who can see your bulletin</div>
+  <button class="edit">Edit</button><div class="stack">${GUESTS.map(g=>av(g)).join('')}</div></div>`;
+}
+function optB(){ // card that grows in place
+  return `<div class="gl" data-b><h3>Guest list (<span class="cnt">${GUESTS.length}</span>/${MAX})</h3><div class="sub">People who can see your bulletin</div>
+  <button class="edit e">Edit</button><button class="edit done">Done</button>
+  <div class="stack">${GUESTS.map(g=>av(g)).join('')}</div>
+  <div class="rows"></div></div>`;
+}
+function optC(){ // a labelled strip of people, add chip first
+  return `<div class="sech"><b>Guest list</b><span>${GUESTS.length} of ${MAX}</span></div>
+  <div class="chips"><div class="c"><div class="av empty" style="width:52px;height:52px;margin:0 auto 5px">+</div>invite</div>${GUESTS.map(g=>`<div class="c">${av(g)}${g[0]}</div>`).join('')}</div>`;
+}
+function optD(){ return ''; } // docked pill + sheet, below
+
+function sheetHTML(){
+  return `<div class="scrim"></div><div class="sheet"><div class="grab"></div>
+  <h3>Guest list (<span class="cnt">${GUESTS.length}</span>/${MAX})</h3><div class="sub">People who can see your bulletin</div>
+  <div class="field"><span style="color:rgba(0,0,0,.35)">＋</span><input placeholder="Add by username"></div>
+  <div class="list"></div><button class="go">Done</button></div>`;
+}
+function dockHTML(){
+  return `<div class="dock"><div class="stk">${GUESTS.slice(0,5).map(g=>av(g)).join('')}</div><div><b>Guest list</b><small>${GUESTS.length} of ${MAX} can see you</small></div><button class="edit">Edit</button></div>`;
+}
+
+const OPTIONS=[
+  {k:'A',t:'Card, as designed',d:'Your Figma version. Edit opens a sheet.', body:optA, sheet:true},
+  {k:'B',t:'Card that expands',d:'Edit opens the card in place: remove people or invite, then Done.', body:optB},
+  {k:'C',t:'Strip of people',d:'A quiet row of faces you can swipe, with an invite chip first. Tap one to manage.', body:optC, sheet:true},
+  {k:'D',t:'Docked pill',d:'The guest list stays pinned above the tab bar, so it never gets lost under the blocks. Tap to manage.', body:optD, dock:true, sheet:true}
+];
+
+const grid=document.getElementById('grid');
+OPTIONS.forEach(o=>{
+  const cell=document.createElement('div');cell.className='cell';
+  cell.innerHTML=`<div class="frame"><div class="phone">
+    <div class="sb"><div class="t">9:41</div><div class="n"></div><div class="r"></div></div>
+    <div class="ttl">Shared</div><div class="mon">November</div>
+    <div class="scroll"><div class="content">${tiles()}${o.body()}</div></div>
+    ${o.dock?dockHTML():''}${NAVSVG}${o.sheet?sheetHTML():''}
+  </div></div><h2><em>${o.k}</em>${o.t}</h2><p>${o.d}</p>`;
+  grid.appendChild(cell);
+  wire(cell,o);
+});
+
+function wire(cell,o){
+  const phone=cell.querySelector('.phone');
+  const guests=GUESTS.slice();
+  const sync=()=>{cell.querySelectorAll('.cnt').forEach(c=>c.textContent=guests.length)};
+
+  // opening a block clears its dot and grays it out
+  cell.querySelectorAll('.wrap').forEach(w=>w.addEventListener('click',()=>{
+    w.classList.remove('new');w.querySelector('.tile').classList.remove('new');
+  }));
+
+  const rowsHTML=(withInvite)=>guests.map((g,i)=>`<div class="row">${av(g)}${g[0]}<button class="x" data-i="${i}">×</button></div>`).join('')
+    +(guests.length<MAX&&withInvite?`<div class="row inv"><div class="av empty">+</div>Invite someone · ${MAX-guests.length} spots left</div>`:'');
+
+  // sheet (A, C, D)
+  const sheet=phone.querySelector('.sheet');
+  if(sheet){
+    const list=sheet.querySelector('.list');
+    const paint=()=>{list.innerHTML=rowsHTML(true);sync()};
+    paint();
+    list.addEventListener('click',e=>{const x=e.target.closest('.x');if(!x)return;guests.splice(+x.dataset.i,1);paint()});
+    const open=()=>phone.classList.add('show'), close=()=>phone.classList.remove('show');
+    phone.querySelectorAll('.edit').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();open()}));
+    phone.querySelectorAll('.chips .c').forEach(c=>c.addEventListener('click',open));
+    phone.querySelector('.dock')?.addEventListener('click',open);
+    phone.querySelector('.scrim').addEventListener('click',close);
+    sheet.querySelector('.go').addEventListener('click',close);
+  }
+
+  // inline expand (B)
+  const gl=phone.querySelector('[data-b]');
+  if(gl){
+    const rows=gl.querySelector('.rows');
+    const paint=()=>{rows.innerHTML=rowsHTML(true);sync()};
+    gl.querySelector('.e').addEventListener('click',()=>{paint();gl.classList.add('open');setTimeout(()=>phone.querySelector('.scroll').scrollTo({top:999,behavior:'smooth'}),60)});
+    gl.querySelector('.done').addEventListener('click',()=>gl.classList.remove('open'));
+    rows.addEventListener('click',e=>{const x=e.target.closest('.x');if(!x)return;guests.splice(+x.dataset.i,1);paint();
+      gl.querySelector('.stack').innerHTML=guests.map(g=>av(g)).join('')});
+  }
+}
+</script>
+</body>
+</html>

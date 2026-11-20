@@ -22,11 +22,17 @@ struct FriendBoardView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Color("Paper").ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             VStack(spacing: 0) {
-                header
-                cards.padding(.top, 12)
-                sheet.padding(.top, 17)
+                // the same prompt card as your own board: paper with rounded bottom corners over black
+                VStack(spacing: 0) {
+                    header
+                    cards.padding(.top, 14).padding(.bottom, 22)
+                }
+                .frame(maxWidth: .infinity)
+                .background(UnevenRoundedRectangle(bottomLeadingRadius: 24, bottomTrailingRadius: 24, style: .continuous)
+                    .fill(Color("Paper")).ignoresSafeArea(edges: .top))
+                sheet.padding(.top, 9)
             }
             if let post = openPost {
                 PostDetailView(post: post, origin: nil,
@@ -64,31 +70,28 @@ struct FriendBoardView: View {
     }
 
     private var cards: some View {
-        HStack(spacing: 8) {
-            BigWord(label: "currently into", value: friend.into, size: 18)
-                .frame(width: 152, height: 83, alignment: .leading)
-                .background(Color("CardInto"), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-            promptCard
+        VStack(alignment: .leading, spacing: 0) {
+            ChatQuestion(text: "Currently into:", width: 151)
+            ChatAnswer(text: friend.into, action: {}).allowsHitTesting(false)
+                .padding(.top, -24).padding(.leading, 163)
+            ChatQuestion(text: "This month: \(board.prompt)", width: 267).padding(.top, 14)
+            HStack {
+                Spacer(minLength: 0)
+                if let answerPost {
+                    ChatAnswer(post: answerPost, action: { showAnswer = true })
+                        .popover(isPresented: $showAnswer, arrowEdge: .top) {
+                            PostView(post: answerPost, animated: false, tilt: 0)
+                                .padding(24)
+                                .presentationCompactAdaptation(.popover)
+                        }
+                }
+            }
+            .padding(.top, 14)
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 16).padding(.trailing, 27)
     }
 
     private var answerPost: Post? { days.flatMap(\.posts).first(where: \.isPromptAnswer) }
-
-    /// Everyone gets the same prompt, written by the app. The friend's answer is their reply; tap it to read it in full.
-    private var promptCard: some View {
-        PromptChat(question: board.prompt, answer: answerPost, onAnswer: { showAnswer = true })
-            .frame(maxWidth: .infinity)
-            .frame(height: 83)
-            .background(Color("CardPrompt"), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-            .popover(isPresented: $showAnswer, arrowEdge: .top) {
-                if let post = answerPost {
-                    PostView(post: post, animated: false, tilt: 0)
-                        .padding(24)
-                        .presentationCompactAdaptation(.popover)
-                }
-            }
-    }
 
     // MARK: the board
 
@@ -107,9 +110,9 @@ struct FriendBoardView: View {
         .scrollIndicators(.hidden)
         .simultaneousGesture(DragGesture(minimumDistance: 0).updating($touching) { _, s, _ in s = true })
         .frame(maxWidth: .infinity)
-        .background(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
-            .fill(.white).ignoresSafeArea(edges: .bottom))
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous))
+        .background(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24, style: .continuous)
+            .fill(Color("Paper")).ignoresSafeArea(edges: .bottom))
     }
 }
 
@@ -136,7 +139,7 @@ private struct DayBlock: View {
                         PostView(post: post, animated: false)
                             .overlay(alignment: .topTrailing) {
                                 if case .photo = post.kind, notes.count(post.id) > 0 {
-                                    NoteBadge(count: notes.count(post.id)).offset(x: 10, y: -10)
+                                    NoteBadge(count: notes.count(post.id)).offset(x: 8, y: -9)
                                 }
                             }
                             .overlay(alignment: .topLeading) {

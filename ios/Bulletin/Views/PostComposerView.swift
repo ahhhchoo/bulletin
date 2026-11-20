@@ -13,6 +13,10 @@ struct PostComposerView: View {
     @State private var dayID: Int
     @State private var text = ""
     @State private var title = ""
+    @State private var stickyColor: StickyColor = .yellow
+    @State private var shownName: StickyColor?       // the color's nickname, bouncing above the swatches for a moment
+    @State private var nameBounce = 0
+    @State private var nameTask: Task<Void, Never>?
     @FocusState private var focused: Bool
     @FocusState private var captionFocused: Bool
 
@@ -29,7 +33,7 @@ struct PostComposerView: View {
 
     // paper state
     @State private var isPage = false
-    @State private var paperSize = CGSize(width: Metrics.stickySide, height: Metrics.stickySide)
+    @State private var paperSize = CGSize(width: Metrics.stickyWidth, height: Metrics.stickyHeight)
     @State private var whiteness = 0.0              // 0 = sticky green, 1 = white page
     @State private var unfoldTrigger = 0            // fires the lift / crease keyframes
     @State private var landed = 0                   // fires the soft haptic when the page lands
@@ -46,6 +50,7 @@ struct PostComposerView: View {
         switch editing?.post.kind {
         case .sticky(let t)?:
             _text = State(initialValue: t)
+            _stickyColor = State(initialValue: editing?.post.stickyColor ?? .yellow)
         case .photo(let c)?:
             // Editing a photo means editing its caption: the picture stays as it was pinned.
             _caption = State(initialValue: c)
@@ -63,13 +68,17 @@ struct PostComposerView: View {
     }
 
     private enum Metrics {
-        static let stickySide: CGFloat = 246
+        static let stickySide: CGFloat = 246      // the photo and "from my posts" cards
+        /// The sticky is the posted 140 x 160 sticky, just bigger, so what you write is the shape that gets pinned.
+        static let stickyScale: CGFloat = 1.5
+        static let stickyWidth: CGFloat = 140 * stickyScale
+        static let stickyHeight: CGFloat = 160 * stickyScale
         static let pageWidth: CGFloat = 362
         static let pageHeight: CGFloat = 485
         // The sticky holds as much text as fits in its square, minus padding. Past that, it becomes a page.
         // Measured as rendered height, so wrapped lines and blank lines both count.
-        static let stickyInnerWidth: CGFloat = stickySide - 18 - 18
-        static let stickyMaxTextHeight: CGFloat = stickySide - 16 - 18
+        static let stickyInnerWidth: CGFloat = stickyWidth - 20 - 20
+        static let stickyMaxTextHeight: CGFloat = stickyHeight - 24 - 20
         static let switchBackSlack: CGFloat = 24    // about one line of hysteresis, so it doesn't flicker at the edge
         static let stage1Height: CGFloat = 270      // crease-led: first stage is shallow
     }
@@ -122,11 +131,14 @@ struct PostComposerView: View {
             .onGeometryChange(for: CGSize.self, of: \.size) { available = $0 }
             // The switch is pinned just above the keyboard, so a longer caption can never push it around.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if offersPicture {
-                    modeSwitch
-                        .frame(maxWidth: .infinity)
-                        .opacity(isPage ? 0 : 1)                  // a long page owns the screen
-                        .allowsHitTesting(!isPage)
+                VStack(spacing: 0) {
+                    if mode == .write && !isPage && !isEditingPhoto { colorRow }
+                    if offersPicture {
+                        modeSwitch
+                            .frame(maxWidth: .infinity)
+                            .opacity(isPage ? 0 : 1)              // a long page owns the screen
+                            .allowsHitTesting(!isPage)
+                    }
                 }
             }
             .toolbar {
@@ -148,7 +160,7 @@ struct PostComposerView: View {
         .tint(.black)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: landed)
         .sensoryFeedback(.success, trigger: store.postCount)
-        .sensoryFeedback(.selection, trigger: mode)
+        .sensoryFeedback(.impact(flexibility: .solid, intensity: 0.75), trigger: mode)     // a crisp click when you switch write / picture
         .photosPicker(isPresented: $showPicker, selection: $pickedItem, matching: .images)
         .sheet(isPresented: $showPast) {
             PastPostPicker { id in
@@ -235,11 +247,64 @@ struct PostComposerView: View {
     private var pagerHeight: CGFloat {
         if isPage { return paperSize.height }
         if mode == .picture, let photo { return pictureFaceHeight(photo) + 54 }   // room for a two-line caption
-        return Metrics.stickySide
+        return mode == .write ? Metrics.stickyHeight : Metrics.stickySide
     }
 
     private func pictureFaceHeight(_ image: PostImage) -> CGFloat {
         min(Metrics.stickySide / image.pinAspect, answeringPrompt ? 236 : 290)     // keeps the photo's shape, but never crowds the keyboard
+    }
+
+    /// The seven sticky colors, as round swatches above the switch. A long entry becomes a white page, which has none.
+    private var colorRow: some View {
+        HStack(spacing: 14) {
+            ForEach(StickyColor.allCases) { color in
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { stickyColor = color }
+                    showName(color)
+                } label: {
+                    Circle().fill(color.body)
+                        .frame(width: 30, height: 30)
+                        .overlay(Circle().strokeBorder(.black.opacity(stickyColor == color ? 0.4 : 0), lineWidth: 2).padding(-4))
+                        .padding(4)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(PressableStyle())
+                .accessibilityLabel("\(color.nickname) sticky")
+                .accessibilityAddTraits(stickyColor == color ? .isSelected : [])
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 8)
+        .overlay(alignment: .top) { nameTag }
+        // a soft tap on every press (even on the color you already have), a touch firmer for each swatch along the row
+        .sensoryFeedback(trigger: nameBounce) { _, _ in
+            let i = StickyColor.allCases.firstIndex(of: stickyColor) ?? 0
+            return .impact(flexibility: .soft, intensity: 0.55 + 0.07 * Double(i))
+        }
+        .transition(.opacity)
+    }
+
+    /// The nickname pops up over the swatch you picked: a little hop with a bounce, then it fades.
+    @ViewBuilder private var nameTag: some View {
+        if let color = shownName, let i = StickyColor.allCases.firstIndex(of: color) {
+            let middle = CGFloat(StickyColor.allCases.count - 1) / 2
+            NameTag(color: color, bounce: nameBounce)
+                .offset(x: (CGFloat(i) - middle) * 52)     // over the swatch (38 wide, 14 apart)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func showName(_ color: StickyColor) {
+        nameTask?.cancel()
+        shownName = color
+        nameBounce += 1
+        nameTask = Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) { shownName = nil }
+        }
     }
 
     private var modeSwitch: some View {
@@ -337,9 +402,10 @@ struct PostComposerView: View {
                 }
             }
             .frame(width: width, height: height)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: photo == nil ? 2 : 3))
-            .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white, lineWidth: 2))
+            .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
+            .overlay(alignment: .top) { if photo != nil { Pushpin().offset(y: 10) } }
             .contentShape(.rect)
             .onTapGesture {
                 guard !isEditingPhoto else { return }          // the pinned picture stays as it is
@@ -366,9 +432,9 @@ struct PostComposerView: View {
             if active, photo != nil {
                 TextField("Add a caption", text: $caption, axis: .vertical)
                     .lineLimit(1...2)                                // grows to two lines, then stops
-                    .font(Typo.pixel(15))
+                    .font(Typo.pixel(12))
                     .foregroundStyle(.black)
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.leading)
                     .focused($captionFocused)
                     .submitLabel(.done)
                     .padding(.horizontal, 14)
@@ -399,9 +465,9 @@ struct PostComposerView: View {
                 }
         }
         .frame(width: side, height: side)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white, lineWidth: 2))
-        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white, lineWidth: 2))
+        .shadow(color: .black.opacity(0.1), radius: 2, y: 2)
         .contentShape(.rect)
         .onTapGesture { if active { focused = false; captionFocused = false; showPast = true } else { go(.past, opening: true) } }
         .accessibilityLabel("Choose from my posts")
@@ -413,7 +479,7 @@ struct PostComposerView: View {
     private var paper: some View {
         let padding = isPage
             ? EdgeInsets(top: 22, leading: 22, bottom: 18, trailing: 22)
-            : EdgeInsets(top: 16, leading: 18, bottom: 18, trailing: 18)
+            : EdgeInsets(top: 24, leading: 20, bottom: 20, trailing: 20)
 
         return VStack(alignment: .leading, spacing: 0) {
             if isPage {
@@ -442,8 +508,13 @@ struct PostComposerView: View {
         }
         .padding(padding)
         .frame(width: paperSize.width, height: paperSize.height, alignment: .topLeading)
-        .background(Color("Sticky").mix(with: .white, by: whiteness))
-        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .background(CutCornerShape(scale: Metrics.stickyScale).fill(stickyColor.body.mix(with: .white, by: whiteness)))
+        .overlay(alignment: .bottomTrailing) {
+            PaperFold()
+                .fill(stickyColor.flap.mix(with: Color(white: 0.93), by: whiteness))
+                .frame(width: 26.6 * Metrics.stickyScale, height: 26.6 * Metrics.stickyScale)
+        }
+        .clipShape(CutCornerShape(scale: Metrics.stickyScale))
         .keyframeAnimator(initialValue: Lift(), trigger: unfoldTrigger) { content, v in
             content
                 .overlay(alignment: .top) {
@@ -550,7 +621,7 @@ struct PostComposerView: View {
         } else {
             withAnimation(.spring(duration: 0.42, bounce: 0.15)) {
                 isPage = false
-                paperSize = CGSize(width: Metrics.stickySide, height: Metrics.stickySide)
+                paperSize = CGSize(width: Metrics.stickyWidth, height: Metrics.stickyHeight)
                 whiteness = 0
             }
         }
@@ -561,7 +632,7 @@ struct PostComposerView: View {
     private func save() {
         guard let editing else { return }
         if isEditingPhoto { store.updateCaption(editing.id, caption: caption) }
-        else { store.update(editing.id, title: title, body: text, asJournal: isPage) }
+        else { store.update(editing.id, title: title, body: text, asJournal: isPage, stickyColor: stickyColor) }
         dismiss()
     }
 
@@ -569,13 +640,39 @@ struct PostComposerView: View {
         if mode == .picture, let photo {
             store.addPost(title: "", body: caption, dayID: dayID, asJournal: false, photo: photo)
         } else {
-            store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage)
+            store.addPost(title: title, body: text, dayID: dayID, asJournal: isPage, stickyColor: stickyColor)
         }
         dismiss()
     }
 }
 
 // MARK: - pieces
+
+/// A color's nickname as a small tag in that color. Each time `bounce` changes it springs up from below with an overshoot.
+private struct NameTag: View {
+    let color: StickyColor
+    let bounce: Int
+    @State private var progress = 0.0
+
+    var body: some View {
+        Text(color.nickname)
+            .font(Typo.pixel(12))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(color.body, in: Capsule())
+            .overlay(Capsule().strokeBorder(color.flap, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3])))     // a dotted outline
+            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+            .rotationEffect(.degrees(-6 - 14 * (1 - progress)))                                         // sits a little askew
+            .scaleEffect(0.45 + 0.55 * progress)
+            .offset(y: -26 + 26 * (1 - progress))
+            .opacity(min(1, progress * 3))
+            .task(id: bounce) {
+                var reset = Transaction(); reset.disablesAnimations = true
+                withTransaction(reset) { progress = 0 }
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.42)) { progress = 1 }
+            }
+    }
+}
 
 /// Where a page sits in the pager: centered when it is the current one, otherwise peeking in from its side
 /// (earlier pages to the left, later ones to the right), smaller and tilted.
@@ -605,8 +702,20 @@ private struct DayHeader: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image("DayMarker")
-                .accessibilityHidden(true)
+            // the same dot as the timeline: orange for today, gray for a past day
+            ZStack(alignment: .top) {
+                Path { p in
+                    p.move(to: CGPoint(x: 4, y: 15.5)); p.addLine(to: CGPoint(x: 4, y: 30.5))
+                    p.move(to: CGPoint(x: 4, y: 1.5)); p.addLine(to: CGPoint(x: 4, y: 2.3))
+                    p.move(to: CGPoint(x: 4, y: 9.5)); p.addLine(to: CGPoint(x: 4, y: 8.7))
+                }
+                .stroke(.black.opacity(0.1), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                Dot(isToday: dayID == store.todayID)
+                    .frame(width: 8, height: 8)
+                    .offset(y: 26.5)
+            }
+            .frame(width: 8, height: 34.5, alignment: .top)
+            .accessibilityHidden(true)
 
             if editable {
                 Menu {

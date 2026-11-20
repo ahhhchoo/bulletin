@@ -127,3 +127,21 @@ struct PromptChat: View {
         }
     }
 }
+
+/// The little page indicator under a pair of cards.
+struct PageDots: View {
+    let current: Int
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<count, id: \.self) { i in
+                Capsule()
+                    .fill(.black.opacity(i == current ? 0.2 : 0.1))
+                    .frame(width: i == current ? 16 : 7, height: 7)
+            }
+        }
+        .animation(.snappy(duration: 0.25), value: current)
+        .accessibilityHidden(true)
+    }
+}
