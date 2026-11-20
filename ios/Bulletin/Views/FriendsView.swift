@@ -8,7 +8,7 @@ private let unseenBlue = Color(red: 0, green: 0.471, blue: 0.988)   // #0078FC
 struct FriendsView: View {
     @Environment(FriendsStore.self) private var friends
     @State private var queue: QueueRequest?
-    @State private var editingGuests = false
+    @State private var showGuests = false
 
     private let columns = [GridItem(.flexible(), spacing: 17), GridItem(.flexible(), spacing: 17)]
 
@@ -22,8 +22,6 @@ struct FriendsView: View {
                         }
                     }
                     .animation(.snappy, value: friends.ordered)
-                    GuestListCard { editingGuests = true }
-                        .id("guests")
                 }
                 .padding(.horizontal, 15.5)
                 .padding(.top, 113)
@@ -32,20 +30,16 @@ struct FriendsView: View {
             .ignoresSafeArea(edges: .top)
             .scrollIndicators(.hidden)
             .background(Color("Paper"))
+            .fullScreenCover(isPresented: $showGuests) { GuestsPage() }
             .overlay(alignment: .top) {
-                header { withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo("guests", anchor: .bottom) } }
+                header { showGuests = true }
             }
         }
         .animation(.snappy, value: friends.addBack)
         .fullScreenCover(item: $queue) { request in
             FriendQueueView(request: request) { queue = nil }
         }
-        .sheet(isPresented: $editingGuests) {
-            GuestListSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Color("Paper"))
-        }
+
     }
 
     /// "Shared" and, on the right, a person icon that jumps down to the guest list. It carries a blue dot while someone
@@ -65,7 +59,7 @@ struct FriendsView: View {
                     .foregroundStyle(.black)
                     .frame(width: 44, height: 44)
                     .overlay(alignment: .topTrailing) {
-                        if friends.addBack != nil {
+                        if friends.needsAttention {
                             Circle().fill(unseenBlue)
                                 .overlay(Circle().strokeBorder(Color("Paper"), lineWidth: 1.5))
                                 .frame(width: 12, height: 12)
@@ -78,7 +72,7 @@ struct FriendsView: View {
             .buttonStyle(PressableStyle())
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, 16).padding(.top, 53)
-            .accessibilityLabel(friends.addBack != nil ? "Guest list, someone added you" : "Guest list")
+            .accessibilityLabel(friends.needsAttention ? "Guests, something new" : "Guests")
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .ignoresSafeArea(edges: .top)
@@ -109,7 +103,7 @@ private struct FriendBlock: View {
                     .font(Typo.pixel(14))
                     .foregroundStyle(friend.hasNew ? .black : .black.opacity(0.5))
                     .padding(.leading, 12).padding(.top, 10)
-                preview.padding(.top, 37).frame(maxWidth: .infinity)
+                preview.background { stackLayers }.padding(.top, 37).frame(maxWidth: .infinity)
                 Text(friend.lastPosted.postStamp)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.black.opacity(0.2))
@@ -135,6 +129,22 @@ private struct FriendBlock: View {
         .buttonStyle(PressableStyle())
         .animation(.snappy, value: friend.hasNew)
         .accessibilityLabel(friend.hasNew ? "\(friend.name), has something new" : friend.name)
+    }
+
+    /// More than one post in their newest day: paper peeking out from behind, like a stacked essay.
+    @ViewBuilder private var stackLayers: some View {
+        let extra = min(2, max(0, store.latestDayCount(of: friend) - 1))
+        ZStack {
+            ForEach(0..<extra, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.black.opacity(0.06))      // one color for every stack: #000000 at 6%
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.black.opacity(0.1), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+                    .scaleEffect(1 - CGFloat(i + 1) * 0.04)          // narrower each step, so only a sliver shows underneath, like a deck
+                    .rotationEffect(.degrees(i == 0 ? 1.5 : -1.5))
+                    .offset(y: CGFloat(9 + i * 8))
+            }
+        }
     }
 
     @ViewBuilder private var preview: some View {
@@ -164,187 +174,15 @@ private struct FriendBlock: View {
     }
 }
 
-// MARK: - Guest list
-
-/// The compact card from the design: title, who can see you, Edit, and a row of faces.
-private struct GuestListCard: View {
-    @Environment(FriendsStore.self) private var friends
-    let edit: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Guest list (\(friends.guestCount)/\(FriendsStore.guestCap))")
-                .font(Typo.pixel(18)).foregroundStyle(.black)
-            Text("People who can see your bulletin")
-                .font(.system(size: 14)).foregroundStyle(.black.opacity(0.4))
-                .padding(.top, 3)
-            HStack(spacing: -8) {
-                ForEach(friends.guests) { Face(color: $0.color) }
-            }
-            .padding(.top, 10)
-            .animation(.snappy, value: friends.guestCount)
-            if let who = friends.addBack { request(who).transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top))) }
-        }
-        .padding(.leading, 19).padding(.top, 17).padding(.bottom, 18).padding(.trailing, 19)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.black.opacity(0.02), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.black.opacity(0.2), lineWidth: 1))
-        .overlay(alignment: .topTrailing) {
-            Button(action: edit) {
-                Text("Edit").font(.system(size: 16, weight: .semibold)).foregroundStyle(.black)
-                    .padding(10)
-                    .background(Color(white: 0.886), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.black.opacity(0.1)))
-            }
-            .buttonStyle(PressableStyle())
-            .padding(.top, 11).padding(.trailing, 21)
-        }
-    }
-
-    /// Someone put you on their list: the answer lives here, with the people who can see you.
-    private func request(_ who: Friend) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Rectangle().fill(.black.opacity(0.18)).frame(height: 1)      // a clear line between who can see you and who is asking
-                .padding(.bottom, 4)
-            HStack(spacing: 10) {
-                Face(color: who.color)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(who.name) put you on her list").font(.system(size: 14, weight: .semibold))
-                    if friends.isFull {
-                        Text("Your list is full. Take someone off first.")
-                            .font(.system(size: 12, weight: .medium)).foregroundStyle(Color("DayPink"))
-                    } else {
-                        Text("Add her to yours?").font(.system(size: 12, weight: .medium)).foregroundStyle(inkSoft)
-                    }
-                }
-            }
-            HStack(spacing: 8) {
-                Spacer(minLength: 0)
-                Button("Not now") { friends.skipAddBack() }
-                    .font(.system(size: 14, weight: .medium)).foregroundStyle(inkSoft)
-                    .padding(.horizontal, 12).padding(.vertical, 7)
-                Button("Add") { friends.addBackTapped() }
-                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 7)
-                    .background(.black, in: Capsule())
-                    .opacity(friends.isFull ? 0.25 : 1)
-                    .disabled(friends.isFull)
-            }
-            .buttonStyle(PressableStyle())
-        }
-        .padding(.top, 16)
-    }
-}
+// MARK: - Guests
 
 /// A person on the guest list: a soft color where their picture goes.
-private struct Face: View {
+struct Face: View {
     var color: Color = Color(white: 0.851)          // #D9D9D9
     var body: some View {
         Circle().fill(color)
             .frame(width: 32, height: 32)
             .overlay(Circle().strokeBorder(Color("Paper"), lineWidth: 2))
-    }
-}
-
-/// Edit: everyone who can see your bulletin, with a way to take someone off, and a search to add someone by username.
-private struct GuestListSheet: View {
-    @Environment(FriendsStore.self) private var friends
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-
-    /// People matching what is typed who are not on the list yet.
-    private var matches: [String] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return [] }
-        let onList = Set(friends.guests.map { $0.name.lowercased() })
-        return Friend.names.filter { $0.lowercased().contains(q) && !onList.contains($0.lowercased()) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Guest list (\(friends.guestCount)/\(FriendsStore.guestCap))")
-                .font(Typo.pixel(18))
-            Text(friends.isFull ? "Full. Take someone off to add another"
-                 : "\(friends.spotsLeft) spot\(friends.spotsLeft == 1 ? "" : "s") left")
-                .font(.system(size: 14))
-                .foregroundStyle(friends.isFull ? Color("DayPink") : .black.opacity(0.4))
-                .padding(.top, 4)
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").font(.system(size: 14, weight: .medium)).foregroundStyle(.black.opacity(0.35))
-                TextField("Add by username", text: $query)
-                    .font(.system(size: 15))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .submitLabel(.done)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 11)
-            .background(.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .padding(.top, 16)
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    if !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                        ForEach(matches, id: \.self) { name in
-                            row(name: name, color: Friend.color(at: friends.guestCount), trailing: addButton(name))
-                        }
-                        if matches.isEmpty {
-                            row(name: query.trimmingCharacters(in: .whitespaces), color: Color(white: 0.851),
-                                trailing: addButton(query.trimmingCharacters(in: .whitespaces), label: "Invite"))
-                        }
-                    }
-                    ForEach(friends.guests) { guest in
-                        row(name: guest.name, color: guest.color, trailing:
-                            Button { withAnimation(.snappy) { friends.removeGuest(guest.id) } } label: {
-                                Image(systemName: "xmark").font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.black.opacity(0.5))
-                                    .frame(width: 28, height: 28)
-                                    .background(.black.opacity(0.07), in: Circle())
-                            }
-                            .buttonStyle(PressableStyle())
-                            .accessibilityLabel("Remove \(guest.name)"))
-                    }
-                }
-                .padding(.top, 8).padding(.bottom, 90)
-            }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-        }
-        .padding(.horizontal, 20).padding(.top, 28)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottom) {
-            Button("Done") { dismiss() }
-                .font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
-                .frame(maxWidth: .infinity).frame(height: 50)
-                .background(.black, in: Capsule())
-                .buttonStyle(PressableStyle())
-                .padding(.horizontal, 20).padding(.bottom, 12)
-        }
-        .animation(.snappy, value: friends.guests)
-    }
-
-    private func row<T: View>(name: String, color: Color, trailing: T) -> some View {
-        HStack(spacing: 12) {
-            Face(color: color)
-            Text(name).font(.system(size: 16, weight: .medium))
-            Spacer()
-            trailing
-        }
-        .padding(.vertical, 9)
-        .overlay(alignment: .top) { Divider().opacity(0.6) }
-    }
-
-    private func addButton(_ name: String, label: String = "Add") -> some View {
-        Button {
-            friends.addGuest(name: name)
-            query = ""
-        } label: {
-            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                .padding(.horizontal, 14).padding(.vertical, 6)
-                .background(.black, in: Capsule())
-                .opacity(friends.isFull ? 0.25 : 1)
-        }
-        .buttonStyle(PressableStyle())
-        .disabled(friends.isFull)
     }
 }
 

@@ -27,7 +27,7 @@ struct FriendBoardView: View {
     @State private var offset: CGFloat = 0
     @State private var viewport: CGFloat = 700
     @State private var cardHeight: CGFloat = 330
-    @State private var position = ScrollPosition(edge: .top)
+    @State private var position = ScrollPosition(edge: .bottom)      // like your own board: it opens on the newest, prompt card tucked away
 
     private let barHeight: CGFloat = 48
     private let gap: CGFloat = 9
@@ -48,6 +48,7 @@ struct FriendBoardView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollPosition($position)
+                .defaultScrollAnchor(.bottom)
                 .ignoresSafeArea(edges: .bottom)
                 .mask { Rectangle().ignoresSafeArea(edges: .bottom) }      // the card scrolls under the bar, never up into the status bar
                 .scrollTargetBehavior(MastheadSnap(range: range))

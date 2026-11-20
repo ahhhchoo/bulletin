@@ -65,6 +65,22 @@ final class FriendsStore {
     /// Someone who put you on their list and hasn't been answered. Nil once added or skipped.
     var addBack: Friend?  = Friend(name: "Maya", hasNew: false, latest: "", into: "sunday swims", answer: .text("my cat asleep in a sunbeam"))
 
+    /// What happened since you last looked: notes on your photos, replies to your notes. Shown on the Guests page.
+    var activity: [Activity] = {
+        let now = Date()
+        return [
+            Activity(who: "Liam", text: "left a note on your photo", when: now.addingTimeInterval(-3_000), unread: true),
+            Activity(who: "Maya", text: "replied to your note on her photo", when: now.addingTimeInterval(-9_500), unread: true),
+            Activity(who: "Emma", text: "left a note on your photo", when: now.addingTimeInterval(-21_000), unread: true),
+            Activity(who: "Noah", text: "replied to your note on his photo", when: now.addingTimeInterval(-100_000), unread: false),
+            Activity(who: "Ava", text: "left a note on your photo", when: now.addingTimeInterval(-190_000), unread: false),
+        ]
+    }()
+    var unreadActivity: Int { activity.filter(\.unread).count }
+    /// The dot on the person button: a request waiting, or activity you have not seen.
+    var needsAttention: Bool { addBack != nil || unreadActivity > 0 }
+    func markActivityRead() { for i in activity.indices { activity[i].unread = false } }
+
     /// What each friend has on their board (placeholder content until real boards exist).
     private(set) var boards: [Friend.ID: [BoardDay]] = [:]
 
@@ -80,18 +96,19 @@ final class FriendsStore {
             case .photo(let c): posts.insert(Post(kind: .photo(caption: c), rotation: 2.4, isPromptAnswer: true, image: SamplePhotos.image(i + 2)), at: 0)
             case .existing: posts[0].isPromptAnswer = true
             }
-            boards[f.id] = [BoardDay(id: 4, posts: posts), BoardDay(id: 3, posts: [])]
+            // oldest day first, like your own board: it ends at the newest
+            boards[f.id] = [BoardDay(id: 3, posts: []), BoardDay(id: 4, posts: posts)]
         }
         // spread their last posts over the past few weeks: the ones with news posted most recently
         let now = Date()
         for i in friends.indices {
             let ago = friends[i].hasNew ? Double(i) * 3_600 + 600 : Double(i + 2) * 86_400 + 4_000
             friends[i].lastPosted = now.addingTimeInterval(-ago)
-            // their newest post is the one the Friends tab shows, so it carries that same time; earlier ones a few hours before
-            if var days = boards[friends[i].id], !days.isEmpty {
-                let count = days[0].posts.count
+            // their newest post is the last of the day, as on your own board: the one the Friends tab shows, so it carries that same time; earlier ones a few hours before
+            if var days = boards[friends[i].id], let d = days.lastIndex(where: { !$0.posts.isEmpty }) {
+                let count = days[d].posts.count
                 for k in 0..<count {
-                    days[0].posts[k].postedAt = friends[i].lastPosted.addingTimeInterval(-Double(count - 1 - k) * 7_200)
+                    days[d].posts[k].postedAt = friends[i].lastPosted.addingTimeInterval(-Double(count - 1 - k) * 7_200)
                 }
                 boards[friends[i].id] = days
             }
@@ -120,10 +137,15 @@ final class FriendsStore {
 
     func removeGuest(_ id: Guest.ID) { guests.removeAll { $0.id == id } }
 
-    /// The most recent thing on a friend's board, for their block: the newest post of their newest day with posts.
-    /// It may or may not be their prompt answer; posts are added to the end of a day, so the last one is newest.
+    /// The most recent thing on a friend's board, for their block: the last post of their newest day with posts. Boards run
+    /// oldest to newest, like yours, so that is the one at the very bottom. The rest of the day is the stack behind it.
     func latestPost(of friend: Friend) -> Post? {
-        boards[friend.id]?.first { !$0.posts.isEmpty }?.posts.last
+        boards[friend.id]?.last { !$0.posts.isEmpty }?.posts.last
+    }
+
+    /// How many posts their newest day holds: more than one shows as a stack on their block.
+    func latestDayCount(of friend: Friend) -> Int {
+        boards[friend.id]?.last { !$0.posts.isEmpty }?.posts.count ?? 0
     }
 
     /// A silent "not now": no one is told.
@@ -141,4 +163,14 @@ struct Guest: Identifiable, Hashable {
     var name: String
     var colorIndex: Int
     var color: Color { Friend.color(at: colorIndex) }
+}
+
+/// One line in the activity list on the Guests page.
+struct Activity: Identifiable, Hashable {
+    let id = UUID()
+    var who: String
+    var text: String
+    var when: Date
+    var unread: Bool
+    var color: Color { Friend.color(at: Friend.names.firstIndex(of: who) ?? 0) }
 }

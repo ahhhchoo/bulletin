@@ -12,6 +12,7 @@
 		2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */; };
 		313BFF4891586F9848CD837A /* StickerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C312A0A792F70ADFDA0806 /* StickerViews.swift */; };
 		4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */; };
+		4BFE3E5EE5665998B7410598 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */; };
 		6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A5D966DE41D297451011D3 /* FriendsStore.swift */; };
 		6F132531FB1FE8318B13F782 /* PastPostPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610A4C7D810E66D9841718D0 /* PastPostPicker.swift */; };
 		8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FBA78CEE2B666794F5068A /* TopCards.swift */; };
@@ -49,6 +50,7 @@
 		8D561ABDD7925727E576172F /* PostComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostComposerView.swift; sourceTree = "<group>"; };
 		A7A5D966DE41D297451011D3 /* FriendsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsStore.swift; sourceTree = "<group>"; };
 		AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulletinApp.swift; sourceTree = "<group>"; };
+		AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestsView.swift; sourceTree = "<group>"; };
 		B6FEC0963AB2437071199F41 /* Bulletin.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bulletin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7CDF12456E914EC4738A488 /* BusyDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusyDay.swift; sourceTree = "<group>"; };
 		BCF11D0E434407DF41CB93EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 				4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */,
 				459C66B2917D97F2127D53D9 /* FriendBoardView.swift */,
 				74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */,
+				AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */,
 				D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */,
 				CE3D08B3F66B015159EF0C00 /* NoteViews.swift */,
 				610A4C7D810E66D9841718D0 /* PastPostPicker.swift */,
@@ -209,6 +212,7 @@
 				E9BCD2D50B91045246B12922 /* FriendBoardView.swift in Sources */,
 				6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */,
 				B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */,
+				4BFE3E5EE5665998B7410598 /* GuestsView.swift in Sources */,
 				CC1E22F81AD616E9359E00D2 /* IntoEditor.swift in Sources */,
 				92F19270B56A575016517A27 /* NoteViews.swift in Sources */,
 				A14EAB52335DDF0C0A266A9A /* NotesStore.swift in Sources */,
