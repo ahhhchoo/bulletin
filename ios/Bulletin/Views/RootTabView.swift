@@ -24,11 +24,7 @@ struct RootTabView: View {
                 }
             }
             Tab("shelf", image: "TabShelf", value: Page.shelf) {
-                ContentUnavailableView(
-                    "Shelf",
-                    systemImage: "books.vertical",
-                    description: Text("Sealed months stack up here. ARC-01 isn't designed yet.")
-                )
+                ShelfView()
             }
         }
         .onAppear { notes.seedIfNeeded(board: board, friends: friends) }

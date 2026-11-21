@@ -86,6 +86,7 @@ struct FriendBoardView: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .background(alignment: .bottom) { Color.black.frame(height: corner) }      // what shows in the two rounded bottom corners
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
     }
 

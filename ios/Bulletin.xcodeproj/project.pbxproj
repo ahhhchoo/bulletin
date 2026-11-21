@@ -13,6 +13,7 @@
 		313BFF4891586F9848CD837A /* StickerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C312A0A792F70ADFDA0806 /* StickerViews.swift */; };
 		4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */; };
 		4BFE3E5EE5665998B7410598 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */; };
+		5FAA807D00F865F8AEFFE8FA /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */; };
 		6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A5D966DE41D297451011D3 /* FriendsStore.swift */; };
 		6F132531FB1FE8318B13F782 /* PastPostPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610A4C7D810E66D9841718D0 /* PastPostPicker.swift */; };
 		8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FBA78CEE2B666794F5068A /* TopCards.swift */; };
@@ -61,6 +62,7 @@
 		DE29D072C138CB86D05F7054 /* PostViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostViews.swift; sourceTree = "<group>"; };
 		E3E49F1DDB15B3C276A787FC /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		E88D46AD4A45E0F120516AD5 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -117,6 +119,7 @@
 				CF0DA46D4ED66C1C00ED758F /* PostInteractions.swift */,
 				DE29D072C138CB86D05F7054 /* PostViews.swift */,
 				CD454554D33728F308F5EA68 /* RootTabView.swift */,
+				F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */,
 				37C312A0A792F70ADFDA0806 /* StickerViews.swift */,
 				14FBA78CEE2B666794F5068A /* TopCards.swift */,
 				E88D46AD4A45E0F120516AD5 /* Typography.swift */,
@@ -223,6 +226,7 @@
 				A11BB289140580DA4771D603 /* PostViews.swift in Sources */,
 				8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */,
 				2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */,
+				5FAA807D00F865F8AEFFE8FA /* ShelfView.swift in Sources */,
 				9DE34DB212A358984BAA6B63 /* StickerStore.swift in Sources */,
 				313BFF4891586F9848CD837A /* StickerViews.swift in Sources */,
 				8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */,
