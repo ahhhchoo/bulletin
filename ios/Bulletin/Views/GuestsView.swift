@@ -175,6 +175,11 @@ struct GuestsPage: View {
 
             VStack(spacing: 0) {
                 let typed = query.trimmingCharacters(in: .whitespaces)
+                if friends.guests.isEmpty && typed.isEmpty {
+                    EmptyStatePlaceholder(title: "Your guest list is empty",
+                                          intent: "Nobody can see your bulletin yet. Points to search and invite.")
+                        .padding(.top, 8)
+                }
                 if !typed.isEmpty {
                     ForEach(matches, id: \.self) { name in
                         row(name: name, color: Friend.color(at: friends.guestCount), trailing: addButton(name))

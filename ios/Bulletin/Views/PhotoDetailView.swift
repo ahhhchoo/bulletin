@@ -149,6 +149,13 @@ struct PhotoDetailView: View {
         let cardWidth = min(328, width - 74)
         let baseTop = 632 - (632 - 476) * ease(p0)          // where the top card rests
         return ZStack(alignment: .top) {
+            if notes.isEmpty {
+                EmptyStatePlaceholder(title: "No notes yet",
+                                      intent: "Friends' notes land here once they leave one on this photo.")
+                    .frame(width: cardWidth)
+                    .offset(y: baseTop)
+                    .opacity(expanded ? 1 : 0)
+            }
             ForEach(Array(notes.enumerated()), id: \.element.id) { i, note in
                 let enter = i == 0 ? 1 : min(1, max(0, progress - CGFloat(i - 1)))     // 0: below the screen, 1: landed
                 let depth = max(0, progress - CGFloat(i))                                // notes that landed on top of this one

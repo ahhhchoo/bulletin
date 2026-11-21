@@ -29,6 +29,7 @@
 		B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */; };
 		C77EC8223FA1FC0F8C2C5179 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6753A303FEDA6F57054AD434 /* JetBrainsMono-Regular.ttf */; };
 		CC1E22F81AD616E9359E00D2 /* IntoEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */; };
+		D59A80543FAD7D0EAB6E4C58 /* EmptyStatePlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E46A2B5302427FFCA51204 /* EmptyStatePlaceholder.swift */; };
 		E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D561ABDD7925727E576172F /* PostComposerView.swift */; };
 		E9BCD2D50B91045246B12922 /* FriendBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459C66B2917D97F2127D53D9 /* FriendBoardView.swift */; };
 		F27FEA7B1884432FA28D0C43 /* BoardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CADE96FC36F34D72D340C2D /* BoardStore.swift */; };
@@ -58,6 +59,7 @@
 		CD454554D33728F308F5EA68 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		CE3D08B3F66B015159EF0C00 /* NoteViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteViews.swift; sourceTree = "<group>"; };
 		CF0DA46D4ED66C1C00ED758F /* PostInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostInteractions.swift; sourceTree = "<group>"; };
+		D2E46A2B5302427FFCA51204 /* EmptyStatePlaceholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStatePlaceholder.swift; sourceTree = "<group>"; };
 		D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntoEditor.swift; sourceTree = "<group>"; };
 		DE29D072C138CB86D05F7054 /* PostViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostViews.swift; sourceTree = "<group>"; };
 		E3E49F1DDB15B3C276A787FC /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 				E3E49F1DDB15B3C276A787FC /* BoardView.swift */,
 				B7CDF12456E914EC4738A488 /* BusyDay.swift */,
 				4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */,
+				D2E46A2B5302427FFCA51204 /* EmptyStatePlaceholder.swift */,
 				459C66B2917D97F2127D53D9 /* FriendBoardView.swift */,
 				74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */,
 				AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */,
@@ -212,6 +215,7 @@
 				4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */,
 				1FC4D148A675F2A0FE2EF50C /* BusyDay.swift in Sources */,
 				21FC3DB33B96B773AB63361A /* ComposerView.swift in Sources */,
+				D59A80543FAD7D0EAB6E4C58 /* EmptyStatePlaceholder.swift in Sources */,
 				E9BCD2D50B91045246B12922 /* FriendBoardView.swift in Sources */,
 				6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */,
 				B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */,

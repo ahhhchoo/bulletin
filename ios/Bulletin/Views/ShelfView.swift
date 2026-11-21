@@ -250,13 +250,15 @@ struct MonthSheet: View {
 struct ShelfView: View {
     @State private var viewport: CGFloat = 874
     @State private var opened: ShelfMonth?
+    /// Sealed months, newest first.
+    var months = ShelfMonth.all
 
     var body: some View {
         ZStack(alignment: .top) {
             Color("Paper").ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 18) {
-                    ForEach(Array(ShelfMonth.all.enumerated()), id: \.element.id) { i, month in
+                    ForEach(Array(months.enumerated()), id: \.element.id) { i, month in
                         let vh = viewport
                         MonthCard(month: month)
                             .onTapGesture { withAnimation(.spring(duration: 0.45, bounce: 0.2)) { opened = month } }
@@ -290,6 +292,12 @@ struct ShelfView: View {
                     .ignoresSafeArea()
             }
 
+            if months.isEmpty {
+                EmptyStatePlaceholder(title: "Nothing on your shelf yet",
+                                      intent: "Sealed months show up here once a month ends.")
+                    .padding(.horizontal, 24).padding(.top, 140)
+            }
+
             Text("Shelf")
                 .font(.system(size: 26, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,4 +311,8 @@ struct ShelfView: View {
         }
         .toolbar(opened == nil ? .visible : .hidden, for: .tabBar)
     }
+}
+
+#Preview("Shelf, empty") {
+    ShelfView(months: [])
 }

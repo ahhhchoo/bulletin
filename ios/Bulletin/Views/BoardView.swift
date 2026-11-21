@@ -153,6 +153,11 @@ private struct BoardScroller: View {
                 DayRow(day: day, isLast: day.id == store.days.last?.id)
                     .id("day-\(day.id)")
             }
+            if store.days.allSatisfy({ $0.posts.isEmpty }) {
+                EmptyStatePlaceholder(title: "A new month", code: "BRD-08",
+                                      intent: "Shows on an empty board and doubles as the first-post screen.")
+                    .padding(.horizontal, 24).padding(.top, 24)
+            }
             // "Whats on your mind..." closes the board: right under today, or at the foot of the page when the board is short
             Spacer(minLength: 28)
             ComposerBubble { store.isComposing = true }

@@ -16,6 +16,10 @@ struct FriendsView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 19) {
+                    if friends.ordered.isEmpty {
+                        EmptyStatePlaceholder(title: "Nobody has added you yet", code: "FRN-02",
+                                              intent: "Explains the Shared tab and has an invite button.")
+                    }
                     LazyVGrid(columns: columns, spacing: 19) {
                         ForEach(friends.ordered) { friend in
                             FriendBlock(friend: friend) { open(startingAt: friend) }
