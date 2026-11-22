@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONB — Sign up flow</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink:#000; --blue:#0078fc; --red:#e5484d; --green:#2f9e5b;
+  --line:rgba(0,0,0,.12);
+  --ui:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;
+  --display:"SF Pro Display",-apple-system,"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --s:.86;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#e9e9ec;color:#111;font:15px/1.45 var(--ui);padding:28px 24px 60px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:calc(402px*var(--s)) 1fr;gap:44px;align-items:start}
+@media(max-width:820px){.wrap{grid-template-columns:1fr;justify-items:center}}
+h1{font:700 26px/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 6px}
+.lede{margin:0 0 22px;color:#555;max-width:60ch}
+
+/* ---------- phone ---------- */
+.frame{width:calc(402px*var(--s));height:calc(874px*var(--s));border-radius:calc(46px*var(--s));overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.06),0 18px 40px -14px rgba(0,0,0,.35);background:var(--paper);position:relative}
+.phone{width:402px;height:874px;transform:scale(var(--s));transform-origin:0 0;position:absolute;left:0;top:0;background:var(--paper);overflow:hidden;color:var(--ink);user-select:none}
+.sb{position:absolute;left:0;right:0;top:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 49px;font:600 15px var(--ui);z-index:30;pointer-events:none}
+.sb svg{height:12px;fill:#000}
+.screen{position:absolute;inset:0;opacity:0;pointer-events:none;transform:translateX(26px);transition:opacity .28s,transform .38s cubic-bezier(.2,.8,.2,1)}
+.screen.on{opacity:1;pointer-events:auto;transform:none}
+.screen.back{transform:translateX(-26px)}
+
+/* top bar: back + progress */
+.top{position:absolute;left:0;right:0;top:54px;height:36px;display:flex;align-items:center;gap:14px;padding:0 22px}
+.back{width:36px;height:36px;border-radius:50%;border:0;background:#fff;box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;cursor:pointer;flex:none;padding:0}
+.back svg{width:9px;height:15px;stroke:#000;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bar{flex:1;display:flex;gap:5px}
+.bar i{flex:1;height:4px;border-radius:4px;background:rgba(0,0,0,.1);position:relative;overflow:hidden}
+.bar i::after{content:"";position:absolute;inset:0;background:#000;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.bar i.done::after{transform:none}
+
+.q{position:absolute;left:27px;right:27px;top:116px}
+.q h2{font:800 36px/38px var(--display);letter-spacing:-.03em;margin:0}
+.q p{margin:12px 0 0;font:400 15px/21px var(--ui);color:rgba(0,0,0,.55)}
+.fields{position:absolute;left:27px;right:27px;top:236px}
+
+/* fields */
+.field{height:58px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;padding:0 16px;font:500 20px var(--ui);position:relative;cursor:text;gap:10px}
+.field.focus{box-shadow:inset 0 0 0 2px #000}
+.field.bad{box-shadow:inset 0 0 0 2px var(--red)}
+.field.good{box-shadow:inset 0 0 0 2px var(--green)}
+.field .ph{color:rgba(0,0,0,.28)}
+.field .val{white-space:pre}
+.caret{display:none;width:2px;height:24px;background:var(--blue);margin-left:1px;animation:blink 1s steps(1) infinite}
+.field.focus .caret{display:inline-block}
+@keyframes blink{50%{opacity:0}}
+.pfx{display:flex;align-items:center;gap:8px;padding-right:12px;border-right:1px solid var(--line);height:28px;font-weight:600}
+.status{margin-top:12px;min-height:44px;font:500 14px/20px var(--ui);display:flex;gap:8px;align-items:flex-start}
+.status.bad{color:var(--red)} .status.good{color:var(--green)} .status.dim{color:rgba(0,0,0,.5)}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.15);border-top-color:#000;animation:sp .7s linear infinite;margin-top:3px;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.chip{border:0;background:#fff;box-shadow:inset 0 0 0 1px var(--line);border-radius:99px;padding:7px 13px;font:500 14px var(--ui);color:#000;cursor:pointer}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+
+/* code boxes */
+.code{display:flex;gap:9px}
+.code div{flex:1;height:62px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;font:700 28px var(--ui)}
+.code div.cur{box-shadow:inset 0 0 0 2px #000}
+.code.bad div{box-shadow:inset 0 0 0 2px var(--red)}
+.linkish{background:none;border:0;padding:0;font:600 14px var(--ui);color:#000;text-decoration:underline;cursor:pointer}
+.linkish[disabled]{color:rgba(0,0,0,.4);text-decoration:none;cursor:default}
+
+/* big buttons */
+.cta{position:absolute;left:27px;right:27px;height:54px;border-radius:99px;border:0;background:#000;color:#fff;font:600 17px var(--ui);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,opacity .2s}
+.cta:active{transform:scale(.97)}
+.cta[disabled]{opacity:.22;cursor:default}
+.cta.alt{background:#fff;color:#000;box-shadow:inset 0 0 0 1px var(--line)}
+.skip{position:absolute;left:0;right:0;text-align:center}
+
+/* keypad (numbers) */
+.kp{position:absolute;left:0;right:0;bottom:0;height:300px;background:#d1d3d9;padding:10px 6px 34px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;z-index:5}
+.kp button{border:0;border-radius:8px;background:#fff;font:400 26px var(--ui);box-shadow:0 1px 0 rgba(0,0,0,.3);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.kp button small{font:600 9px var(--ui);letter-spacing:.14em;color:#000;margin-top:2px;height:9px}
+.kp button.fn{background:transparent;box-shadow:none}
+.kp button:active{background:#bfc2c9}
+
+/* faux qwerty */
+.kb{position:absolute;left:0;right:0;bottom:0;height:300px;background:#d1d3d9;padding:10px 3px 34px;z-index:5;display:flex;flex-direction:column;gap:11px}
+.kb .r{display:flex;gap:6px;justify-content:center}
+.kb button{border:0;border-radius:5px;background:#fff;height:44px;min-width:32px;flex:1;max-width:36px;font:400 22px var(--ui);box-shadow:0 1px 0 rgba(0,0,0,.3);cursor:pointer;padding:0}
+.kb button.wide{max-width:none;flex:1.4;background:#aeb3bc;font-size:16px}
+.kb button.space{max-width:none;flex:5;font-size:15px}
+.kb button.go{max-width:none;flex:2.2;background:var(--blue);color:#fff;font:600 16px var(--ui)}
+.kb button:active{background:#bfc2c9}
+
+/* entry */
+.entry-t{position:absolute;left:0;right:0;top:264px;text-align:center;font:800 48px/43px var(--display);letter-spacing:-.03em}
+.entry-t span{display:block;margin-bottom:14px}
+.terms{position:absolute;left:24px;right:24px;bottom:42px;text-align:center;font:400 12px/16px var(--ui);color:rgba(0,0,0,.45)}
+.terms u{text-underline-offset:1px}
+
+/* apple sheet */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:34px 34px 0 0;padding:22px 24px 44px;transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);z-index:41;box-shadow:0 -10px 40px rgba(0,0,0,.15)}
+.sheet.on{transform:none}
+.sheet .logo{font-size:34px;line-height:1;text-align:center}
+.sheet h3{font:600 20px/24px var(--ui);text-align:center;margin:10px 0 4px}
+.sheet .sub{text-align:center;font:400 13px/18px var(--ui);color:#666;margin:0 12px 18px}
+.sheet .row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:1px solid var(--line);font:400 15px var(--ui)}
+.sheet .row b{font-weight:600}
+.sheet .row span{color:#666;font-size:14px}
+.sheet .go{margin-top:16px;position:static;background:var(--blue)}
+.face{display:none;text-align:center;padding:30px 0 6px;font:500 15px var(--ui);color:#555}
+.face svg{width:46px;height:46px;stroke:var(--blue);fill:none;stroke-width:1.6;stroke-linecap:round;display:block;margin:0 auto 10px}
+.sheet.auth .face{display:block}
+.sheet.auth .sh-main{display:none}
+
+/* photo */
+.avatar{position:absolute;left:50%;top:258px;width:184px;height:184px;margin-left:-92px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1px var(--line),0 14px 30px -12px rgba(0,0,0,.25);display:grid;place-items:center;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.avatar:active{transform:scale(.97)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:none}
+.avatar.has img{display:block}
+.avatar .ini{font:800 72px var(--display);letter-spacing:-.04em;color:rgba(0,0,0,.18)}
+.avatar.has .ini,.avatar.has .cam{display:none}
+.cam{position:absolute;right:8px;bottom:8px;width:44px;height:44px;border-radius:50%;background:#000;display:grid;place-items:center;border:3px solid var(--paper)}
+.cam svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linejoin:round}
+.lib{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:18px 20px 40px;transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);z-index:41;box-shadow:0 -10px 40px rgba(0,0,0,.15)}
+.lib.on{transform:none}
+.lib h4{margin:0 0 12px;font:600 16px var(--ui);text-align:center}
+.lib .g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lib .g img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;cursor:pointer}
+.lib .g img:active{opacity:.7}
+.lib .x{margin-top:14px;text-align:center}
+.who{position:absolute;left:0;right:0;top:456px;text-align:center;font:600 22px var(--ui);letter-spacing:-.01em}
+.who small{display:block;font:400 14px var(--ui);color:rgba(0,0,0,.5);margin-top:3px}
+
+/* birthday wheels */
+.wheels{position:absolute;left:27px;right:27px;top:260px;height:216px;display:grid;grid-template-columns:1.6fr 1fr 1.2fr;gap:4px;background:#fff;border-radius:22px;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.wheels::before{content:"";position:absolute;left:8px;right:8px;top:90px;height:36px;border-radius:12px;background:rgba(0,0,0,.06);pointer-events:none}
+.wheels::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(#fff,rgba(255,255,255,0) 36%,rgba(255,255,255,0) 64%,#fff)}
+.wh{height:216px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;padding:90px 0}
+.wh::-webkit-scrollbar{display:none}
+.wh div{height:36px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;font:500 20px var(--ui)}
+.age{position:absolute;left:27px;right:27px;top:494px;font:500 14px/20px var(--ui);color:rgba(0,0,0,.5);text-align:center;min-height:42px}
+.age.bad{color:var(--red)}
+
+/* done */
+.done-t{position:absolute;left:0;right:0;top:300px;text-align:center}
+.done-t .avatar{position:relative;top:0;left:auto;margin:0 auto 26px;width:120px;height:120px}
+.done-t .avatar .ini{font-size:48px}
+.done-t h2{font:800 40px/42px var(--display);letter-spacing:-.03em;margin:0}
+.done-t p{margin:10px 0 0;font:500 17px var(--ui);color:rgba(0,0,0,.5)}
+
+/* ---------- side rail ---------- */
+.rail{display:flex;flex-direction:column;gap:22px}
+.card{background:#fff;border-radius:20px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card h3{margin:0 0 10px;font:650 14px var(--ui);letter-spacing:.02em;text-transform:uppercase;color:#666}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.steps li{display:flex;gap:12px;align-items:center;padding:9px 10px;border-radius:12px;cursor:pointer;font-size:15px}
+.steps li:hover{background:#f2f2f4}
+.steps li.cur{background:#000;color:#fff}
+.steps li .n{font:500 11.5px var(--mono);opacity:.55;width:52px;flex:none}
+.steps li em{font-style:normal;margin-left:auto;font-size:12px;opacity:.55}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns button{font:500 13px var(--ui);border:0;border-radius:99px;padding:8px 16px;background:#111;color:#fff;cursor:pointer}
+.btns button.ghost{background:#fff;color:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.dec{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.dec li{font-size:14px;line-height:1.45;padding-left:20px;position:relative;color:#333}
+.dec li::before{content:"";position:absolute;left:0;top:7px;width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.dec li b{color:#000}
+.dec li.open::before{background:#f3c943}
+.tag{font:500 11px var(--mono);padding:2px 7px;border-radius:99px;background:#f3e6c4;margin-left:6px;vertical-align:1px}
+</style>
+</head>
+<body>
+<div class="head" style="max-width:1100px;margin:0 auto 26px">
+  <h1>Sign up, start to finish</h1>
+  <p class="lede">Click through it like a real phone: Apple or phone number, then name, username, photo and birthday. The keypad and keyboard work with your mouse or your real keyboard. Anything that is a guess is marked on the right.</p>
+</div>
+
+<div class="wrap">
+  <div class="frame"><div class="phone" id="phone">
+    <div class="sb"><span>9:41</span><svg viewBox="0 0 66 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><path d="M28 3.2a9 9 0 0 1 12 0l-1.6 1.7a6.6 6.6 0 0 0-8.8 0zM30.6 6a5.2 5.2 0 0 1 6.8 0L36 7.6a3 3 0 0 0-4 0zM34 9.4l1.6 1.8L34 12.2 32.4 11z"/><rect x="46" y="0.5" width="18" height="11" rx="3.2" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="47.6" y="2.1" width="14.6" height="7.8" rx="2" /></svg></div>
+
+    <!-- entry -->
+    <section class="screen" id="s-entry">
+      <div class="entry-t"><span>join</span><span>Bulletin</span></div>
+      <button class="cta" style="bottom:200px" id="e-phone">Continue with Phone</button>
+      <button class="cta alt" style="bottom:132px" id="e-apple"><svg width="16" height="19" viewBox="0 0 16 19"><path d="M13.2 10c0-2.3 1.9-3.4 2-3.5-1.100-1.600-2.800-1.800-3.400-1.800-1.400-.1-2.800.9-3.500.9s-1.800-.8-3-.8C3.700 4.800 2.300 5.700 1.500 7c-1.700 2.900-.4 7.200 1.200 9.500.8 1.100 1.700 2.400 2.900 2.400s1.600-.8 3-.8 1.800.8 3 .8 2-1.100 2.800-2.300c.9-1.300 1.200-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.800zM10.900 3.200c.6-.8 1.100-1.900.9-3-.9 0-2.100.6-2.800 1.400-.6.700-1.100 1.800-1 2.900 1.100.1 2.200-.5 2.900-1.300z"/></svg>Continue with Apple</button>
+      <div class="terms">By pressing on “Continue with…” you agree to our<br><u>Terms of Service</u> and <u>Privacy Policy</u></div>
+    </section>
+
+    <!-- phone -->
+    <section class="screen" id="s-phone">
+      <div class="q"><h2>What’s your number?</h2><p>US numbers only for now. We’ll text you a code to check it’s you.</p></div>
+      <div class="fields">
+        <div class="field focus" data-f="phone"><div class="pfx"><span>🇺🇸</span><span>+1</span></div><span class="val"></span><span class="caret"></span></div>
+        <div class="status dim" id="ph-status">We’ll only use this to sign you in. No one else will see it.</div>
+      </div>
+      <button class="cta" style="bottom:322px" id="ph-go" disabled>Send code</button>
+      <div class="kp" data-kp="phone"></div>
+    </section>
+
+    <!-- code -->
+    <section class="screen" id="s-code">
+      <div class="q"><h2>Enter the code</h2><p id="code-sub">Sent to +1 (555) 000-0000</p></div>
+      <div class="fields">
+        <div class="code" id="code-boxes"></div>
+        <div class="status dim" id="code-status"></div>
+      </div>
+      <div class="kp" data-kp="code"></div>
+    </section>
+
+    <!-- username -->
+    <section class="screen" id="s-username">
+      <div class="q"><h2>Pick a username</h2><p>This is how friends find you. Letters, numbers and underscores. You can change it once a month.</p></div>
+      <div class="fields">
+        <div class="field focus" data-f="username"><span style="color:rgba(0,0,0,.35)">@</span><span class="val"></span><span class="caret"></span></div>
+        <div class="status dim" id="un-status"></div>
+      </div>
+      <button class="cta" style="bottom:322px" id="un-go" disabled>Continue</button>
+      <div class="kb" data-kb></div>
+    </section>
+
+    <!-- name -->
+    <section class="screen" id="s-name">
+      <div class="q"><h2>What’s your name?</h2><p>Only you and Bulletin can see this. It never shows on your board or to your friends.</p></div>
+      <div class="fields">
+        <div class="field focus" data-f="first" style="margin-bottom:12px"><span class="val"></span><span class="ph">First name</span><span class="caret"></span></div>
+        <div class="field" data-f="last"><span class="val"></span><span class="ph">Last name</span><span class="caret"></span></div>
+      </div>
+      <button class="cta" style="bottom:322px" id="nm-go" disabled>Continue</button>
+      <div class="kb" data-kb></div>
+    </section>
+
+    <!-- photo -->
+    <section class="screen" id="s-photo">
+      <div class="q"><h2>Add a photo</h2><p>Friends see this next to your name. You can change it any time.</p></div>
+      <div class="avatar" id="av"><span class="ini">?</span><img alt=""><div class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg></div></div>
+      <div class="who" id="who"></div>
+      <button class="cta" style="bottom:122px" id="ph-pick">Choose a photo</button>
+      <button class="cta alt" style="bottom:54px" id="ph-skip">Skip for now</button>
+      <div class="scrim" id="lib-scrim"></div>
+      <div class="lib" id="lib"><h4>Your photos</h4><div class="g" id="lib-g"></div><div class="x"><button class="linkish" id="lib-x">Cancel</button></div></div>
+    </section>
+
+    <!-- birthday -->
+    <section class="screen" id="s-birthday">
+      <div class="q"><h2>Your birthday?</h2><p>We use it to make sure you’re old enough. It’s never shown to anyone.</p></div>
+      <div class="wheels"><div class="wh" id="wm"></div><div class="wh" id="wd"></div><div class="wh" id="wy"></div></div>
+      <div class="age" id="age"></div>
+      <button class="cta" style="bottom:54px" id="bd-go">Continue</button>
+    </section>
+
+    <!-- done -->
+    <section class="screen" id="s-done">
+      <div class="done-t"><div class="avatar" id="av2"><span class="ini"></span><img alt=""></div><h2>You’re in.</h2><p id="done-un"></p></div>
+      <button class="cta" style="bottom:54px" id="done-go">Start your Bulletin</button>
+    </section>
+
+    <!-- apple sheet -->
+    <div class="scrim" id="ap-scrim"></div>
+    <div class="sheet" id="ap-sheet">
+      <div class="sh-main">
+        <div class="logo"></div>
+        <h3>Sign in to Bulletin with your Apple Account</h3>
+        <p class="sub">Apple's own sign-in. Bulletin never sees your password.</p>
+        <div class="row"><b>Name</b><span>Maya Lin</span></div>
+        <div class="row"><b>Email</b><span>Share · maya@icloud.com</span></div>
+        <button class="cta go" id="ap-go">Continue with Passcode</button>
+        <div style="text-align:center;margin-top:12px"><button class="linkish" id="ap-x" style="font-weight:500">Cancel</button></div>
+      </div>
+      <div class="face"><svg viewBox="0 0 48 48"><path d="M8 18v-6a4 4 0 0 1 4-4h6M30 8h6a4 4 0 0 1 4 4v6M40 30v6a4 4 0 0 1-4 4h-6M18 40h-6a4 4 0 0 1-4-4v-6M17 19v4M31 19v4M24 19v8h-2M17 32c4 4 10 4 14 0"/></svg>Face ID</div>
+    </div>
+  </div></div>
+
+  <div class="rail">
+    <div class="card">
+      <h3>Flow</h3>
+      <ul class="steps" id="steps"></ul>
+      <div class="btns" style="margin-top:14px"><button id="r-restart" class="ghost">Restart</button><button id="r-apple" class="ghost">Try the Apple path</button><button id="r-phone">Try the phone path</button></div>
+    </div>
+    <div class="card">
+      <h3>What I decided, and what’s still open</h3>
+      <ul class="dec">
+        <li><b>Apple skips the phone screens.</b> Apple already verified them, so they go straight to the name screen, where the name Apple shares is filled in (they can edit it).</li>
+        <li><b>Usernames:</b> lowercase letters, numbers and underscores only, 3 to 20 characters, no spaces or symbols. Anything else is blocked as you type. Taken names show a red message with three free suggestions. Try “maya”, “sam” or “alina”.</li>
+        <li><b>Name comes before username.</b> It’s the easy question, so people ease in, and the username screen can offer name-based suggestions later. The name stays private and is only collected for the back end.</li>
+        <li class="open"><b>Open: is the name required?</b> <span class="tag">needs a call</span> Right now both fields are required. Asking for a name people can skip lowers drop-off, but then you may not have it later.</li>
+        <li class="open"><b>Open: age limit.</b> <span class="tag">needs a call</span> I set 13 as the minimum (the US legal floor). Under 13 is blocked with a message. Worth checking with whoever does your legal.</li>
+        <li class="open"><b>Open: photo is skippable.</b> <span class="tag">needs a call</span> Skipping gives a letter avatar from the username. Say if it should be required.</li>
+        <li class="open"><b>Open: Apple accounts and phone.</b> <span class="tag">needs a call</span> Apple sign-ups never give a phone number, so you can’t text them or recover the account by phone. You might want to ask for one later.</li>
+        <li><b>Code screen:</b> six digits, auto-checks on the last digit, a wrong code shakes. In this prototype any code works except 000000. Resend is available after 30 seconds.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const TAKEN=["maya","sam","alina","jo","bulletin","admin","support","mia","leo","kai"];
+const PHOTOS=["assets/pic-a.jpg","assets/pic-b.jpg","assets/sample-p3.jpg","assets/sample-p4.jpg","assets/sp-60.jpg","assets/sample-food.jpg"];
+const PATHS={phone:["entry","phone","code","name","username","photo","birthday","done"],apple:["entry","name","username","photo","birthday","done"]};
+const LABELS={entry:["ONB-A","Join Bulletin"],phone:["ONB-B","Phone number"],code:["ONB-C","Verify code"],name:["ONB-D","Name (private)"],username:["ONB-E","Username"],photo:["ONB-F","Profile photo"],birthday:["ONB-G","Birthday"],done:["ONB-H","You’re in"]};
+let S;
+function fresh(){S={path:"phone",at:"entry",phone:"",code:"",username:"",first:"",last:"",photo:"",month:0,day:0,year:0,focus:"",back:false,sec:0}}
+fresh();
+
+/* ---------- keypads ---------- */
+function buildKeypad(el,onKey){
+  const subs={2:"ABC",3:"DEF",4:"GHI",5:"JKL",6:"MNO",7:"PQRS",8:"TUV",9:"WXYZ"};
+  el.innerHTML="";
+  for(let i=1;i<=9;i++){const b=document.createElement("button");b.innerHTML=i+`<small>${subs[i]||""}</small>`;b.onclick=()=>onKey(String(i));el.append(b)}
+  const e=document.createElement("button");e.className="fn";el.append(e);
+  const z=document.createElement("button");z.innerHTML="0<small></small>";z.onclick=()=>onKey("0");el.append(z);
+  const d=document.createElement("button");d.className="fn";d.innerHTML="⌫";d.style.fontSize="22px";d.onclick=()=>onKey("⌫");el.append(d);
+}
+function buildKeyboard(el){
+  const rows=["1234567890","qwertyuiop","asdfghjkl","zxcvbnm"];
+  el.innerHTML="";
+  rows.forEach((r,i)=>{
+    const row=document.createElement("div");row.className="r";
+    [...r].forEach(c=>{const b=document.createElement("button");b.textContent=c;b.onclick=()=>typeKey(c);row.append(b)});
+    if(i===3){const d=document.createElement("button");d.className="wide";d.textContent="⌫";d.onclick=()=>typeKey("⌫");row.append(d)}
+    el.append(row);
+  });
+  const last=document.createElement("div");last.className="r";
+  const u=document.createElement("button");u.className="wide";u.textContent="_";u.onclick=()=>typeKey("_");
+  const sp=document.createElement("button");sp.className="space";sp.textContent="space";sp.onclick=()=>typeKey(" ");
+  const go=document.createElement("button");go.className="go";go.textContent="next";go.onclick=()=>typeKey("Enter");
+  last.append(u,sp,go);el.append(last);
+}
+$$("[data-kb]").forEach(buildKeyboard);
+
+/* ---------- navigation ---------- */
+const order=()=>PATHS[S.path];
+function show(id,back){
+  S.at=id;S.back=!!back;
+  $$(".screen").forEach(s=>{
+    const on=s.id==="s-"+id;
+    s.classList.toggle("on",on);
+    s.classList.toggle("back",!on&&(order().indexOf(s.id.slice(2))<order().indexOf(id)));
+  });
+  S.focus={phone:"phone",username:"username",name:["first","last"].includes(S.focus)?S.focus:"first"}[id]||"";
+  render();enter(id);
+}
+function go(d){const i=order().indexOf(S.at)+d;if(i>=0&&i<order().length)show(order()[i],d<0)}
+function topbar(id){
+  const sc=$("#s-"+id);if(!sc||id==="entry"||id==="done")return;
+  let t=sc.querySelector(".top");
+  if(!t){t=document.createElement("div");t.className="top";t.innerHTML=`<button class="back"><svg viewBox="0 0 9 15"><path d="M7.5 1.5 1.5 7.5l6 6"/></svg></button><div class="bar"></div>`;sc.prepend(t);t.querySelector(".back").onclick=()=>go(-1)}
+  const steps=order().slice(1,-1);const bar=t.querySelector(".bar");
+  if(bar.children.length!==steps.length)bar.innerHTML=steps.map(()=>"<i></i>").join("");
+  const cur=steps.indexOf(id);[...bar.children].forEach((i,k)=>i.classList.toggle("done",k<=cur));
+}
+function enter(id){
+  topbar(id);
+  if(id==="code"){S.code="";S.sec=30;tick();$("#code-sub").textContent="Sent to +1 "+fmtPhone(S.phone)}
+  if(id==="photo"){$("#who").innerHTML=`@${S.username}<small>${S.first?S.first+" ":""}is only visible to you</small>`.replace(/<small>.*<\/small>/,"")}
+  if(id==="done"){$("#done-un").textContent="@"+S.username;setAv($("#av2"),true)}
+  if(id==="birthday")initWheels();
+}
+
+/* ---------- state -> screen ---------- */
+const fmtPhone=p=>{const d=p.replace(/\D/g,"");let o="";if(d.length)o="("+d.slice(0,3);if(d.length>=3)o+=") ";if(d.length>3)o+=d.slice(3,6);if(d.length>6)o+="-"+d.slice(6,10);return o||""};
+function setVal(f,v){const el=document.querySelector(`[data-f="${f}"]`);if(!el)return;el.querySelector(".val").textContent=v;const ph=el.querySelector(".ph");if(ph)ph.style.display=v?"none":""}
+function render(){
+  setVal("phone",fmtPhone(S.phone));
+  $("#ph-go").disabled=S.phone.length!==10;
+  $("#ph-status").className="status dim";
+  $("#ph-status").textContent=S.phone.length===10?"We’ll text a 6-digit code. Standard message rates may apply.":"We’ll only use this to sign you in. No one else will see it.";
+  $("#code-boxes").innerHTML=[0,1,2,3,4,5].map(i=>`<div class="${i===S.code.length?"cur":""}">${S.code[i]||""}</div>`).join("");
+  setVal("username",S.username);setVal("first",S.first);setVal("last",S.last);
+  $$("[data-f]").forEach(f=>f.classList.toggle("focus",f.dataset.f===S.focus));
+  $("#nm-go").disabled=!(S.first.trim()&&S.last.trim());
+  checkName();
+  setAv($("#av"),false);
+  $("#ph-pick").textContent=S.photo?"Choose a different photo":"Choose a photo";
+  $("#ph-skip").textContent=S.photo?"Looks good":"Skip for now";
+  $("#ph-skip").className="cta "+(S.photo?"":"alt");
+  $("#ph-skip").style.cssText=S.photo?"bottom:54px;background:#000;color:#fff":"bottom:54px";
+  $("#ph-pick").className="cta "+(S.photo?"alt":"");
+  $("#ph-pick").style.bottom="122px";
+  steps();
+}
+function setAv(el,small){
+  const img=el.querySelector("img"),ini=el.querySelector(".ini");
+  const letter=(S.username||S.first||"?")[0].toUpperCase();
+  ini.textContent=letter;
+  if(S.photo){img.src=S.photo;el.classList.add("has")}else{el.classList.remove("has")}
+}
+
+/* ---------- phone ---------- */
+function phoneKey(k){S.phone=k==="⌫"?S.phone.slice(0,-1):(S.phone.length<10?S.phone+k:S.phone);render()}
+buildKeypad($('[data-kp="phone"]'),phoneKey);
+$("#ph-go").onclick=()=>go(1);
+
+/* ---------- code ---------- */
+let timer;
+function tick(){clearInterval(timer);const st=$("#code-status");
+  const draw=()=>{st.className="status dim";st.innerHTML=S.sec>0?`Resend in 0:${String(S.sec).padStart(2,"0")}`:`<button class="linkish" id="resend">Send a new code</button>`;const r=$("#resend");if(r)r.onclick=()=>{S.sec=30;S.code="";tick();render()}};
+  draw();timer=setInterval(()=>{if(S.sec>0){S.sec--;if(S.at==="code")draw()}},1000)}
+function codeKey(k){
+  if(S.code.length>=6&&k!=="⌫")return;
+  S.code=k==="⌫"?S.code.slice(0,-1):S.code+k;render();
+  if(S.code.length===6){
+    if(S.code==="000000"){const b=$("#code-boxes");b.classList.add("bad","shake");const st=$("#code-status");st.className="status bad";st.textContent="That code isn’t right. Try again.";setTimeout(()=>{b.classList.remove("bad","shake");S.code="";render()},700)}
+    else setTimeout(()=>go(1),350)
+  }
+}
+buildKeypad($('[data-kp="code"]'),codeKey);
+
+/* ---------- username ---------- */
+let unT;
+function cleanUser(c){return /[a-z0-9_]/.test(c)}
+function checkUser(){
+  const st=$("#un-status"),f=document.querySelector('[data-f="username"]'),btn=$("#un-go");
+  f.classList.remove("bad","good");btn.disabled=true;clearTimeout(unT);
+  const u=S.username;
+  if(!u){st.className="status dim";st.innerHTML="Pick something you’d like on your board. 3 to 20 characters.";return}
+  if(u.length<3){st.className="status dim";st.textContent="At least 3 characters.";return}
+  st.className="status dim";st.innerHTML='<span class="spin"></span><span>Checking…</span>';
+  unT=setTimeout(()=>{
+    if(S.username!==u)return;
+    if(TAKEN.includes(u)){
+      f.classList.add("bad");st.className="status bad";
+      const alts=[u+"_",u+"23",u.slice(0,16)+"_"+Math.floor(Math.random()*90+10)];
+      st.innerHTML=`<div><div>@${u} is taken. Try one of these:</div><div class="chips">${alts.map(a=>`<button class="chip" data-a="${a}">@${a}</button>`).join("")}</div></div>`;
+      st.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{S.username=c.dataset.a;render();checkUser()});
+    }else{f.classList.add("good");st.className="status good";st.textContent="@"+u+" is yours.";btn.disabled=false}
+  },650);
+}
+$("#un-go").onclick=()=>go(1);
+let lastUn="";
+function flash(msg){const st=$("#un-status");const was=st.innerHTML,cls=st.className;st.className="status bad";st.textContent=msg;clearTimeout(flash.t);flash.t=setTimeout(()=>{checkUser()},1600)}
+
+/* ---------- name ---------- */
+function checkName(){}
+$("#nm-go").onclick=()=>go(1);
+
+/* ---------- shared typing ---------- */
+function typeKey(k){
+  const f=S.focus;if(!f||!["username","first","last"].includes(f))return;
+  if(k==="Enter"){
+    if(f==="username"&&!$("#un-go").disabled)go(1);
+    if(f==="first"){S.focus="last";render()}
+    else if(f==="last"&&!$("#nm-go").disabled)go(1);
+    return;
+  }
+  if(k==="⌫"){S[f]=S[f].slice(0,-1)}
+  else if(f==="username"){
+    const c=k.toLowerCase();
+    if(c===" "||!cleanUser(c)){flash(c===" "?"No spaces in usernames.":"Only letters, numbers and underscores.");return}
+    if(S.username.length>=20){flash("20 characters is the most.");return}
+    S.username+=c;
+  }else{
+    if(!/^[a-zA-Z' \-]$/.test(k))return;
+    if(S[f].length>=30)return;
+    S[f]=(S[f]===""?k.toUpperCase():S[f]+k);
+  }
+  render();
+  if(f==="username")checkUser();
+}
+$$("[data-f]").forEach(el=>el.onclick=()=>{if(["first","last"].includes(el.dataset.f)){S.focus=el.dataset.f;render()}});
+document.addEventListener("keydown",e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key==="Backspace"?"⌫":e.key;
+  if(S.at==="phone"&&(/^\d$/.test(k)||k==="⌫")){phoneKey(k);e.preventDefault()}
+  else if(S.at==="phone"&&k==="Enter"&&!$("#ph-go").disabled){go(1)}
+  else if(S.at==="code"&&(/^\d$/.test(k)||k==="⌫")){codeKey(k);e.preventDefault()}
+  else if((S.at==="username"||S.at==="name")&&(k.length===1||k==="⌫"||k==="Enter")){typeKey(k);e.preventDefault()}
+});
+
+/* ---------- photo ---------- */
+$("#lib-g").innerHTML=PHOTOS.map(p=>`<img src="${p}" alt="">`).join("");
+const libOpen=o=>{$("#lib").classList.toggle("on",o);$("#lib-scrim").classList.toggle("on",o)};
+$("#av").onclick=$("#ph-pick").onclick=()=>libOpen(true);
+$("#lib-x").onclick=$("#lib-scrim").onclick=()=>libOpen(false);
+$$("#lib-g img").forEach(i=>i.onclick=()=>{S.photo=i.getAttribute("src");libOpen(false);render()});
+$("#ph-skip").onclick=()=>go(1);
+
+/* ---------- birthday ---------- */
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+let wheelsReady=false;
+function initWheels(){
+  if(wheelsReady)return;wheelsReady=true;
+  const now=new Date().getFullYear();
+  $("#wm").innerHTML=MONTHS.map(m=>`<div>${m}</div>`).join("");
+  $("#wd").innerHTML=[...Array(31)].map((_,i)=>`<div>${i+1}</div>`).join("");
+  $("#wy").innerHTML=[...Array(100)].map((_,i)=>`<div>${now-i}</div>`).join("");
+  const pick=(el,i)=>{el.scrollTop=i*36};
+  pick($("#wm"),5);pick($("#wd"),14);pick($("#wy"),22);
+  [["#wm",36],["#wd",36],["#wy",36]].forEach(([s])=>{let t;$(s).addEventListener("scroll",()=>{clearTimeout(t);t=setTimeout(ageCheck,90)})});
+  ageCheck();
+}
+function ageCheck(){
+  const m=Math.round($("#wm").scrollTop/36),d=Math.round($("#wd").scrollTop/36)+1,y=new Date().getFullYear()-Math.round($("#wy").scrollTop/36);
+  S.month=m;S.day=d;S.year=y;
+  const dob=new Date(y,m,d),now=new Date();let age=now.getFullYear()-y;if(now<new Date(now.getFullYear(),m,d))age--;
+  const valid=dob.getMonth()===m;
+  const el=$("#age"),btn=$("#bd-go");
+  if(!valid){el.className="age bad";el.textContent=`${MONTHS[m]} doesn’t have ${d} days.`;btn.disabled=true}
+  else if(age<13){el.className="age bad";el.textContent="Bulletin is for people 13 and older.";btn.disabled=true}
+  else{el.className="age";el.textContent=`${MONTHS[m]} ${d}, ${y}`;btn.disabled=false}
+}
+$("#bd-go").onclick=()=>go(1);
+
+/* ---------- apple ---------- */
+const sheet=$("#ap-sheet"),scrim=$("#ap-scrim");
+$(".sheet .logo").innerHTML='<svg width="28" height="34" viewBox="0 0 16 19"><path d="M13.2 10c0-2.300 1.900-3.400 2-3.500-1.100-1.600-2.800-1.800-3.400-1.800-1.400-.1-2.800.9-3.500.9s-1.800-.8-3-.8C3.700 4.800 2.300 5.700 1.500 7c-1.700 2.900-.4 7.200 1.200 9.500.8 1.100 1.700 2.400 2.900 2.400s1.600-.8 3-.8 1.800.8 3 .8 2-1.100 2.800-2.300c.9-1.300 1.200-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.800zM10.900 3.200c.6-.8 1.100-1.900.9-3-.9 0-2.100.6-2.800 1.400-.6.700-1.100 1.800-1 2.900 1.100.1 2.200-.5 2.900-1.300z"/></svg>';
+function apple(o){sheet.classList.toggle("on",o);scrim.classList.toggle("on",o);if(!o)sheet.classList.remove("auth")}
+$("#e-apple").onclick=()=>{S.path="apple";apple(true)};
+$("#ap-x").onclick=scrim.onclick=()=>{apple(false)};
+$("#ap-go").onclick=()=>{
+  sheet.classList.add("auth");
+  setTimeout(()=>{S.first="Maya";S.last="Lin";apple(false);setTimeout(()=>show("name"),150)},1300);
+};
+$("#e-phone").onclick=()=>{S.path="phone";go(1)};
+
+/* ---------- done ---------- */
+$("#done-go").onclick=()=>{const b=$("#done-go");b.textContent="Next: set your “currently into” (ONB-03)";b.disabled=true};
+
+/* ---------- side rail ---------- */
+function steps(){
+  const ul=$("#steps");
+  const all=PATHS[S.path];
+  ul.innerHTML=all.map(id=>`<li data-id="${id}" class="${id===S.at?"cur":""}"><span class="n">${LABELS[id][0]}</span>${LABELS[id][1]}${S.path==="apple"&&id==="entry"?"<em>Apple sheet</em>":""}</li>`).join("");
+  ul.querySelectorAll("li").forEach(li=>li.onclick=()=>{
+    const id=li.dataset.id;
+    if(id==="username"&&!S.username){S.username=S.username||""}
+    if(id==="done"||id==="photo"){if(!S.username)S.username="maya_l"}
+    if(id==="photo"||id==="done"||id==="birthday"){if(!S.first){S.first="Maya";S.last="Lin"}}
+    show(id);
+  });
+}
+$("#r-restart").onclick=()=>{fresh();$$("#s-phone .val,#s-username .val").forEach(v=>v.textContent="");$("#wm").scrollTop=0;show("entry")};
+$("#r-apple").onclick=()=>{fresh();show("entry");setTimeout(()=>{S.path="apple";apple(true)},350)};
+$("#r-phone").onclick=()=>{fresh();show("entry");setTimeout(()=>$("#e-phone").click(),250)};
+
+show("entry");
+</script>
+</body>
+</html>

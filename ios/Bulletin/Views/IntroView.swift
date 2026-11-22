@@ -1,13 +1,12 @@
 import SwiftUI
-import AuthenticationServices
 
 /// ONB intro: one paragraph that builds as you read. It pauses after "Jot down what's on your mind," until the sticky
 /// has come and gone, scrolls up a little, adds "journal like you usually do," with the long note, scrolls again for
 /// "keep things you want to remember," with the photo, then adds the last line and scrolls all the way up to sign-in.
 /// The pieces are the board's real components. Tap anywhere to skip ahead.
 struct IntroView: View {
-    /// Called when someone continues (phone or Apple). Sign-in itself is not wired up yet.
-    let onFinish: () -> Void
+    /// Called when someone chooses how to continue. Apple's own sign-in isn't wired up yet.
+    let onFinish: (SignUpMethod) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -34,13 +33,14 @@ struct IntroView: View {
     @State private var stickyText = ""
     @State private var journalBody = ""
     @State private var photoBlur: CGFloat = 14
+    @State private var endShown = 0
     @State private var buttonsIn = false
     @State private var skipTick = 0
 
     private enum Phase { case hidden, shown, leaving }
     private enum Piece { case sticky, journal, photo }
 
-    private static let stickyFull = "plants. call mom back. buy the good tape."
+    private static let stickyFull = "omg just had the best iced coffee of my life. ok bye"
     private static let journalFull = "Walked the long way to work today. Got a coffee I didn’t need and sat in the park for ten minutes doing absolutely nothing. It was great."
 
     var body: some View {
@@ -52,6 +52,8 @@ struct IntroView: View {
                     .offset(y: -scroll)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Self.fullText)
+
+                endLine
 
                 if let piece { pieceView(piece).position(x: geo.size.width / 2, y: geo.size.height * 0.55) }
 
@@ -87,6 +89,27 @@ struct IntroView: View {
         .padding(.top, 133)
     }
 
+    /// The last screen, as in the Figma: "join / Bulletin" centered, with the paragraph scrolled away above it.
+    private var endLine: some View {
+        VStack(spacing: 14) {
+            ForEach(Array(["join", "Bulletin"].enumerated()), id: \.offset) { i, word in
+                let visible = endShown > i
+                Text(word)
+                    .font(.system(size: Self.textSize, weight: .heavy))
+                    .tracking(-1.44)
+                    .foregroundStyle(.black)
+                    .frame(height: Self.rowHeight)
+                    .opacity(visible ? 1 : 0)
+                    .blur(radius: visible ? 0 : 12)
+                    .scaleEffect(visible ? 1 : 0.94)
+                    .animation(reduceMotion ? nil : .timingCurve(0.3, 0.7, 0.2, 1, duration: 0.85), value: visible)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 264)
+        .accessibilityHidden(true)
+    }
+
     private func rowView(_ words: [String], firstIndex: Int) -> some View {
         HStack(spacing: 11) {
             ForEach(Array(words.enumerated()), id: \.offset) { i, word in
@@ -114,7 +137,7 @@ struct IntroView: View {
             case .sticky:
                 PostView(post: Post(kind: .sticky(text: stickyText.isEmpty ? " " : stickyText), rotation: 0), animated: false, tilt: 0)
             case .journal:
-                PostView(post: Post(kind: .journal(title: "a slow, good day", body: journalBody.isEmpty ? " " : journalBody), rotation: 0), animated: false, tilt: 0)
+                PostView(post: Post(kind: .journal(title: "a slow, good day", body: journalBody.isEmpty ? " " : journalBody), rotation: 0), animated: false, tilt: 0, backSheet: .intro)
             case .photo:
                 PostView(post: Post(kind: .photo(caption: "claypot night"), rotation: 0, image: SamplePhotos.image(1)), animated: false, tilt: 0)
                     .blur(radius: photoBlur)
@@ -134,7 +157,7 @@ struct IntroView: View {
 
     private var buttons: some View {
         VStack(spacing: 14) {
-            Button(action: onFinish) {
+            Button { onFinish(.phone) } label: {
                 Text("Continue with Phone")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
@@ -144,16 +167,20 @@ struct IntroView: View {
             }
             .buttonStyle(PressableStyle())
 
-            // Apple's own button: its label and logo can't be redrawn, so it keeps the white style, softened to sit on the paper
-            SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName]
-            } onCompletion: { _ in
-                onFinish()    // not wired to an account yet
+            // Same type as the phone button so the two read as a pair. Not wired to an account yet.
+            Button { onFinish(.apple) } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "apple.logo")
+                    Text("Continue with Apple")
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(.white, in: Capsule())
+                .overlay(Capsule().strokeBorder(.black.opacity(0.12), lineWidth: 1))
             }
-            .signInWithAppleButtonStyle(.white)
-            .frame(height: 54)
-            .clipShape(Capsule())
-            .overlay(Capsule().strokeBorder(.black.opacity(0.12), lineWidth: 1))
+            .buttonStyle(PressableStyle())
 
             // The two names will open the real pages once they exist.
             (Text("By pressing on “Continue with…” you agree to our ")
@@ -209,9 +236,13 @@ struct IntroView: View {
             await wait(i < 2 ? 800 : 1400)
         }
 
-        // all the way up, then sign-in
+        // the paragraph scrolls all the way away, "join Bulletin" arrives, then sign-in
         withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 1.1 * pace)) { scroll = 790 }
-        await wait(700)
+        await wait(900)
+        endShown = 1
+        await wait(250)
+        endShown = 2
+        await wait(600)
         withAnimation(.timingCurve(0.2, 0.8, 0.2, 1, duration: 0.75 * pace)) { buttonsIn = true }
     }
 
@@ -253,4 +284,4 @@ struct IntroView: View {
     }
 }
 
-#Preview { IntroView(onFinish: {}) }
+#Preview { IntroView(onFinish: { _ in }) }

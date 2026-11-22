@@ -30,6 +30,7 @@
 		C2EC8EBC613014D66DFC0BE5 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1B1B2CAB3E7466AA505109 /* IntroView.swift */; };
 		C77EC8223FA1FC0F8C2C5179 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6753A303FEDA6F57054AD434 /* JetBrainsMono-Regular.ttf */; };
 		CC1E22F81AD616E9359E00D2 /* IntoEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */; };
+		D291724598B1B390FD05B7B2 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */; };
 		D59A80543FAD7D0EAB6E4C58 /* EmptyStatePlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E46A2B5302427FFCA51204 /* EmptyStatePlaceholder.swift */; };
 		E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D561ABDD7925727E576172F /* PostComposerView.swift */; };
 		E9BCD2D50B91045246B12922 /* FriendBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459C66B2917D97F2127D53D9 /* FriendBoardView.swift */; };
@@ -40,6 +41,7 @@
 /* Begin PBXFileReference section */
 		0990B3E592F02352A40D4680 /* PhotoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
 		14FBA78CEE2B666794F5068A /* TopCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCards.swift; sourceTree = "<group>"; };
+		21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SamplePhotos.swift; sourceTree = "<group>"; };
 		37C312A0A792F70ADFDA0806 /* StickerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerViews.swift; sourceTree = "<group>"; };
 		37F60256F48D4205B64D8BE4 /* NotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesStore.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				DE29D072C138CB86D05F7054 /* PostViews.swift */,
 				CD454554D33728F308F5EA68 /* RootTabView.swift */,
 				F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */,
+				21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */,
 				37C312A0A792F70ADFDA0806 /* StickerViews.swift */,
 				14FBA78CEE2B666794F5068A /* TopCards.swift */,
 				E88D46AD4A45E0F120516AD5 /* Typography.swift */,
@@ -235,6 +238,7 @@
 				8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */,
 				2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */,
 				5FAA807D00F865F8AEFFE8FA /* ShelfView.swift in Sources */,
+				D291724598B1B390FD05B7B2 /* SignUpView.swift in Sources */,
 				9DE34DB212A358984BAA6B63 /* StickerStore.swift in Sources */,
 				313BFF4891586F9848CD837A /* StickerViews.swift in Sources */,
 				8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */,

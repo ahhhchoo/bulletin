@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Position of the faded sheet that peeks out behind a journal entry.
+struct BackSheet {
+    var rotation: Double, x: CGFloat, y: CGFloat
+    static let board = BackSheet(rotation: 3.4, x: 4, y: 28)
+    static let intro = BackSheet(rotation: 2.4, x: 2, y: 10)
+}
+
 struct PostView: View {
     let post: Post
     /// false for copies that are already on screen (the opened card, drag previews): no landing animation.
@@ -12,6 +19,8 @@ struct PostView: View {
     var captionSize: CGFloat?
     /// The opened photo brings its caption in after it has grown.
     var captionVisible = true
+    /// Where the faded sheet behind a long entry sits. The default is the board's; the intro tucks it in closer.
+    var backSheet = BackSheet.board
 
     var body: some View {
         let rotation = post.rotation * tilt
@@ -24,7 +33,7 @@ struct PostView: View {
                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated)
         case .journal(let title, let body):
             JournalPost(title: title, text: body, rotation: rotation, isPromptAnswer: post.isPromptAnswer,
-                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated)
+                        isClipped: post.isClipped, addedLabel: post.addedLabel, animated: animated, backSheet: backSheet)
         }
     }
 }
@@ -309,6 +318,7 @@ private struct JournalPost: View {
     let isClipped: Bool
     var addedLabel: String?
     var animated = true
+    var backSheet = BackSheet.board
 
     @State private var didLand = false
     private var landed: Bool { didLand || !animated }
@@ -349,8 +359,8 @@ private struct JournalPost: View {
                 .fill(.white.opacity(0.5))
                 .frame(width: Paper.width, height: Paper.minHeight)
                 .shadow(color: Color(red: 0.047, green: 0.047, blue: 0.051).opacity(0.05), radius: 2, y: 1)
-                .rotationEffect(.degrees(3.4))
-                .offset(x: 4, y: 28)
+                .rotationEffect(.degrees(backSheet.rotation))
+                .offset(x: backSheet.x, y: backSheet.y)
         }
         .overlay(alignment: .top) {
             if isClipped { Attachment(isClipped: true, addedLabel: addedLabel).offset(y: -4) }
