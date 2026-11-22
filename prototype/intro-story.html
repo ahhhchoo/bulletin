@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONB-01 — Intro story</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink:#000;
+  --sticky:#f5e5be; --fold:#f3c943;
+  --butter:#f3e6c4; --blush:#f4d9d6; --sage:#d8e6d3;
+  --ui:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;
+  --display:"SF Pro Display",-apple-system,"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --s:.7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e9ec;color:#111;font:15px/1.45 var(--ui);padding:28px 24px 80px}
+.head{max-width:1180px;margin:0 auto 30px;display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between}
+.head h1{font:700 26px/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 6px}
+.head p{margin:0;color:#555;max-width:62ch}
+button{font:500 13px var(--ui);border:0;border-radius:99px;padding:8px 16px;background:#111;color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(402px*var(--s) + 4px),1fr));gap:34px 24px;justify-items:center}
+.cell{display:flex;flex-direction:column;gap:12px;width:calc(402px*var(--s))}
+.frame{width:calc(402px*var(--s));height:calc(874px*var(--s));border-radius:calc(46px*var(--s));overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.06),0 18px 40px -14px rgba(0,0,0,.35);background:var(--paper);position:relative}
+.phone{width:402px;height:874px;transform:scale(var(--s));transform-origin:0 0;position:absolute;left:0;top:0;background:var(--paper);overflow:hidden;color:var(--ink);cursor:pointer}
+.cell h2{font:650 15px/1.2 var(--ui);margin:2px 0 0}
+.cell p{margin:0;font-size:13px;color:#555;text-wrap:pretty}
+.pm{display:flex;flex-direction:column;gap:3px;font:400 11.5px/1.3 var(--mono);color:#666}
+.ctl{display:flex;gap:8px}
+
+/* ---- the screen, in the Figma's coordinates ---- */
+.sb{position:absolute;left:0;right:0;top:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 49px;font:600 15px var(--ui);z-index:9}
+.sb svg{height:12px;fill:#000}
+.scene{position:absolute;inset:0}
+.line{position:absolute;left:35px;top:133px;width:335px;z-index:5;font:800 48px/43px var(--display);letter-spacing:-.03em;margin:0;color:var(--ink)}
+.w{display:inline-block;vertical-align:top}
+.wi{display:inline-block;will-change:transform,opacity,filter}
+.ph{border-radius:.12em;background-repeat:no-repeat;background-position:0 88%;background-size:0% 46%;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em}
+.t-butter{background-image:linear-gradient(var(--butter),var(--butter))}
+.t-blush{background-image:linear-gradient(var(--blush),var(--blush))}
+.t-sage{background-image:linear-gradient(var(--sage),var(--sage))}
+.slot{position:absolute;z-index:3}
+.pos{position:absolute;left:0;top:0;transform:translate(-50%,-50%)}
+.comp{position:relative;transform-origin:50% 50%;will-change:transform,opacity}
+
+/* the real pieces, as they look on the board */
+.sticky{width:218px;height:218px;background:var(--sticky);border-radius:12px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,.1),0 10px 24px -8px rgba(0,0,0,.22);font:600 19px/23px var(--ui);letter-spacing:-.3px;overflow:hidden}
+.sticky::after{content:"";position:absolute;right:0;bottom:0;width:34px;height:34px;background:linear-gradient(135deg,var(--fold) 50%,var(--sticky) 50%);border-top-left-radius:7px;box-shadow:-2px -2px 5px rgba(0,0,0,.1)}
+.sticky .caret{display:inline-block;width:2px;height:.95em;background:#000;vertical-align:-.12em;margin-left:1px;animation:bl 1s steps(2) infinite}
+@keyframes bl{50%{opacity:0}}
+.journal{width:238px;height:292px;background:#fff;border-radius:14px;padding:18px 18px 0;box-shadow:0 1px 3px rgba(0,0,0,.08),0 12px 26px -8px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.journal b{font:650 17px/1.15 var(--ui);letter-spacing:-.2px}
+.journal .jb{font:400 14.5px/19px var(--ui);color:rgba(0,0,0,.58);flex:1;overflow:hidden}
+.journal .jw{display:inline-block}
+.journal i{font:normal 500 12.5px var(--ui);color:rgba(0,0,0,.4);padding-bottom:16px}
+.journal::after{content:"";position:absolute;right:0;bottom:0;width:38px;height:38px;background:linear-gradient(135deg,#e3e3e3 50%,#fff 50%);border-top-left-radius:8px;box-shadow:-2px -2px 5px rgba(0,0,0,.08)}
+.photo{width:218px;height:274px;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12),0 12px 26px -8px rgba(0,0,0,.3);background:#ddd}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .cap{position:absolute;left:10px;bottom:10px;font:600 14px var(--ui);color:#fff;background:rgba(0,0,0,.34);backdrop-filter:blur(8px);padding:5px 10px;border-radius:99px}
+.pile{position:relative;width:260px;height:300px}
+.pile > .comp{position:absolute;left:50%;top:50%;margin:0}
+.pile .sticky{margin:-109px 0 0 -109px}.pile .journal{margin:-146px 0 0 -119px}.pile .photo{margin:-137px 0 0 -109px}
+/* variant C: a pin through the top, like on the board */
+.pinned .comp.pile::before{display:none}
+.pinned .comp::before{content:"";position:absolute;left:50%;top:-7px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a6a,#e8501c 70%);box-shadow:0 2px 3px rgba(0,0,0,.3);z-index:5}
+
+.btns{position:absolute;left:27px;width:343px;height:125px;top:621px;z-index:6;pointer-events:none}
+.btn{position:absolute;left:0;width:343px;height:54px;background:#d9d9d9;border-radius:3px;display:flex;align-items:center;padding-left:40px;font:700 24px var(--display);letter-spacing:-.035em;opacity:0}
+.btn:nth-child(1){top:0}.btn:nth-child(2){top:71px}
+.dots{position:absolute;left:0;right:0;bottom:46px;display:flex;justify-content:center;gap:7px;z-index:7}
+.dots i{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.14);transition:background .3s,transform .3s}
+.dots i.on{background:#000;transform:scale(1.15)}
+@media (max-width:700px){:root{--s:.8}}
+</style>
+</head>
+<body>
+<div class="head">
+  <div>
+    <h1>ONB-01 · Intro story</h1>
+    <p>One sentence at a time. The real sticky, a long note and a photo arrive with the words, then leave as the next sentence comes in. At the end everything swipes up to sign-in. The three versions differ in how the pieces arrive. Tap a phone to skip ahead.</p>
+  </div>
+  <button id="all">Replay all</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EASE="cubic-bezier(.2,.8,.2,1)";
+const D=ms=>RM?1:ms;
+const BEATS=[
+  {text:"Welcome to your [[Bulletin.]]",tone:"butter",comp:null},
+  {text:"Jot down [[what’s on your mind.]]",tone:"blush",comp:"sticky"},
+  {text:"Journal like you usually do.",comp:"journal"},
+  {text:"Keep things you want to [[remember.]]",tone:"sage",comp:"photo"},
+  {text:"Look back so you don’t forget.",comp:"pile"}
+];
+const STICKY_TEXT="plants. call mom back. buy the good tape.";
+const JOURNAL=["a slow, good day"];
+const JOURNAL_BODY="Walked the long way to work today. Got a coffee I didn’t need and sat in the park for ten minutes doing absolutely nothing. It was great. I want more days like this, where nothing happens and I notice everything.";
+
+/* ---------- text, built from words so each can be animated ---------- */
+function words(text,tone){
+  const toks=[];
+  text.split(/(\[\[|\]\])/).forEach(seg=>{
+    if(seg==="[[") toks.push({t:"o"}); else if(seg==="]]") toks.push({t:"c"});
+    else seg.split(" ").filter(Boolean).forEach(w=>toks.push({t:"w",w}));
+  });
+  let html="",need=false;
+  for(const k of toks){
+    if(k.t==="w"){ if(need) html+=" "; html+=`<span class="w"><span class="wi">${k.w}</span></span>`; need=true; }
+    else if(k.t==="o"){ if(need){html+=" ";need=false} html+=`<span class="ph t-${tone}">`; }
+    else html+="</span>";
+  }
+  return html;
+}
+const SB='<div class="sb"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3.2" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2"/></svg></span></div>';
+const $=(h)=>{const d=document.createElement("div");d.innerHTML=h.trim();return d.firstChild};
+
+/* ---------- the pieces ---------- */
+function make(kind){
+  if(kind==="sticky") return $(`<div class="comp sticky"><span class="tx"></span><span class="caret"></span></div>`);
+  if(kind==="journal") return $(`<div class="comp journal"><b>${JOURNAL[0]}</b><div class="jb">${JOURNAL_BODY.split(" ").map(w=>`<span class="jw">${w}</span>`).join(" ")}</div><i>1 min read</i></div>`);
+  if(kind==="photo") return $(`<div class="comp photo"><img src="assets/sp-IMG_4209.jpg" alt=""><span class="cap">claypot night</span></div>`);
+  if(kind==="pile") return $(`<div class="comp pile"><div class="comp sticky" style="transform:rotate(-10deg) translate(-44px,-16px) scale(.84)"><span class="tx">plants. call mom back. buy the good tape.</span></div><div class="comp journal" style="transform:rotate(6deg) translate(40px,6px) scale(.84)"><b>${JOURNAL[0]}</b><div class="jb">${JOURNAL_BODY}</div><i>1 min read</i></div><div class="comp photo" style="transform:rotate(-3deg) translate(0,44px) scale(.84)"><img src="assets/sp-IMG_4209.jpg" alt=""><span class="cap">claypot night</span></div></div>`);
+}
+/* what each piece does once it has landed: the sticky gets written on, the note fills in, the photo comes into focus */
+function fill(ph,comp,kind,delay){
+  if(kind==="sticky"){
+    const tx=comp.querySelector(".tx"); let i=0;
+    const t0=setTimeout(()=>{ const t=setInterval(()=>{ if(RM)i=STICKY_TEXT.length; tx.textContent=STICKY_TEXT.slice(0,++i); if(i>=STICKY_TEXT.length)clearInterval(t) },RM?1:48); ph._timers.push(t)},delay); ph._timers.push(t0);
+  }
+  if(kind==="journal"){
+    comp.querySelectorAll(".jw").forEach((w,i)=>w.animate([{opacity:0},{opacity:1}],{duration:D(260),delay:D(delay+i*30),fill:"both"}));
+  }
+  if(kind==="photo"){
+    comp.querySelector("img").animate([{filter:"blur(14px)",transform:"scale(1.08)"},{filter:"blur(0)",transform:"none"}],{duration:D(1100),delay:D(delay),easing:EASE,fill:"both"});
+    comp.querySelector(".cap").animate([{opacity:0},{opacity:1}],{duration:D(400),delay:D(delay+700),fill:"both"});
+  }
+}
+
+/* ---------- the three versions: where the pieces sit and how they arrive and leave ---------- */
+const rot={sticky:-3,journal:2.5,photo:-2,pile:0};
+const VERS=[
+ {k:"A",n:"Center stage",d:"The piece lands in the middle of the lower half, a little tilted, like a note set down in front of you. It lifts away as the next sentence comes in. The calmest of the three.",
+  pl:["Reads clearly, text and piece never fight","Easiest to build"],mi:["Predictable"],
+  slot:{left:201,top:590},scale:1,pinned:false,
+  enter:(c,i)=>c.animate([{opacity:0,transform:"scale(.86) translateY(26px) rotate(-6deg)"},{opacity:1,transform:"none"}],{duration:D(850),delay:D(i),easing:"cubic-bezier(.2,1.25,.4,1)",fill:"both"}),
+  exit:(c)=>c.animate([{opacity:1,transform:"none"},{opacity:0,transform:"scale(.94) translateY(-34px)"}],{duration:D(430),easing:"ease-in",fill:"forwards"})},
+ {k:"B",n:"Slides in from the edge",d:"The piece is bigger and tucked toward the bottom right, running off the edge of the screen, like part of a larger board. It slides in from the right and leaves the same way.",
+  pl:["Feels like there is more beyond the screen","More editorial and bold"],mi:["Crops the piece, so the content must read when cut off"],
+  slot:{left:262,top:628},scale:1.2,pinned:false,
+  enter:(c,i)=>c.animate([{opacity:0,transform:"translate(340px,90px) rotate(16deg)"},{opacity:1,transform:"none"}],{duration:D(950),delay:D(i),easing:EASE,fill:"both"}),
+  exit:(c)=>c.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translate(380px,170px) rotate(18deg)"}],{duration:D(520),easing:"cubic-bezier(.5,0,.9,.5)",fill:"forwards"})},
+ {k:"C",n:"Pinned drop",d:"The piece drops in from above the screen with a pin through the top, bounces once and settles. To leave, it gets peeled off and falls away. The most playful, and the most like the real board.",
+  pl:["Shows what the app is: a board you pin things to","Memorable"],mi:["Most motion, so keep the bounce small","Can feel busy next to the text"],
+  slot:{left:201,top:590},scale:1,pinned:true,
+  enter:(c,i)=>c.animate([{opacity:0,transform:"translateY(-620px) rotate(-14deg)",easing:"cubic-bezier(.45,0,.85,.55)"},{opacity:1,transform:"translateY(26px) rotate(3deg)",offset:.58,easing:"ease-out"},{transform:"translateY(-9px) rotate(-1deg)",offset:.78,easing:"ease-in-out"},{opacity:1,transform:"none"}],{duration:D(1050),delay:D(i),fill:"both"}),
+  exit:(c)=>{c.style.transformOrigin="50% 0"; return c.animate([{opacity:1,transform:"none"},{opacity:0,transform:"rotate(-20deg) translateY(560px)"}],{duration:D(620),easing:"cubic-bezier(.5,0,.9,.5)",fill:"forwards"})}}
+];
+
+/* ---------- the timeline ---------- */
+const sleep=(ph,ms)=>new Promise(res=>{const done=()=>{clearTimeout(t);ph._skip=null;res()};const t=setTimeout(done,RM?30:ms);ph._skip=done});
+async function run(ph,v,tok){
+  const live=()=>{ if(ph._tok!==tok) throw "stop" };
+  ph._timers.forEach(clearTimeout); ph._timers.forEach(clearInterval); ph._timers=[];
+  ph.innerHTML=SB+`<div class="scene"></div><div class="dots">${BEATS.map(()=>"<i></i>").join("")}</div><div class="btns"><div class="btn">Continue with phone</div><div class="btn">or Continue with Apple</div></div>`;
+  const scene=ph.querySelector(".scene"), dots=[...ph.querySelectorAll(".dots i")];
+  try{
+    for(let i=0;i<BEATS.length;i++){
+      const b=BEATS[i], last=i===BEATS.length-1;
+      dots.forEach((d,j)=>d.classList.toggle("on",j===i));
+      const line=$(`<div class="line">${words(b.text,b.tone)}</div>`); scene.append(line);
+      const ws=[...line.querySelectorAll(".wi")], step=44;
+      ws.forEach((w,j)=>w.animate([{opacity:0,filter:"blur(12px)",transform:"scale(.94)"},{opacity:1,filter:"blur(0)",transform:"none"}],{duration:D(850),delay:D(j*step),easing:"cubic-bezier(.3,.7,.2,1)",fill:"both"}));
+      const textDone=ws.length*step+500;
+      line.querySelectorAll(".ph").forEach(m=>m.animate([{backgroundSize:"0% 46%"},{backgroundSize:"100% 46%"}],{duration:D(700),delay:D(textDone-200),easing:"cubic-bezier(.5,0,.2,1)",fill:"both"}));
+      let slot=null,comp=null;
+      if(b.comp){
+        slot=$(`<div class="slot ${v.pinned?"pinned":""}" style="left:${v.slot.left}px;top:${v.slot.top}px"><div class="pos" style="transform:translate(-50%,-50%) scale(${v.scale}) rotate(${rot[b.comp]*(v.k==="B"?2.2:1)}deg)"></div></div>`);
+        comp=make(b.comp); slot.firstChild.append(comp); scene.append(slot);
+        if(b.comp==="pile"){ [...comp.children].forEach((c,j)=>{const base=c.style.transform; c.animate([{opacity:0,transform:base+" translateY(60px)"},{opacity:1,transform:base}],{duration:D(800),delay:D(450+j*160),easing:EASE,fill:"both"})}); }
+        else { v.enter(comp,450); fill(ph,comp,b.comp,450+850); }
+      }
+      await sleep(ph,Math.max(textDone+900, b.comp?3400:2600)); live();
+      if(last) break;
+      ws.forEach((w,j)=>w.animate([{opacity:1,filter:"blur(0)"},{opacity:0,filter:"blur(10px)"}],{duration:D(380),delay:D(j*14),easing:"ease-in",fill:"forwards"}));
+      line.querySelectorAll(".ph").forEach(m=>m.animate([{opacity:1},{opacity:0}],{duration:D(380),fill:"forwards"}));
+      if(comp) v.exit(comp);
+      await sleep(ph,640); live();
+      line.remove(); slot&&slot.remove();
+    }
+    // the swipe up to sign-in
+    ph.querySelector(".dots").animate([{opacity:1},{opacity:0}],{duration:D(300),fill:"forwards"});
+    scene.animate([{transform:"translateY(0)"},{transform:"translateY(-900px)"}],{duration:D(900),easing:"cubic-bezier(.6,0,.2,1)",fill:"forwards"});
+    ph.querySelectorAll(".btn").forEach((bt,i)=>bt.animate([{transform:"translateY(60px)",opacity:0},{transform:"none",opacity:1}],{duration:D(750),delay:D(420+i*100),easing:EASE,fill:"forwards"}));
+  }catch(e){ if(e!=="stop") throw e }
+}
+
+/* ---------- page ---------- */
+const plays=[];
+VERS.forEach(v=>{
+  const el=document.createElement("div");el.className="cell";
+  el.innerHTML=`<div class="frame"><div class="phone"></div></div><h2>${v.k} · ${v.n}</h2><p>${v.d}</p>
+   <div class="pm">${v.pl.map(x=>"+ "+x).join("<br>")}<br>${v.mi.map(x=>"− "+x).join("<br>")}</div>
+   <div class="ctl"><button class="ghost" data-a="r">Replay</button><button data-a="s">Skip ahead</button></div>`;
+  document.getElementById("grid").append(el);
+  const ph=el.querySelector(".phone"); ph._timers=[]; ph._tok=0;
+  const play=()=>{ph._tok++;run(ph,v,ph._tok)};
+  el.querySelector('[data-a="r"]').onclick=play;
+  el.querySelector('[data-a="s"]').onclick=()=>ph._skip&&ph._skip();
+  ph.addEventListener("click",()=>ph._skip&&ph._skip());
+  plays.push(play); play();
+});
+document.getElementById("all").onclick=()=>plays.forEach(f=>f());
+</script>
+</body>
+</html>
