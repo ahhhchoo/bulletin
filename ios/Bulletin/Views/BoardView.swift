@@ -188,9 +188,7 @@ private struct BoardScroller: View {
             }
             // (the placeholder stays out of the way while the first-minutes tips are showing)
             if store.days.allSatisfy({ $0.posts.isEmpty }) && tips.step == .none {
-                EmptyStatePlaceholder(title: "A new month", code: "BRD-08",
-                                      intent: "Shows on an empty board and doubles as the first-post screen.")
-                    .padding(.horizontal, 24).padding(.top, 24)
+                NewMonthEmptyState().padding(.top, 20)
             }
             // "Whats on your mind..." closes the board: always right under the last day, never stranded at the foot of a short page
             Color.clear.frame(height: 28)
@@ -316,8 +314,9 @@ struct ChatQuestion: View {
         Text(text)
             .font(Typo.pixel(12))
             .foregroundStyle(.black)
-            .lineLimit(1)
-            .padding(.leading, 18)
+            .lineLimit(2)        // a long question wraps to a second line inside the same pill
+            .multilineTextAlignment(.leading)
+            .padding(.leading, 18).padding(.trailing, 14)
             .frame(width: width, height: 48, alignment: .leading)
             .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -432,6 +431,7 @@ struct OutsideTopCorners: Shape {
 /// The fixed title bar: "Prompts" and the month. Once the card has scrolled up out of view it stays as the white bar
 /// (its own bottom edge squares off while the card is opening, so the two read as one).
 private struct TitleBar: View {
+    @Environment(BoardStore.self) private var store
     let offset: CGFloat
     let onTap: () -> Void
 
@@ -484,7 +484,7 @@ private struct TitleBar: View {
                 .font(.system(size: 18 + 8 * (1 - f), weight: f > 0.5 ? .medium : .bold))
                 .padding(.leading, 16 + 12 * f)
                 .padding(.top, 57 + 12 * f)
-            Text("November")
+            Text(store.monthName)
                 .font(Typo.pixel(18))
                 .foregroundStyle(.black.opacity(0.4))
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -524,7 +524,7 @@ private struct DayRow: View {
             if day.id == store.todayID {
                 Text("today").font(Typo.pixel(14)).foregroundStyle(.black)
             }
-            Text("Nov \(day.id)").font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.5))
+            Text("\(store.monthShort) \(day.id)").font(Typo.pixel(14)).foregroundStyle(.black.opacity(0.5))
             if !day.posts.isEmpty {
                 if collapsed {
                     Text("· \(day.posts.count) post\(day.posts.count == 1 ? "" : "s")")
@@ -549,7 +549,7 @@ private struct DayRow: View {
                 .onTapGesture { withAnimation(.smooth(duration: 0.4)) { store.toggleDay(day.id) } }
                 .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: collapsed)
                 .accessibilityAddTraits(.isButton)
-                .accessibilityLabel("Nov \(day.id), \(collapsed ? "folded" : "open")")
+                .accessibilityLabel("\(store.monthShort) \(day.id), \(collapsed ? "folded" : "open")")
                 .accessibilityHint(collapsed ? "Opens this day" : "Folds this day away")
         }
     }

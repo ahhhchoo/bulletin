@@ -51,6 +51,19 @@ import SwiftUI
         save()
     }
 
+    /// Called when someone signs in again: puts back what the server saved.
+    func restore(_ remote: RemoteProfile, phone: String) {
+        username = remote.username
+        first = remote.first
+        last = remote.last
+        self.phone = phone
+        birthday = remote.birthday
+        photo = remote.photo
+        signedUpWith = remote.signedUpWith
+        usernameChangedAt = remote.usernameChangedAt
+        save()
+    }
+
     // MARK: saving
 
     private static var photoURL: URL? {

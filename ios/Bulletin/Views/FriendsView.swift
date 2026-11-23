@@ -163,8 +163,7 @@ private struct FriendBlock: View {
                     .overlay(alignment: .bottomTrailing) { PaperFold().fill(post.stickyColor.flap).frame(width: 26.6, height: 26.6) }
             default:
                 if let image = post.image {
-                    Image(uiImage: image.uiImage)
-                        .resizable().scaledToFill()
+                    FeedPicture(image: image)
                         .frame(width: 128, height: min(160, 128 / max(image.aspect, 0.01)))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white, lineWidth: 2))

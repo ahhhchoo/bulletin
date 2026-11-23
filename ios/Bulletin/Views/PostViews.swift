@@ -95,11 +95,14 @@ private struct PhotoPost: View {
         .frame(width: width, height: height + 25.4 + extraCaptionHeight, alignment: .top)
     }
 
+    /// Feeds and tiles use the small picture. Only an opened photo (`fullCaption`) loads the big one, or plays the GIF.
     @ViewBuilder private var picture: some View {
         if let image {
-            Image(uiImage: image.uiImage)
-                .resizable()
-                .scaledToFill()
+            if fullCaption {
+                FullPicture(image: image)
+            } else {
+                FeedPicture(image: image)
+            }
         } else {
             Color("Sticky")
         }

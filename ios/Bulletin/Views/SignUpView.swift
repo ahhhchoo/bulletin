@@ -13,6 +13,8 @@ enum SignUpMethod { case phone, apple }
     var username = ""
     var photo: UIImage?
     var birthday = Calendar.current.date(byAdding: .year, value: -22, to: .now) ?? .now
+    /// Set by the username screen once the server says the name is free.
+    var usernameFree = false
 
     static let minimumAge = 13
     static let usernameRange = 3...20
@@ -33,7 +35,12 @@ struct SignUpView: View {
     let onFinish: () -> Void
 
     @Environment(ProfileStore.self) private var profile
+    @Environment(AuthService.self) private var auth
+    @Environment(ProfileService.self) private var service
     @State private var model = SignUpModel()
+    @State private var sending = false
+    @State private var sendError: String?
+    @State private var saveError: String?
     @State private var index = 0
     @State private var forward = true
     @State private var pickerItem: PhotosPickerItem?
@@ -64,7 +71,7 @@ struct SignUpView: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = MediaProcessor.avatar(from: data) {
                     withAnimation(.spring(duration: 0.4)) { model.photo = image }
                 }
             }
@@ -116,7 +123,7 @@ struct SignUpView: View {
     @ViewBuilder private var stepView: some View {
         switch step {
         case .phone: PhoneStep(model: model)
-        case .code: CodeStep(model: model, onVerified: { go(1) })
+        case .code: CodeStep(model: model, onVerified: { afterVerified() })
         case .name: NameStep(model: model, onDone: { if canContinue { go(1) } })
         case .username: UsernameStep(model: model, onDone: { if canContinue { go(1) } })
         case .photo: PhotoStep(model: model, picker: $pickerItem)
@@ -129,7 +136,7 @@ struct SignUpView: View {
         switch step {
         case .phone: model.phone.count == 10
         case .name: !model.first.trimmingCharacters(in: .whitespaces).isEmpty && !model.last.trimmingCharacters(in: .whitespaces).isEmpty
-        case .username: UsernameCheck.isUsable(model.username)
+        case .username: UsernameCheck.isUsable(model.username) && model.usernameFree
         case .birthday: model.isOldEnough
         default: true
         }
@@ -154,16 +161,75 @@ struct SignUpView: View {
                     onFinish()
                 } label: { CapsuleLabel(title: "Start your Bulletin", style: .solid) }.buttonStyle(PressableStyle())
             default:
-                Button { go(1) } label: { CapsuleLabel(title: step == .phone ? "Send code" : "Continue", style: .solid) }
+                Button {
+                    if step == .phone { sendCode() } else if step == .birthday { saveProfile() } else { go(1) }
+                } label: { CapsuleLabel(title: step == .phone ? (sending ? "Sending…" : "Send code") : (step == .birthday && sending ? "Saving…" : "Continue"), style: .solid) }
                     .buttonStyle(PressableStyle())
-                    .disabled(!canContinue)
-                    .opacity(canContinue ? 1 : 0.22)
+                    .disabled(!canContinue || sending)
+                    .opacity(canContinue && !sending ? 1 : 0.22)
                     .animation(.easeOut(duration: 0.2), value: canContinue)
             }
         }
         .padding(.horizontal, 27)
         .padding(.top, 8)
         .padding(.bottom, 12)
+        .alert("Couldn’t send the code", isPresented: Binding(get: { sendError != nil }, set: { if !$0 { sendError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(sendError ?? "") }
+        .alert("Couldn’t save your profile", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(saveError ?? "") }
+    }
+
+    /// The code was right. Someone who has signed up before gets their profile back and skips the rest.
+    private func afterVerified() {
+        guard let uid = auth.uid else { go(1); return }
+        Task {
+            if let remote = try? await service.loadProfile(uid: uid) {
+                profile.restore(remote, phone: model.phone)
+                onFinish()
+            } else {
+                go(1)
+            }
+        }
+    }
+
+    /// The last details are in: save the profile to the server, then show the "You're in" screen.
+    private func saveProfile() {
+        // Apple sign-in has no account on the server yet, so there is nothing to save.
+        guard method == .phone, let uid = auth.uid else { go(1); return }
+        sending = true
+        Task {
+            defer { sending = false }
+            do {
+                try await service.createProfile(uid: uid, username: model.username,
+                                                first: model.first.trimmingCharacters(in: .whitespaces),
+                                                last: model.last.trimmingCharacters(in: .whitespaces),
+                                                birthday: model.birthday, photo: model.photo, method: method)
+                go(1)
+            } catch ProfileService.ProfileError.usernameTaken {
+                // someone claimed it while this person was filling in the rest: back to pick another
+                model.usernameFree = false
+                if let i = steps.firstIndex(of: .username) { forward = false; withAnimation { index = i } }
+                saveError = ProfileService.ProfileError.usernameTaken.errorDescription
+            } catch {
+                saveError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Texts the code, then moves on to the code screen.
+    private func sendCode() {
+        sending = true
+        Task {
+            defer { sending = false }
+            do {
+                try await auth.sendCode(toUSNumber: model.phone)
+                go(1)
+            } catch {
+                sendError = error.localizedDescription
+            }
+        }
     }
 }
 
@@ -312,7 +378,10 @@ struct PhoneStep: View {
 // MARK: - code
 
 struct CodeStep: View {
+    @Environment(AuthService.self) private var auth
     @Bindable var model: SignUpModel
+    /// True when someone already signed in is adding or changing their number (Settings).
+    var linking = false
     let onVerified: () -> Void
     @FocusState private var focused: Bool
     @State private var seconds = 30
@@ -355,7 +424,10 @@ struct CodeStep: View {
                     } else if seconds > 0 {
                         Text("Resend in 0:\(String(format: "%02d", seconds))").foregroundStyle(.black.opacity(0.5))
                     } else {
-                        Button("Send a new code") { seconds = 30; model.code = "" }
+                        Button("Send a new code") {
+                            seconds = 30; model.code = ""
+                            Task { try? await auth.sendCode(toUSNumber: model.phone) }
+                        }
                             .foregroundStyle(.black).underline()
                     }
                 }
@@ -373,16 +445,17 @@ struct CodeStep: View {
             if digits != new { model.code = digits; return }
             wrong = false
             guard digits.count == 6 else { return }
-            // No server yet: any code works except 000000, so the wrong-code state can be seen.
-            if digits == "000000" {
-                wrong = true
-                withAnimation(.linear(duration: 0.4)) { shake += 1 }
-                Task {
+            Task {
+                do {
+                    try await auth.verify(code: digits, linking: linking)
+                    try? await Task.sleep(for: .milliseconds(250))
+                    onVerified()
+                } catch {
+                    wrong = true
+                    withAnimation(.linear(duration: 0.4)) { shake += 1 }
                     try? await Task.sleep(for: .milliseconds(700))
                     model.code = ""; wrong = false
                 }
-            } else {
-                Task { try? await Task.sleep(for: .milliseconds(350)); onVerified() }
             }
         }
     }
@@ -430,14 +503,18 @@ struct NameStep: View {
 // MARK: - username
 
 enum UsernameCheck: Equatable {
-    case empty, short, checking, taken, free
+    case empty, short, checking, taken, free, offline
 
+    /// Long enough and short enough. Whether it is free is the server's call (see `SignUpModel.usernameFree`).
     static func isUsable(_ name: String) -> Bool {
-        SignUpModel.usernameRange.contains(name.count) && !SignUpModel.taken.contains(name)
+        SignUpModel.usernameRange.contains(name.count)
     }
 }
 
 struct UsernameStep: View {
+    @Environment(AuthService.self) private var auth
+    @Environment(ProfileService.self) private var service
+    @Environment(ProfileStore.self) private var profile
     @Bindable var model: SignUpModel
     let onDone: () -> Void
     @FocusState private var focused: Bool
@@ -487,13 +564,23 @@ struct UsernameStep: View {
     private func run() {
         checking?.cancel()
         let name = model.username
+        model.usernameFree = false
         if name.isEmpty { check = .empty; return }
         if name.count < SignUpModel.usernameRange.lowerBound { check = .short; return }
+        if name == profile.username { check = .free; model.usernameFree = true; return }      // keeping your own
         check = .checking
         checking = Task {
             try? await Task.sleep(for: .milliseconds(650))
             guard !Task.isCancelled else { return }
-            check = SignUpModel.taken.contains(name) ? .taken : .free
+            do {
+                let free = try await service.isUsernameFree(name, mine: auth.uid)
+                guard !Task.isCancelled else { return }
+                check = free ? .free : .taken
+                model.usernameFree = free
+            } catch {
+                guard !Task.isCancelled else { return }
+                check = .offline
+            }
         }
     }
 
@@ -508,6 +595,8 @@ struct UsernameStep: View {
                 Text("At least 3 characters.").dim()
             case .checking:
                 HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Checking…") }.dim()
+            case .offline:
+                Text("Couldn’t check that name. Check your connection.").font(.system(size: 14, weight: .medium)).foregroundStyle(errorColor)
             case .free:
                 Text("@\(model.username) is yours.").font(.system(size: 14, weight: .medium)).foregroundStyle(goodColor)
             case .taken:
@@ -659,5 +748,5 @@ private struct DoneStep: View {
     }
 }
 
-#Preview("Phone") { SignUpView(method: .phone, onBack: {}, onFinish: {}).environment(ProfileStore()) }
-#Preview("Apple") { SignUpView(method: .apple, onBack: {}, onFinish: {}).environment(ProfileStore()) }
+#Preview("Phone") { SignUpView(method: .phone, onBack: {}, onFinish: {}).environment(ProfileStore()).environment(AuthService()).environment(ProfileService()) }
+#Preview("Apple") { SignUpView(method: .apple, onBack: {}, onFinish: {}).environment(ProfileStore()).environment(AuthService()).environment(ProfileService()) }

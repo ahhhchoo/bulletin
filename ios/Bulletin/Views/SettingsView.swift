@@ -5,6 +5,8 @@ import PhotosUI
 /// for people who signed up with Apple. Reached from the picture at the top of the Shelf.
 struct SettingsView: View {
     @Environment(ProfileStore.self) private var profile
+    @Environment(AuthService.self) private var auth
+    @Environment(ProfileService.self) private var service
     @Environment(\.dismiss) private var dismiss
     @State private var editing: ProfileField?
     @State private var pickerItem: PhotosPickerItem?
@@ -47,9 +49,10 @@ struct SettingsView: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = MediaProcessor.avatar(from: data) {
                     withAnimation(.spring(duration: 0.4)) { profile.photo = image }
                     profile.save()
+                    if let uid = auth.uid { try? await service.updatePhoto(uid: uid, photo: image) }
                 }
             }
         }
@@ -168,9 +171,14 @@ enum ProfileField: String, Identifiable {
 struct EditProfileView: View {
     let field: ProfileField
     @Environment(ProfileStore.self) private var profile
+    @Environment(AuthService.self) private var auth
+    @Environment(ProfileService.self) private var service
     @Environment(\.dismiss) private var dismiss
 
+    @State private var saving = false
     @State private var model = SignUpModel()
+    @State private var sendError: String?
+    @State private var saveError: String?
     @State private var sentCode = false
     @State private var ready = false
 
@@ -227,7 +235,7 @@ struct EditProfileView: View {
             BirthdayStep(model: model)
         case .phone:
             if sentCode {
-                CodeStep(model: model, onVerified: { save() })
+                CodeStep(model: model, linking: true, onVerified: { save() })
             } else {
                 PhoneStep(model: model,
                           title: profile.hasPhone ? "New number" : "Add your number",
@@ -240,7 +248,7 @@ struct EditProfileView: View {
     private var canSave: Bool {
         switch field {
         case .username:
-            profile.canChangeUsername && UsernameCheck.isUsable(model.username) && model.username != profile.username
+            profile.canChangeUsername && UsernameCheck.isUsable(model.username) && model.usernameFree && model.username != profile.username
         case .name:
             !model.first.trimmingCharacters(in: .whitespaces).isEmpty && !model.last.trimmingCharacters(in: .whitespaces).isEmpty
         case .birthday:
@@ -258,7 +266,14 @@ struct EditProfileView: View {
                 EmptyView()      // the code checks itself
             } else {
                 Button {
-                    if field == .phone { withAnimation(.easeOut(duration: 0.25)) { sentCode = true } } else { save() }
+                    if field == .phone {
+                        Task {
+                            do {
+                                try await auth.sendCode(toUSNumber: model.phone)
+                                withAnimation(.easeOut(duration: 0.25)) { sentCode = true }
+                            } catch { sendError = error.localizedDescription }
+                        }
+                    } else { save() }
                 } label: { CapsuleLabel(title: field == .phone ? "Send code" : "Save", style: .solid) }
                     .buttonStyle(PressableStyle())
                     .disabled(!canSave)
@@ -269,25 +284,47 @@ struct EditProfileView: View {
         .padding(.horizontal, 27)
         .padding(.top, 8)
         .padding(.bottom, 12)
+        .alert("Couldn’t send the code", isPresented: Binding(get: { sendError != nil }, set: { if !$0 { sendError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(sendError ?? "") }
+        .alert("Couldn’t save that", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(saveError ?? "") }
     }
 
     // MARK: saving
 
+    /// Saves to the server first, then on the phone, so the two never disagree. The phone number was already
+    /// attached to the account by the code check, so it only needs saving here.
     private func save() {
-        switch field {
-        case .username:
-            profile.username = model.username
-            profile.usernameChangedAt = .now
-        case .name:
-            profile.first = model.first.trimmingCharacters(in: .whitespaces)
-            profile.last = model.last.trimmingCharacters(in: .whitespaces)
-        case .birthday:
-            profile.birthday = model.birthday
-        case .phone:
-            profile.phone = model.phone
+        guard !saving else { return }
+        saving = true
+        Task {
+            defer { saving = false }
+            do {
+                let uid = auth.uid
+                switch field {
+                case .username:
+                    if let uid { try await service.changeUsername(uid: uid, from: profile.username, to: model.username) }
+                    profile.username = model.username
+                    profile.usernameChangedAt = .now
+                case .name:
+                    let first = model.first.trimmingCharacters(in: .whitespaces), last = model.last.trimmingCharacters(in: .whitespaces)
+                    if let uid { try await service.updateName(uid: uid, first: first, last: last) }
+                    profile.first = first
+                    profile.last = last
+                case .birthday:
+                    if let uid { try await service.updateBirthday(uid: uid, birthday: model.birthday) }
+                    profile.birthday = model.birthday
+                case .phone:
+                    profile.phone = model.phone
+                }
+                profile.save()
+                close()
+            } catch {
+                saveError = error.localizedDescription
+            }
         }
-        profile.save()
-        close()
     }
 
     private func close() {
@@ -297,5 +334,5 @@ struct EditProfileView: View {
 }
 
 #Preview("Settings") {
-    SettingsView().environment(ProfileStore())
+    SettingsView().environment(ProfileStore()).environment(AuthService()).environment(ProfileService())
 }

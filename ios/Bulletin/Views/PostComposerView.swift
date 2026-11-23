@@ -368,9 +368,11 @@ struct PostComposerView: View {
 
     private func attach(_ item: PhotosPickerItem) async {
         defer { pickedItem = nil }
+        // Shrunk and re-encoded straight away (a thumbnail, a 1600px version, or a shrunk GIF), so a camera original is
+        // never kept in memory or uploaded.
         guard let data = try? await item.loadTransferable(type: Data.self),
-              let picked = UIImage(data: data) else { return }
-        let image = PostImage(uiImage: picked.scaled(maxSide: 1400))
+              let media = try? await MediaProcessor.process(data),
+              let image = PostImage(media: media) else { return }
         withAnimation(.spring(duration: 0.5, bounce: 0.25)) { photo = image }
         // Focus the caption once the system picker has finished dismissing; before that it is ignored.
         try? await Task.sleep(for: .milliseconds(600))

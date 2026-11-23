@@ -195,16 +195,19 @@ struct FriendBoardView: View {
     }
 }
 
-private struct DayBlock: View {
+/// One day on a board: its label and its posts down the timeline. Also used to read a sealed month.
+struct DayBlock: View {
     @Environment(BoardStore.self) private var board
     @Environment(NotesStore.self) private var notes
     let day: BoardDay
     let isLast: Bool
+    /// What to call the day. Defaults to the current month's "Mon 2".
+    var label: ((Int) -> String)?
     let onOpen: (Post) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(board.shortLabel(day.id))
+            Text(label?(day.id) ?? board.shortLabel(day.id))
                 .font(Typo.scaled(14, .medium, relativeTo: .subheadline))
                 .foregroundStyle(.black.opacity(0.5)).frame(height: 17)
             if day.posts.isEmpty {

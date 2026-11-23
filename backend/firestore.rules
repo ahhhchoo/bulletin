@@ -1,0 +1,152 @@
+rules_version = '2';
+
+// Bulletin's Firestore rules. Everything is closed unless a rule below opens it.
+//
+// users/{uid}        private: name and birthday. Only you.
+// profiles/{uid}     public: username and photo. Any signed-in person can read it (tightened to friends later).
+// boards/{uid}_{month} a month: what you are into, and once sealed its title and cover. Sealed months can't gain posts.
+// posts/{id}         a post: owner, month, day, text, and where its pictures are. Owner only for now.
+// prompts/{yyyy-MM}  the month's question. Read only.
+// usernames/{name}   one document per taken username: this is what makes names unique. Created once, never edited.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // where a picture's files are: only inside your own folder
+    function validMedia(m) {
+      return m.keys().hasOnly(['fullPath', 'thumbPath', 'feedPath', 'width', 'height', 'isAnimated'])
+        && m.fullPath is string && m.fullPath.matches('^posts/' + request.auth.uid + '/.*')
+        && m.thumbPath is string && m.thumbPath.matches('^posts/' + request.auth.uid + '/.*')
+        && (!('feedPath' in m) || (m.feedPath is string && m.feedPath.matches('^posts/' + request.auth.uid + '/.*')))
+        && m.width is int && m.height is int && m.isAnimated is bool;
+    }
+
+    // lowercase letters, numbers and underscores, 3 to 20 long
+    function validName(name) { return name.matches('^[a-z0-9_]{3,20}$'); }
+
+    // ---- private details ----
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['first', 'last', 'birthday', 'signedUpWith', 'createdAt'])
+        && request.resource.data.first is string && request.resource.data.first.size() <= 40
+        && request.resource.data.last is string && request.resource.data.last.size() <= 40
+        // 13 or older (13 years is about 4748 days)
+        && request.resource.data.birthday is timestamp
+        && request.resource.data.birthday <= request.time - duration.value(4748, 'd');
+      allow delete: if isOwner(uid);
+    }
+
+    // ---- public profile ----
+    match /profiles/{uid} {
+      allow read: if signedIn();
+
+      function usernameClaimed(name) {
+        // the username must be claimed by this person in the same write
+        return getAfter(/databases/$(database)/documents/usernames/$(name)).data.uid == request.auth.uid;
+      }
+      function validProfile(d) {
+        return d.keys().hasOnly(['username', 'photoPath', 'usernameChangedAt'])
+          && d.username is string && validName(d.username) && usernameClaimed(d.username)
+          && (!('photoPath' in d) || (d.photoPath is string && d.photoPath.matches('^avatars/' + request.auth.uid + '/.*')));
+      }
+      // a name can change once every 30 days
+      function cooldownOver(old) {
+        return !('usernameChangedAt' in old) || old.usernameChangedAt + duration.value(30, 'd') <= request.time;
+      }
+
+      allow create: if isOwner(uid) && validProfile(request.resource.data)
+        && !('usernameChangedAt' in request.resource.data);
+      allow update: if isOwner(uid) && validProfile(request.resource.data)
+        && (
+          // same name: the photo changed, and the change time can't be touched
+          (request.resource.data.username == resource.data.username
+            && request.resource.data.get('usernameChangedAt', null) == resource.data.get('usernameChangedAt', null))
+          // new name: only after the cooldown, stamped with the server's time
+          || (cooldownOver(resource.data) && request.resource.data.usernameChangedAt == request.time)
+        );
+      allow delete: if isOwner(uid);
+    }
+
+    // ---- posts ----
+    // One document per post, top level so friends' feeds can read them later. For now only the owner can read.
+    match /posts/{postId} {
+      function validPost(d) {
+        return d.keys().hasOnly(['ownerId', 'month', 'day', 'order', 'kind', 'text', 'title', 'stickyColor', 'rotation',
+                                 'isPromptAnswer', 'isClipped', 'addedLabel', 'postedAt', 'media', 'createdAt'])
+          && d.ownerId == request.auth.uid
+          && d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$')
+          && d.day is int && d.day >= 1 && d.day <= 31
+          && d.order is number
+          && d.kind in ['photo', 'sticky', 'journal']
+          && d.text is string && d.text.size() <= 10000
+          && (!('title' in d) || (d.title is string && d.title.size() <= 100))
+          && d.rotation is number
+          && d.isPromptAnswer is bool && d.isClipped is bool
+          && d.postedAt is timestamp
+          && (!('media' in d) || validMedia(d.media));
+      }
+      // Sealed means sealed: once a month is sealed nothing can be added to it or changed. Deleting is still allowed.
+      function monthOpen(month) {
+        let board = /databases/$(database)/documents/boards/$(request.auth.uid + '_' + month);
+        return !exists(board) || get(board).data.sealed != true;
+      }
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && validPost(request.resource.data) && monthOpen(request.resource.data.month);
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid && validPost(request.resource.data)
+        && monthOpen(resource.data.month);
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ---- a month's board: what you are into, and (once sealed) its title and cover ----
+    // boards/{uid}_{yyyy-MM}
+    match /boards/{boardId} {
+      function validBoard(d) {
+        return d.keys().hasOnly(['ownerId', 'month', 'into', 'intoEarlier', 'sealed', 'sealedAt', 'title', 'cover',
+                                 'pins', 'notes', 'busiest', 'updatedAt'])
+          && d.ownerId == request.auth.uid
+          && d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$')
+          && boardId == request.auth.uid + '_' + d.month
+          && d.sealed is bool
+          && (!('into' in d) || (d.into is string && d.into.size() <= 120))
+          && (!('intoEarlier' in d) || (d.intoEarlier is list && d.intoEarlier.size() <= 20))
+          && (!('title' in d) || (d.title is string && d.title.size() <= 30))
+          && (!('cover' in d) || validMedia(d.cover))
+          && (!('pins' in d) || d.pins is int)
+          && (!('notes' in d) || d.notes is int)
+          && (!('busiest' in d) || d.busiest is int);
+      }
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && validBoard(request.resource.data);
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid && validBoard(request.resource.data)
+        && (
+          // an open month can change freely (and be sealed)
+          resource.data.sealed != true
+          // a sealed month can only be renamed or get a new cover
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'cover', 'updatedAt'])
+        );
+      // a board is never deleted from the app
+    }
+
+    // ---- the monthly prompt ----
+    // prompts/{yyyy-MM} with a `text` field. Anyone signed in can read it; nobody can write it from the app
+    // (you edit prompts in the Firebase console, which isn't bound by these rules).
+    match /prompts/{month} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ---- who has which username ----
+    match /usernames/{name} {
+      allow read: if signedIn();      // lets the sign-up screen check a name is free
+      allow create: if signedIn() && validName(name)
+        && request.resource.data.keys().hasOnly(['uid', 'claimedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && !(name in ['admin', 'support', 'bulletin', 'help', 'official', 'staff', 'moderator', 'root', 'team', 'info']);
+      // no update: a taken name can never be taken over
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}

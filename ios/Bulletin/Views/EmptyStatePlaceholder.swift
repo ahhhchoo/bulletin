@@ -38,8 +38,6 @@ struct EmptyStatePlaceholder: View {
 #Preview("Empty states") {
     ScrollView {
         VStack(spacing: 16) {
-            EmptyStatePlaceholder(title: "A new month", code: "BRD-08",
-                                  intent: "Shows on an empty board and doubles as the first-post screen.")
             EmptyStatePlaceholder(title: "Nobody has added you yet", code: "FRN-02",
                                   intent: "Explains the Shared tab and has an invite button.")
             EmptyStatePlaceholder(title: "Nothing on your shelf yet",

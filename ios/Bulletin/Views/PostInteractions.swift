@@ -229,6 +229,7 @@ struct PostDetailView: View {
 struct JournalPage: View {
     @Environment(BoardStore.self) private var store
     let post: Post
+    @State private var viewport: CGFloat = 0
 
     private var title: String { if case .journal(let t, _) = post.kind { t } else { "" } }
     private var text: String { if case .journal(_, let b) = post.kind { b } else { "" } }
@@ -258,12 +259,19 @@ struct JournalPage: View {
                 .padding(.horizontal, 20).padding(.top, 6)
 
                 ScrollView {
+                    // the whole scrolling area is the backdrop: a tap anywhere off the page closes it
                     page
+                        .contentShape(.rect)
+                        .onTapGesture {}      // a tap on the page itself does nothing
                         .padding(.horizontal, 20)
                         .padding(.top, 14)
                         .padding(.bottom, 40)
+                        .frame(maxWidth: .infinity, minHeight: viewport, alignment: .top)
+                        .contentShape(.rect)
+                        .onTapGesture(perform: close)
                 }
                 .scrollIndicators(.hidden)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
             }
         }
         .transition(.opacity)
@@ -272,7 +280,7 @@ struct JournalPage: View {
     private var page: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let day = store.dayID(of: post.id) {
-                Text("Nov \(day)")
+                Text("\(store.monthShort) \(day)")
                     .font(Typo.pixel(14))
                     .foregroundStyle(.black.opacity(0.5))
             }

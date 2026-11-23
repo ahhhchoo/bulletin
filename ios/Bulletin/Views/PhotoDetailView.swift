@@ -101,8 +101,9 @@ struct PhotoDetailView: View {
 
     private var photoView: some View {
         Group {
-            if let image = post.image?.uiImage {
-                Image(uiImage: image).resizable().scaledToFill()
+            if let image = post.image {
+                // opened: the full picture, or the GIF playing
+                FullPicture(image: image)
             } else {
                 Color("Sticky")
             }
