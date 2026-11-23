@@ -139,7 +139,7 @@ struct IntroView: View {
             case .journal:
                 PostView(post: Post(kind: .journal(title: "a slow, good day", body: journalBody.isEmpty ? " " : journalBody), rotation: 0), animated: false, tilt: 0, backSheet: .intro)
             case .photo:
-                PostView(post: Post(kind: .photo(caption: "claypot night"), rotation: 0, image: SamplePhotos.image(1)), animated: false, tilt: 0)
+                PostView(post: Post(kind: .photo(caption: "sandwiches at alamo square"), rotation: 0, image: SamplePhotos.onboarding), animated: false, tilt: 0)
                     .blur(radius: photoBlur)
             }
         }

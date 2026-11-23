@@ -79,6 +79,14 @@ final class FriendsStore {
     var unreadActivity: Int { activity.filter(\.unread).count }
     /// The dot on the person button: a request waiting, or activity you have not seen.
     var needsAttention: Bool { addBack != nil || unreadActivity > 0 }
+    /// What a new person sees: nobody yet. The sample friends are only for the designs.
+    func startFresh() {
+        friends = []
+        guests = []
+        addBack = nil
+        activity = []
+    }
+
     func markActivityRead() { for i in activity.indices { activity[i].unread = false } }
 
     /// What each friend has on their board (placeholder content until real boards exist).

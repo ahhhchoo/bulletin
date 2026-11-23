@@ -9,4 +9,9 @@ enum SamplePhotos {
     static func image(_ n: Int) -> PostImage? {
         UIImage(named: "SamplePhoto\((n % count) + 1)").map { PostImage(uiImage: $0) }
     }
+
+    /// The photo the intro and the empty Shared tab show: sandwiches at Alamo Square.
+    static var onboarding: PostImage? {
+        UIImage(named: "OnboardingPhoto").map { PostImage(uiImage: $0) }
+    }
 }

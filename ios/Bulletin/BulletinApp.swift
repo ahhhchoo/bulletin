@@ -6,6 +6,8 @@ struct BulletinApp: App {
     @State private var friends = FriendsStore()
     @State private var stickers = StickerStore()
     @State private var notes = NotesStore()
+    @State private var profile = ProfileStore()
+    @State private var tips = TipsStore()
 
     @AppStorage("introDone") private var introDone = false
     @State private var showIntro: Bool
@@ -32,6 +34,8 @@ struct BulletinApp: App {
                     .environment(friends)
                     .environment(stickers)
                     .environment(notes)
+                    .environment(profile)
+                    .environment(tips)
                 if showIntro {
                     IntroView { method in
                         withAnimation(.easeOut(duration: 0.35)) { signUp = method }
@@ -44,13 +48,28 @@ struct BulletinApp: App {
                         withAnimation(.easeOut(duration: 0.3)) { signUp = nil }
                     } onFinish: {
                         introDone = true
+                        store.startFresh()        // a new board is empty and nothing is set; the tips start there
+                        friends.startFresh()
                         withAnimation(.easeOut(duration: 0.5)) { showIntro = false; signUp = nil }
+                        tips.begin()
                     }
+                    .environment(profile)
                     .transition(.opacity)
                     .zIndex(2)
                 }
             }
             .preferredColorScheme(.light) // designs are light-only for now
+            #if DEBUG
+            .task {
+                // -tips starts the tips on the board; -tipNote shows the notifications question a few seconds later
+                if CommandLine.arguments.contains("-tips") { store.startFresh(); friends.startFresh(); tips.begin() }
+                if CommandLine.arguments.contains("-tipInvite") { store.startFresh(); tips.debugShow(.invite) }
+                if CommandLine.arguments.contains("-tipNote") {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    tips.noteArrived(by: "Maya")
+                }
+            }
+            #endif
         }
     }
 }

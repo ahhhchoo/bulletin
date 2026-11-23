@@ -22,20 +22,6 @@ enum SignUpMethod { case phone, apple }
     var age: Int { Calendar.current.dateComponents([.year], from: birthday, to: .now).year ?? 0 }
     var isOldEnough: Bool { age >= Self.minimumAge }
     var initial: String { String((username.first ?? first.first ?? "?")).uppercased() }
-
-    /// Remembers the profile on this device (the name and birthday are never shown to other people).
-    func save() {
-        let d = UserDefaults.standard
-        d.set(username, forKey: "profile.username")
-        d.set(first, forKey: "profile.firstName")
-        d.set(last, forKey: "profile.lastName")
-        d.set(birthday, forKey: "profile.birthday")
-        d.set(phone, forKey: "profile.phone")
-        if let data = photo?.jpegData(compressionQuality: 0.85),
-           let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("profile.jpg") {
-            try? data.write(to: url)
-        }
-    }
 }
 
 private enum Step { case phone, code, name, username, photo, birthday, done }
@@ -46,6 +32,7 @@ struct SignUpView: View {
     let onBack: () -> Void
     let onFinish: () -> Void
 
+    @Environment(ProfileStore.self) private var profile
     @State private var model = SignUpModel()
     @State private var index = 0
     @State private var forward = true
@@ -163,7 +150,7 @@ struct SignUpView: View {
                 }
             case .done:
                 Button {
-                    model.save()
+                    profile.adopt(model, method: method)
                     onFinish()
                 } label: { CapsuleLabel(title: "Start your Bulletin", style: .solid) }.buttonStyle(PressableStyle())
             default:
@@ -189,7 +176,7 @@ private struct Shift: ViewModifier {
     }
 }
 
-private struct CapsuleLabel: View {
+struct CapsuleLabel: View {
     enum Style { case solid, outline }
     let title: String
     let style: Style
@@ -204,7 +191,7 @@ private struct CapsuleLabel: View {
     }
 }
 
-private struct StepHeader<Content: View>: View {
+struct StepHeader<Content: View>: View {
     let title: String
     let subtitle: String
     @ViewBuilder var content: Content
@@ -229,10 +216,10 @@ private struct StepHeader<Content: View>: View {
     }
 }
 
-private enum FieldState { case normal, bad, good }
+enum FieldState { case normal, bad, good }
 
 /// A white rounded field that gets a black outline while it is focused.
-private struct FieldBox: ViewModifier {
+struct FieldBox: ViewModifier {
     var focused: Bool
     var state: FieldState = .normal
     func body(content: Content) -> some View {
@@ -258,13 +245,15 @@ private struct Shake: GeometryEffect {
     }
 }
 
-private let errorColor = Color(red: 0.9, green: 0.28, blue: 0.3)
-private let goodColor = Color(red: 0.18, green: 0.62, blue: 0.36)
+let errorColor = Color(red: 0.9, green: 0.28, blue: 0.3)
+let goodColor = Color(red: 0.18, green: 0.62, blue: 0.36)
 
 // MARK: - phone
 
-private struct PhoneStep: View {
+struct PhoneStep: View {
     @Bindable var model: SignUpModel
+    var title = "What’s your number?"
+    var subtitle = "US numbers only for now. We’ll text you a code to check it’s you."
     @FocusState private var focused: Bool
 
     private static func format(_ d: String) -> String {
@@ -277,7 +266,7 @@ private struct PhoneStep: View {
     }
 
     var body: some View {
-        StepHeader(title: "What’s your number?", subtitle: "US numbers only for now. We’ll text you a code to check it’s you.") {
+        StepHeader(title: title, subtitle: subtitle) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     HStack(spacing: 8) { Text("🇺🇸"); Text("+1").fontWeight(.semibold) }
@@ -322,7 +311,7 @@ private struct PhoneStep: View {
 
 // MARK: - code
 
-private struct CodeStep: View {
+struct CodeStep: View {
     @Bindable var model: SignUpModel
     let onVerified: () -> Void
     @FocusState private var focused: Bool
@@ -407,7 +396,7 @@ private struct CodeStep: View {
 
 // MARK: - name
 
-private struct NameStep: View {
+struct NameStep: View {
     @Bindable var model: SignUpModel
     let onDone: () -> Void
     private enum Field { case first, last }
@@ -440,7 +429,7 @@ private struct NameStep: View {
 
 // MARK: - username
 
-private enum UsernameCheck: Equatable {
+enum UsernameCheck: Equatable {
     case empty, short, checking, taken, free
 
     static func isUsable(_ name: String) -> Bool {
@@ -448,7 +437,7 @@ private enum UsernameCheck: Equatable {
     }
 }
 
-private struct UsernameStep: View {
+struct UsernameStep: View {
     @Bindable var model: SignUpModel
     let onDone: () -> Void
     @FocusState private var focused: Bool
@@ -560,16 +549,17 @@ private extension View {
 
 // MARK: - photo
 
-private struct AvatarView: View {
-    let model: SignUpModel
+struct AvatarView: View {
+    let photo: UIImage?
+    let initial: String
     var size: CGFloat = 184
     var body: some View {
         ZStack {
             Circle().fill(.white)
-            if let photo = model.photo {
+            if let photo {
                 Image(uiImage: photo).resizable().scaledToFill().frame(width: size, height: size).clipShape(Circle())
             } else {
-                Text(model.initial)
+                Text(initial)
                     .font(.system(size: size * 0.39, weight: .heavy))
                     .tracking(-2)
                     .foregroundStyle(.black.opacity(0.18))
@@ -590,7 +580,7 @@ private struct PhotoStep: View {
             StepHeader(title: "Add a photo", subtitle: "Friends see this next to your name. You can change it any time.") { EmptyView() }
                 .frame(height: 150, alignment: .top)
             PhotosPicker(selection: $picker, matching: .images) {
-                AvatarView(model: model)
+                AvatarView(photo: model.photo, initial: model.initial)
                     .overlay(alignment: .bottomTrailing) {
                         if model.photo == nil {
                             Image(systemName: "camera")
@@ -615,7 +605,7 @@ private struct PhotoStep: View {
 
 // MARK: - birthday
 
-private struct BirthdayStep: View {
+struct BirthdayStep: View {
     @Bindable var model: SignUpModel
 
     var body: some View {
@@ -650,7 +640,7 @@ private struct DoneStep: View {
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-            AvatarView(model: model, size: 120)
+            AvatarView(photo: model.photo, initial: model.initial, size: 120)
                 .scaleEffect(shown ? 1 : 0.8)
                 .opacity(shown ? 1 : 0)
             Text("You’re in.")
@@ -669,5 +659,5 @@ private struct DoneStep: View {
     }
 }
 
-#Preview("Phone") { SignUpView(method: .phone, onBack: {}, onFinish: {}) }
-#Preview("Apple") { SignUpView(method: .apple, onBack: {}, onFinish: {}) }
+#Preview("Phone") { SignUpView(method: .phone, onBack: {}, onFinish: {}).environment(ProfileStore()) }
+#Preview("Apple") { SignUpView(method: .apple, onBack: {}, onFinish: {}).environment(ProfileStore()) }

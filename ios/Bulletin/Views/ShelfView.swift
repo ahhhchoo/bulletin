@@ -248,6 +248,8 @@ struct MonthSheet: View {
 /// The shelf: sealed months in a cascade. A card is straight near the middle of the screen and tilts, shrinks and
 /// fades the further it sits from there, so the stack feels like it is being flipped through.
 struct ShelfView: View {
+    @Environment(ProfileStore.self) private var profile
+    @State private var showSettings = false
     @State private var viewport: CGFloat = 874
     @State private var opened: ShelfMonth?
     /// Sealed months, newest first.
@@ -301,7 +303,29 @@ struct ShelfView: View {
             Text("Shelf")
                 .font(.system(size: 26, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 20).padding(.top, 8)
+                .padding(.leading, 16).padding(.top, 57)     // same spot as "Shared" and "Prompts"
+                .ignoresSafeArea(edges: .top)
+
+            // your picture, top right: opens your profile settings
+            if opened == nil {
+                Button { showSettings = true } label: {
+                    Group {
+                        if profile.isSignedUp {
+                            AvatarView(photo: profile.photo, initial: profile.initial, size: 36)
+                                .shadow(color: .clear, radius: 0)
+                        } else {
+                            Image(systemName: "person.crop.circle").font(.system(size: 30)).foregroundStyle(.black)
+                        }
+                    }
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(PressableStyle())
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 16).padding(.top, 53)    // same spot as the guests icon on Shared
+                .ignoresSafeArea(edges: .top)
+                .accessibilityLabel("Profile and settings")
+            }
 
             if let month = opened {
                 MonthSheet(month: month) { withAnimation(.spring(duration: 0.4, bounce: 0.1)) { opened = nil } }
@@ -310,9 +334,10 @@ struct ShelfView: View {
             }
         }
         .toolbar(opened == nil ? .visible : .hidden, for: .tabBar)
+        .fullScreenCover(isPresented: $showSettings) { SettingsView() }
     }
 }
 
 #Preview("Shelf, empty") {
-    ShelfView(months: [])
+    ShelfView(months: []).environment(ProfileStore())
 }

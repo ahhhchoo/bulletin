@@ -9,13 +9,16 @@
 /* Begin PBXBuildFile section */
 		1FC4D148A675F2A0FE2EF50C /* BusyDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CDF12456E914EC4738A488 /* BusyDay.swift */; };
 		21FC3DB33B96B773AB63361A /* ComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */; };
+		2B113CAB7283411AE89CFF31 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383CD9C7F764E2DB7988B4A5 /* ProfileStore.swift */; };
 		2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */; };
 		313BFF4891586F9848CD837A /* StickerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C312A0A792F70ADFDA0806 /* StickerViews.swift */; };
 		4A5E51736275772D0F71A1B7 /* BulletinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */; };
+		4BAF6E0130399E56D78DFF8B /* TipsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D9FC0DCE5D7BAC3E1FAC34 /* TipsStore.swift */; };
 		4BFE3E5EE5665998B7410598 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4FDC22E4B3EB086ABA51D2 /* GuestsView.swift */; };
 		5FAA807D00F865F8AEFFE8FA /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */; };
 		6525EBEA3C034A657A28AB93 /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A5D966DE41D297451011D3 /* FriendsStore.swift */; };
 		6F132531FB1FE8318B13F782 /* PastPostPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610A4C7D810E66D9841718D0 /* PastPostPicker.swift */; };
+		71EFC8123E3574E3F4184780 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92D35616BE0DD42E577AA608 /* SettingsView.swift */; };
 		8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FBA78CEE2B666794F5068A /* TopCards.swift */; };
 		8C9B43F02C38DA97A4B69ADF /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E49F1DDB15B3C276A787FC /* BoardView.swift */; };
 		8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD454554D33728F308F5EA68 /* RootTabView.swift */; };
@@ -28,6 +31,7 @@
 		AD18F26EF7D00F42C50B273E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCF11D0E434407DF41CB93EA /* Assets.xcassets */; };
 		B106FECECB0C76E4CACBB740 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */; };
 		C2EC8EBC613014D66DFC0BE5 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1B1B2CAB3E7466AA505109 /* IntroView.swift */; };
+		C48CC59965B668FC9AF5F636 /* TipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48ABC60A777A4FD681E765CE /* TipViews.swift */; };
 		C77EC8223FA1FC0F8C2C5179 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6753A303FEDA6F57054AD434 /* JetBrainsMono-Regular.ttf */; };
 		CC1E22F81AD616E9359E00D2 /* IntoEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CAB569C57556ED7590D0A8 /* IntoEditor.swift */; };
 		D291724598B1B390FD05B7B2 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */; };
@@ -43,9 +47,12 @@
 		14FBA78CEE2B666794F5068A /* TopCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCards.swift; sourceTree = "<group>"; };
 		21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SamplePhotos.swift; sourceTree = "<group>"; };
+		31D9FC0DCE5D7BAC3E1FAC34 /* TipsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipsStore.swift; sourceTree = "<group>"; };
 		37C312A0A792F70ADFDA0806 /* StickerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerViews.swift; sourceTree = "<group>"; };
 		37F60256F48D4205B64D8BE4 /* NotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesStore.swift; sourceTree = "<group>"; };
+		383CD9C7F764E2DB7988B4A5 /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
 		459C66B2917D97F2127D53D9 /* FriendBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendBoardView.swift; sourceTree = "<group>"; };
+		48ABC60A777A4FD681E765CE /* TipViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipViews.swift; sourceTree = "<group>"; };
 		4F5759AE0A9FEF01DA12A6A7 /* ComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerView.swift; sourceTree = "<group>"; };
 		610A4C7D810E66D9841718D0 /* PastPostPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastPostPicker.swift; sourceTree = "<group>"; };
 		6753A303FEDA6F57054AD434 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
@@ -53,6 +60,7 @@
 		74CEBCCE42E0B4315B4BE50F /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
 		8A20E413A2C6D425E8F233A9 /* StickerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerStore.swift; sourceTree = "<group>"; };
 		8D561ABDD7925727E576172F /* PostComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostComposerView.swift; sourceTree = "<group>"; };
+		92D35616BE0DD42E577AA608 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A7A5D966DE41D297451011D3 /* FriendsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsStore.swift; sourceTree = "<group>"; };
 		AB1B1B2CAB3E7466AA505109 /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
 		AC982F0C540A14E1CCC3E052 /* BulletinApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulletinApp.swift; sourceTree = "<group>"; };
@@ -86,8 +94,10 @@
 				6CADE96FC36F34D72D340C2D /* BoardStore.swift */,
 				A7A5D966DE41D297451011D3 /* FriendsStore.swift */,
 				37F60256F48D4205B64D8BE4 /* NotesStore.swift */,
+				383CD9C7F764E2DB7988B4A5 /* ProfileStore.swift */,
 				298619ABE76FC14E7BA49A27 /* SamplePhotos.swift */,
 				8A20E413A2C6D425E8F233A9 /* StickerStore.swift */,
+				31D9FC0DCE5D7BAC3E1FAC34 /* TipsStore.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -127,9 +137,11 @@
 				CF0DA46D4ED66C1C00ED758F /* PostInteractions.swift */,
 				DE29D072C138CB86D05F7054 /* PostViews.swift */,
 				CD454554D33728F308F5EA68 /* RootTabView.swift */,
+				92D35616BE0DD42E577AA608 /* SettingsView.swift */,
 				F770A54208F5A67ABC3BC5E7 /* ShelfView.swift */,
 				21F08D1DFB1CBBEE4A622696 /* SignUpView.swift */,
 				37C312A0A792F70ADFDA0806 /* StickerViews.swift */,
+				48ABC60A777A4FD681E765CE /* TipViews.swift */,
 				14FBA78CEE2B666794F5068A /* TopCards.swift */,
 				E88D46AD4A45E0F120516AD5 /* Typography.swift */,
 			);
@@ -235,12 +247,16 @@
 				E70D9EDF9EC8A05192760501 /* PostComposerView.swift in Sources */,
 				F6A599D3FC2948B5394F6D60 /* PostInteractions.swift in Sources */,
 				A11BB289140580DA4771D603 /* PostViews.swift in Sources */,
+				2B113CAB7283411AE89CFF31 /* ProfileStore.swift in Sources */,
 				8CF83361F92AF840371CD4C7 /* RootTabView.swift in Sources */,
 				2F97DA9A0DD958CC234ABB61 /* SamplePhotos.swift in Sources */,
+				71EFC8123E3574E3F4184780 /* SettingsView.swift in Sources */,
 				5FAA807D00F865F8AEFFE8FA /* ShelfView.swift in Sources */,
 				D291724598B1B390FD05B7B2 /* SignUpView.swift in Sources */,
 				9DE34DB212A358984BAA6B63 /* StickerStore.swift in Sources */,
 				313BFF4891586F9848CD837A /* StickerViews.swift in Sources */,
+				C48CC59965B668FC9AF5F636 /* TipViews.swift in Sources */,
+				4BAF6E0130399E56D78DFF8B /* TipsStore.swift in Sources */,
 				8728867F11DF5C299AD9D8FD /* TopCards.swift in Sources */,
 				ACD841EE9C65B7105EB74932 /* Typography.swift in Sources */,
 			);

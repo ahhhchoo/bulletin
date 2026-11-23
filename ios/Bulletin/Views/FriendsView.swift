@@ -16,10 +16,6 @@ struct FriendsView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 19) {
-                    if friends.ordered.isEmpty {
-                        EmptyStatePlaceholder(title: "Nobody has added you yet", code: "FRN-02",
-                                              intent: "Explains the Shared tab and has an invite button.")
-                    }
                     LazyVGrid(columns: columns, spacing: 19) {
                         ForEach(friends.ordered) { friend in
                             FriendBlock(friend: friend) { open(startingAt: friend) }
@@ -35,6 +31,7 @@ struct FriendsView: View {
             .scrollIndicators(.hidden)
             .background(Color("Paper"))
             .fullScreenCover(isPresented: $showGuests) { GuestsPage() }
+            .overlay { if friends.ordered.isEmpty { SharedEmptyState() } }
             .overlay(alignment: .top) {
                 header { showGuests = true }
             }
@@ -281,5 +278,107 @@ private struct FriendQueueView: View {
         progress = 0
         busy = false
         if index + 1 >= who.count { finished = true } else { index += 1 }
+    }
+}
+
+
+// MARK: - Empty state (FRN-02)
+
+/// What the Shared tab shows before anyone has added you: a small pile of what will arrive here, and a way to invite
+/// the first person.
+private struct SharedEmptyState: View {
+    @Environment(TipsStore.self) private var tips
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var sharing = false
+    @State private var sent = false
+    @State private var landed = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 96)
+            pile
+                .frame(height: 300)
+            Text("It’s quiet in here.")
+                .font(.system(size: 30, weight: .heavy))
+                .tracking(-0.9)
+                .padding(.top, 14)
+            Text("When friends add you, their latest photos, notes and entries land here.")
+                .font(.system(size: 15))
+                .foregroundStyle(.black.opacity(0.55))
+                .multilineTextAlignment(.center)
+                .padding(.top, 10)
+                .padding(.horizontal, 12)
+            if sent {
+                sentRow
+                    .padding(.top, 20)
+                    .transition(.scale(scale: 0.94).combined(with: .opacity).combined(with: .offset(y: 8)))
+            }
+            Spacer(minLength: 16)
+            Button { sharing = true } label: {
+                Text(sent ? "Invite someone else" : "Invite someone")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(.black, in: Capsule())
+            }
+            .buttonStyle(PressableStyle())
+            Text("One link, one person, good for a week")
+                .font(.system(size: 13))
+                .foregroundStyle(.black.opacity(0.45))
+                .padding(.top, 12)
+        }
+        .padding(.horizontal, 27)
+        .padding(.bottom, 130)
+        .animation(.spring(duration: 0.5, bounce: 0.3), value: sent)
+        .sheet(isPresented: $sharing) {
+            ActivityView(items: ["Join me on Bulletin", tips.inviteURL]) { didSend in
+                sharing = false
+                if didSend { sent = true; tips.finishInvite() }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .onAppear { withAnimation(.spring(duration: 0.8, bounce: 0.3)) { landed = true } }
+    }
+
+    /// A photo, a sticky and a folded note, loosely stacked like a real bulletin.
+    private var pile: some View {
+        ZStack {
+            // the photo already has its own red pin, so no other dot
+            PostView(post: Post(kind: .photo(caption: "sandwiches at alamo square"), rotation: 0, image: SamplePhotos.onboarding), animated: false, tilt: 0)
+                .rotationEffect(.degrees(-8))
+                .offset(x: -62, y: -4)
+                .shadow(color: .black.opacity(0.18), radius: 14, y: 10)
+            PostView(post: Post(kind: .sticky(text: "tried the new place on 5th"), rotation: 0), animated: false, tilt: 0)
+                .rotationEffect(.degrees(5))
+                .offset(x: 70, y: -40)
+                .shadow(color: .black.opacity(0.16), radius: 12, y: 8)
+            PostView(post: Post(kind: .journal(title: "a slow, good day", body: "Walked the long way to work today."), rotation: 0),
+                     animated: false, tilt: 0, backSheet: .intro)
+                .rotationEffect(.degrees(-2))
+                .offset(x: 8, y: 62)
+                .shadow(color: .black.opacity(0.16), radius: 12, y: 8)
+        }
+        .scaleEffect(0.84)
+        .scaleEffect(landed || reduceMotion ? 1 : 0.9)
+        .opacity(landed || reduceMotion ? 1 : 0)
+        .accessibilityHidden(true)
+    }
+
+    private var sentRow: some View {
+        HStack(spacing: 12) {
+            Text("1")
+                .font(.system(size: 16, weight: .bold))
+                .frame(width: 38, height: 38)
+                .background(Color("Sticky"), in: Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Invite sent").font(.system(size: 15, weight: .semibold))
+                Text("Waiting on them · 7 days left").font(.system(size: 13)).foregroundStyle(.black.opacity(0.5))
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.black.opacity(0.12), lineWidth: 1))
     }
 }

@@ -156,6 +156,19 @@ final class BoardStore {
     /// Days you can post to: this month, up to today. Newest first.
     var postableDays: [Int] { Array((1...todayID).reversed()) }
 
+    // MARK: a new person's board
+
+    /// What someone sees right after signing up: today, with nothing on it, and nothing set yet. The sample
+    /// days above are only for the designs.
+    func startFresh() {
+        days = [BoardDay(id: todayID, posts: [])]
+        currentlyInto = ""
+        intoHistory = []
+        intoEarlierThisMonth = []
+        promptAnswerID = nil
+        collapsedDays = []
+    }
+
     // MARK: currently into
 
     /// Changing it mid-month is fine; the old value is kept under this month's history.
@@ -163,7 +176,7 @@ final class BoardStore {
         let new = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !new.isEmpty, new != currentlyInto else { return }
         intoEarlierThisMonth.removeAll { $0 == new || $0 == currentlyInto }
-        intoEarlierThisMonth.insert(currentlyInto, at: 0)
+        if !currentlyInto.isEmpty { intoEarlierThisMonth.insert(currentlyInto, at: 0) }
         currentlyInto = new
     }
 

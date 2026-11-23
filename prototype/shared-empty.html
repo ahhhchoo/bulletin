@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FRN-02 — Shared, empty</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf")}
+:root{
+  --paper:#f5f5f5; --blue:#0078fc; --line:rgba(0,0,0,.12);
+  --ui:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;
+  --display:"SF Pro Display",-apple-system,"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --s:.72;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#e9e9ec;color:#111;font:15px/1.45 var(--ui);padding:28px 24px 70px}
+.head{max-width:1280px;margin:0 auto 26px}
+h1{font:700 26px/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 6px}
+.lede{margin:0;color:#555;max-width:68ch}
+.grid{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:34px 30px;align-items:flex-start}
+.cell{width:calc(402px*var(--s))}
+.cell h2{font:650 15px/1.2 var(--ui);margin:14px 0 4px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{margin:0;font-size:13.5px;color:#555;text-wrap:pretty}
+.tag{display:inline-block;margin-left:6px;font:500 11px var(--mono);background:#f3e6c4;border-radius:99px;padding:2px 8px;vertical-align:1px}
+.frame{width:calc(402px*var(--s));height:calc(874px*var(--s));border-radius:calc(46px*var(--s));overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.06),0 18px 40px -14px rgba(0,0,0,.35);background:var(--paper);position:relative}
+.phone{width:402px;height:874px;transform:scale(var(--s));transform-origin:0 0;position:absolute;left:0;top:0;background:var(--paper);overflow:hidden;user-select:none}
+.sb{position:absolute;left:0;right:0;top:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 49px;font:600 15px var(--ui);z-index:30;pointer-events:none}
+.sb svg{height:12px;fill:#000}
+.title{position:absolute;left:16px;top:57px;font:700 26px var(--ui)}
+.guests{position:absolute;right:16px;top:53px;width:44px;height:44px;display:grid;place-items:center}
+.guests svg{width:26px;height:26px;stroke:#000;fill:none;stroke-width:1.7}
+.tabs{position:absolute;left:50px;right:50px;bottom:28px;height:72px;border-radius:36px;background:rgba(255,255,255,.92);box-shadow:0 8px 30px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:space-around;font:500 12px var(--ui);z-index:7}
+.tabs div{text-align:center}
+.tabs .g{display:block;width:26px;height:26px;margin:0 auto 3px;border-radius:7px;background:#000;opacity:.85}
+.tabs div.on{color:var(--blue)}.tabs div.on .g{background:var(--blue);border-radius:50%}
+.tabs div:not(.on) .g{opacity:.3}
+
+/* real friend block, for scale */
+.blk{position:absolute;width:172px;height:228px;border-radius:22px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.blk .n{position:absolute;left:14px;top:12px;font:400 15px var(--mono)}
+.blk .ph{position:absolute;left:14px;right:14px;top:44px;height:128px;border-radius:12px;background:linear-gradient(160deg,#e6e6e8,#d4d4d8);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.14);transform:rotate(-1.5deg)}
+.blk .d{position:absolute;left:14px;bottom:14px;font:400 11px var(--ui);color:rgba(0,0,0,.3)}
+.blk.ghost{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.16);border-radius:22px}
+.blk.ghost .n{color:rgba(0,0,0,.25)}
+.blk.ghost .ph{background:rgba(0,0,0,.04);box-shadow:none;border:0;border-radius:12px}
+.blk.ghost .d{color:rgba(0,0,0,.2)}
+.blk.invite{background:transparent;box-shadow:inset 0 0 0 1.5px var(--blue);display:grid;place-items:center;text-align:center;cursor:pointer;transition:transform .15s}
+.blk.invite:active{transform:scale(.97)}
+.blk.invite .plus{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;font:300 30px/44px var(--ui);margin:0 auto 10px}
+.blk.invite b{display:block;font:600 15px var(--ui);color:var(--blue)}
+
+.cta{position:absolute;left:27px;right:27px;height:54px;border-radius:99px;border:0;background:#000;color:#fff;font:600 17px var(--ui);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s}
+.cta:active{transform:scale(.97)}
+.cta.alt{background:#fff;color:#000;box-shadow:inset 0 0 0 1px var(--line)}
+.small{position:absolute;left:36px;right:36px;text-align:center;font:400 13px/18px var(--ui);color:rgba(0,0,0,.45)}
+h3.big{position:absolute;left:27px;right:27px;margin:0;font:800 30px/33px var(--display);letter-spacing:-.03em}
+p.sub{position:absolute;left:27px;right:27px;margin:0;font:400 15px/21px var(--ui);color:rgba(0,0,0,.55)}
+
+/* B: a pile */
+.pile{position:absolute;left:0;right:0;top:230px;height:300px}
+.pile .c{position:absolute;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 14px 26px -12px rgba(0,0,0,.25)}
+.pile .photo{left:60px;top:40px;width:150px;height:180px;background:#fff;border:6px solid #fff;transform:rotate(-8deg)}
+.pile .photo i{display:block;width:100%;height:100%;border-radius:10px;background:linear-gradient(160deg,#e9d8c4,#cdb89d)}
+.pile .stk{left:170px;top:20px;width:136px;height:136px;background:#f5e5be;transform:rotate(5deg);padding:14px;font:500 15px/18px var(--ui)}
+.pile .stk::after{content:"";position:absolute;right:0;bottom:0;width:30px;height:30px;background:linear-gradient(135deg,transparent 50%,#f3c943 50%);border-top-left-radius:9px}
+.pile .jr{left:128px;top:128px;width:130px;height:150px;background:#fff;transform:rotate(-2deg);padding:14px;font:600 14px/17px var(--ui)}
+.pile .jr small{display:block;font:400 11px var(--ui);color:rgba(0,0,0,.4);margin-top:8px}
+.pile .dot{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--blue);border:2.5px solid var(--paper);z-index:3}
+
+/* C: steps */
+.steps{position:absolute;left:27px;right:27px;display:grid;gap:12px}
+.step{display:flex;gap:14px;align-items:center;background:#fff;border-radius:20px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.step i{flex:none;width:36px;height:36px;border-radius:50%;background:#000;color:#fff;display:grid;place-items:center;font:700 15px var(--ui);font-style:normal}
+.step b{display:block;font:600 16px var(--ui)}
+.step span{font:400 13.5px/18px var(--ui);color:rgba(0,0,0,.5)}
+
+/* sent state */
+.sentpill{position:absolute;left:27px;right:27px;display:none;align-items:center;gap:12px;background:#fff;border-radius:20px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--line);animation:pop .45s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}}
+.sentpill .ic{width:38px;height:38px;border-radius:50%;background:#f5e5be;display:grid;place-items:center;font:700 16px var(--ui)}
+.sentpill b{display:block;font:600 15px var(--ui)}
+.sentpill span{font:400 13px var(--ui);color:rgba(0,0,0,.5)}
+.sentpill button{margin-left:auto;background:none;border:0;font:500 13px var(--ui);text-decoration:underline;cursor:pointer}
+.phone.sent .sentpill{display:flex}
+
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.share{position:absolute;left:0;right:0;bottom:0;background:#f2f2f7;border-radius:34px 34px 0 0;padding:14px 18px 40px;transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1);z-index:41}
+.share.on{transform:none}
+.share .grab{width:36px;height:5px;border-radius:3px;background:rgba(0,0,0,.2);margin:0 auto 14px}
+.share .prev{display:flex;gap:12px;align-items:center;background:#fff;border-radius:16px;padding:12px;margin-bottom:16px}
+.share .prev .ic{width:44px;height:44px;border-radius:11px;background:#000;color:#fff;display:grid;place-items:center;font:800 20px var(--display)}
+.share .prev b{display:block;font:600 15px var(--ui)}
+.share .prev span{font:400 12.5px var(--mono);color:rgba(0,0,0,.5)}
+.share .apps{display:flex;gap:18px;justify-content:space-between}
+.share .app{flex:1;text-align:center;font:400 12px var(--ui);cursor:pointer;background:none;border:0;padding:0}
+.share .app i{display:grid;place-items:center;width:58px;height:58px;border-radius:15px;margin:0 auto 6px;color:#fff;font:700 24px var(--ui);font-style:normal}
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>Shared, when nobody’s there yet</h1>
+  <p class="lede">FRN-02. This is what a new person sees on the Shared tab: no friends yet, so no blocks. Three ways to do it, all with the same job: say what this tab is for and get a first invite out. Tap the buttons, they work.</p>
+</div>
+
+<div class="grid">
+
+<!-- A -->
+<div class="cell">
+  <div class="frame"><div class="phone" id="pA">
+    <div class="sb"><span>9:41</span><svg viewBox="0 0 66 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="46" y="0.5" width="18" height="11" rx="3.2" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="47.6" y="2.1" width="14.6" height="7.8" rx="2"/></svg></div>
+    <div class="title">Shared</div>
+    <div class="guests"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="11"/><circle cx="13" cy="10.5" r="3.6"/><path d="M5.5 21c1.6-3.8 4.2-5.4 7.5-5.4s5.9 1.6 7.5 5.4"/></svg></div>
+    <div class="blk invite" style="left:15px;top:113px" data-open><div><div class="plus">+</div><b>Invite your<br>first person</b></div></div>
+    <div class="blk ghost" style="left:215px;top:113px"><div class="n">a friend</div><div class="ph"></div><div class="d">their latest, here</div></div>
+    <div class="blk ghost" style="left:15px;top:359px"><div class="n">another</div><div class="ph"></div><div class="d">their latest, here</div></div>
+    <div class="blk ghost" style="left:215px;top:359px"><div class="n">another</div><div class="ph"></div><div class="d">their latest, here</div></div>
+    <div class="sentpill" style="top:605px"><div class="ic">1</div><div><b>Invite sent</b><span>Waiting on them · 7 days left</span></div></div>
+    <p class="sub" style="top:640px;font-size:15px">Your friends’ bulletins show up here, newest first, with a blue dot while there’s something new to read.</p>
+    <div class="tabs"><div><i class="g"></i>bulletin</div><div class="on"><i class="g"></i>friends</div><div><i class="g"></i>shelf</div></div>
+    <div class="scrim"></div><div class="share"></div>
+  </div></div>
+  <h2><em>A</em>Ghost blocks</h2>
+  <p>Shows the shape of the tab before it’s full: the first block is a blue-outlined “invite” block where a friend will go, and the rest are faint placeholders. It teaches the layout without a word of onboarding.</p>
+</div>
+
+<!-- B -->
+<div class="cell">
+  <div class="frame"><div class="phone" id="pB">
+    <div class="sb"><span>9:41</span><svg viewBox="0 0 66 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="46" y="0.5" width="18" height="11" rx="3.2" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="47.6" y="2.1" width="14.6" height="7.8" rx="2"/></svg></div>
+    <div class="title">Shared</div>
+    <div class="guests"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="11"/><circle cx="13" cy="10.5" r="3.6"/><path d="M5.5 21c1.6-3.8 4.2-5.4 7.5-5.4s5.9 1.6 7.5 5.4"/></svg></div>
+    <div class="pile">
+      <div class="c photo"><i></i></div>
+      <div class="c stk">tried the new place on 5th</div>
+      <div class="c jr">a slow, good day<small>1 min read</small></div>
+      <div class="dot" style="left:56px;top:34px"></div>
+    </div>
+    <h3 class="big" style="top:520px;text-align:center">It’s quiet in here.</h3>
+    <p class="sub" style="top:566px;text-align:center">When friends add you, their latest photos, notes and entries land here.</p>
+    <div class="sentpill" style="top:612px"><div class="ic">1</div><div><b>Invite sent</b><span>Waiting on them · 7 days left</span></div></div>
+    <button class="cta" style="bottom:136px" data-open>Invite someone</button>
+    <div class="small" style="bottom:110px;top:auto">One link, one person, good for a week</div>
+    <div class="tabs"><div><i class="g"></i>bulletin</div><div class="on"><i class="g"></i>friends</div><div><i class="g"></i>shelf</div></div>
+    <div class="scrim"></div><div class="share"></div>
+  </div></div>
+  <h2><em>B</em>A little pile <span class="tag">my pick</span></h2>
+  <p>Tilted photo, sticky and folded note stacked like a real bulletin, with a blue dot. It shows exactly what will arrive here, in the app’s own pieces, and the sign-off is friendly instead of instructional.</p>
+</div>
+
+<!-- C -->
+<div class="cell">
+  <div class="frame"><div class="phone" id="pC">
+    <div class="sb"><span>9:41</span><svg viewBox="0 0 66 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="46" y="0.5" width="18" height="11" rx="3.2" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="47.6" y="2.1" width="14.6" height="7.8" rx="2"/></svg></div>
+    <div class="title">Shared</div>
+    <div class="guests"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="11"/><circle cx="13" cy="10.5" r="3.6"/><path d="M5.5 21c1.6-3.8 4.2-5.4 7.5-5.4s5.9 1.6 7.5 5.4"/></svg></div>
+    <h3 class="big" style="top:128px">Read your friends’ bulletins here.</h3>
+    <div class="steps" style="top:262px">
+      <div class="step"><i>1</i><div><b>Send a private link</b><span>It works for one person and lasts a week.</span></div></div>
+      <div class="step"><i>2</i><div><b>They join and add you</b><span>You’re on their list, and they’re on yours.</span></div></div>
+      <div class="step"><i>3</i><div><b>Their latest shows up here</b><span>With a blue dot until you’ve read it.</span></div></div>
+    </div>
+    <div class="sentpill" style="top:560px"><div class="ic">1</div><div><b>Invite sent</b><span>Waiting on them · 7 days left</span></div></div>
+    <button class="cta" style="bottom:122px" data-open>Invite someone</button>
+    <button class="cta alt" style="bottom:54px;display:none">x</button>
+    <div class="tabs"><div><i class="g"></i>bulletin</div><div class="on"><i class="g"></i>friends</div><div><i class="g"></i>shelf</div></div>
+    <div class="scrim"></div><div class="share"></div>
+  </div></div>
+  <h2><em>C</em>Three steps</h2>
+  <p>The most explicit one: what to do, what happens next, and what you’ll see. Most useful for people who don’t know how Bulletin shares, but the least like the rest of the app.</p>
+</div>
+
+</div>
+
+<script>
+const shareHTML=`<div class="grab"></div><div class="prev"><div class="ic">B</div><div><b>Join me on Bulletin</b><span class="u"></span></div></div>
+<div class="apps">
+<button class="app" data-app="Messages"><i style="background:#34c759">💬</i>Messages</button>
+<button class="app" data-app="Mail"><i style="background:#1a8cff">✉</i>Mail</button>
+<button class="app" data-app="WhatsApp"><i style="background:#25d366">☎</i>WhatsApp</button>
+<button class="app" data-app="AirDrop"><i style="background:#0a84ff">◉</i>AirDrop</button></div>`;
+const tok=()=>Math.random().toString(36).slice(2,6)+"-"+Math.random().toString(36).slice(2,6);
+document.querySelectorAll(".phone").forEach(ph=>{
+  const sh=ph.querySelector(".share"),sc=ph.querySelector(".scrim");
+  sh.innerHTML=shareHTML; sh.querySelector(".u").textContent="bulletin.app/i/"+tok();
+  const open=o=>{sh.classList.toggle("on",o);sc.classList.toggle("on",o)};
+  ph.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>open(true));
+  sc.onclick=()=>open(false);
+  sh.querySelectorAll("[data-app]").forEach(a=>a.onclick=()=>{open(false);ph.classList.add("sent")});
+});
+</script>
+</body>
+</html>

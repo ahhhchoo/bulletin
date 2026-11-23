@@ -3,15 +3,21 @@ import SwiftUI
 /// BRD-01 Board / today
 struct BoardView: View {
     @Environment(BoardStore.self) private var store
+    @Environment(TipsStore.self) private var tips
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var deleteTitle = "Delete this?"      // kept while the dialog fades out
     @State private var editingInto = false
 
     var body: some View {
-        BoardScroller(onIntoTap: { withAnimation(.snappy(duration: 0.25)) { editingInto = true } },
+        BoardScroller(startsOpen: tips.step == .into,
+                      onIntoTap: { withAnimation(.snappy(duration: 0.25)) { editingInto = true } },
                       onAnswerTap: promptChipTapped)
         .overlay {
             if editingInto {
-                IntoEditor { withAnimation(.snappy(duration: 0.3)) { editingInto = false } }
+                IntoEditor {
+                    withAnimation(.snappy(duration: 0.3)) { editingInto = false }
+                    if !store.currentlyInto.isEmpty { tips.finishInto() }
+                }
                     .transition(.opacity)
             }
         }
@@ -86,13 +92,26 @@ struct BoardView: View {
 /// the oldest day brings the masthead into view. Let go halfway and it settles open or closed.
 private struct BoardScroller: View {
     @Environment(BoardStore.self) private var store
+    @Environment(TipsStore.self) private var tips
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let startsOpen: Bool
     let onIntoTap: () -> Void
     let onAnswerTap: () -> Void
+
+    init(startsOpen: Bool, onIntoTap: @escaping () -> Void, onAnswerTap: @escaping () -> Void) {
+        self.startsOpen = startsOpen
+        self.onIntoTap = onIntoTap
+        self.onAnswerTap = onAnswerTap
+        _position = State(initialValue: ScrollPosition(edge: startsOpen ? .top : .bottom))
+    }
 
     /// How far the board has scrolled: 0 = masthead fully open, `Mast.range` = tucked up under the title bar.
     @State private var offset: CGFloat = 0
     @State private var viewport: CGFloat = 874
-    @State private var position = ScrollPosition(edge: .bottom)
+    /// The status-bar inset the scroll view sits under. A nearly empty board is only just taller than the screen, so
+    /// the page has to be this much taller for the masthead to be able to tuck fully away.
+    @State private var topInset: CGFloat = 0
+    @State private var position: ScrollPosition
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -109,7 +128,7 @@ private struct BoardScroller: View {
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
                 .scrollPosition($position)
-                .defaultScrollAnchor(.bottom)
+                .defaultScrollAnchor(startsOpen ? .top : .bottom)
                 .scrollTargetBehavior(MastheadSnap(range: Mast.range))
                 .ignoresSafeArea(edges: .top)
                 .onScrollGeometryChange(for: CGFloat.self) { g in
@@ -118,7 +137,20 @@ private struct BoardScroller: View {
                     offset = y
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
+                // the tips: "into" starts with the masthead already open (a jump, not a scroll, so a new person never
+                // sees the page move); the first post scrolls back down to the composer
+                .onChange(of: tips.step, initial: true) { _, step in
+                    if step == .into {
+                        position.scrollTo(y: 0)
+                    } else if step == .post {
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(300))
+                            withAnimation(.smooth(duration: 0.55)) { position.scrollTo(edge: .bottom) }
+                        }
+                    }
+                }
                 .onChange(of: store.postCount) {
+                    tips.postMade()
                     // Show the day the post landed on, just under the title bar.
                     guard let day = store.lastPostedDayID else { return }
                     Task {
@@ -145,6 +177,7 @@ private struct BoardScroller: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
     }
 
     private var sheet: some View {
@@ -153,19 +186,30 @@ private struct BoardScroller: View {
                 DayRow(day: day, isLast: day.id == store.days.last?.id)
                     .id("day-\(day.id)")
             }
-            if store.days.allSatisfy({ $0.posts.isEmpty }) {
+            // (the placeholder stays out of the way while the first-minutes tips are showing)
+            if store.days.allSatisfy({ $0.posts.isEmpty }) && tips.step == .none {
                 EmptyStatePlaceholder(title: "A new month", code: "BRD-08",
                                       intent: "Shows on an empty board and doubles as the first-post screen.")
                     .padding(.horizontal, 24).padding(.top, 24)
             }
-            // "Whats on your mind..." closes the board: right under today, or at the foot of the page when the board is short
-            Spacer(minLength: 28)
+            // "Whats on your mind..." closes the board: always right under the last day, never stranded at the foot of a short page
+            Color.clear.frame(height: 28)
             ComposerBubble { store.isComposing = true }
+                .overlay(alignment: .topTrailing) {
+                    if tips.step == .post {
+                        // hangs under the bubble, so it moves with it wherever the bubble ends up
+                        TipBubble(title: "Start with anything.",
+                                  message: "A thought, a photo, what you ate. It lands on today, no setup.",
+                                  arrow: .up(x: 237), width: 330)
+                            .offset(y: 51.4 + 20)
+                            .transition(TipBubble<EmptyView>.appear(from: UnitPoint(x: 0.72, y: 0), reduceMotion: reduceMotion))
+                    }
+                }
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.trailing, 24)
                 .padding(.bottom, 100)     // just enough to clear the tab bar
         }
-        .frame(maxWidth: .infinity, minHeight: max(0, viewport - Mast.sheetTop), alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: max(0, viewport - Mast.sheetTop) + topInset, alignment: .topLeading)
         .background(alignment: .top) {
             // black only shows in the two corners
             ZStack(alignment: .top) {
@@ -204,6 +248,8 @@ struct MastheadSnap: ScrollTargetBehavior {
 /// The white card at the top of the board: you ask, the app answers, like a chat. It is part of the scrolled content.
 private struct Masthead: View {
     @Environment(BoardStore.self) private var store
+    @Environment(TipsStore.self) private var tips
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onIntoTap: () -> Void
     let onAnswerTap: () -> Void
 
@@ -217,14 +263,30 @@ private struct Masthead: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 question("Currently into:", width: 151)
-                answer(store.currentlyInto, action: onIntoTap)
-                    .padding(.top, -24)
-                    .padding(.leading, 163)
+                Group {
+                    if store.currentlyInto.trimmingCharacters(in: .whitespaces).isEmpty {
+                        EmptyIntoBubble(action: onIntoTap)
+                    } else {
+                        answer(store.currentlyInto, action: onIntoTap)
+                    }
+                }
+                .padding(.top, -24)
+                .padding(.leading, 163)
                 question("This month: \(store.prompt)", width: 267).padding(.top, 14)
                 replyRow.padding(.top, 14)
             }
             .padding(.leading, 16).padding(.trailing, 27)
             .padding(.top, 110)
+
+            if tips.step == .into {
+                TipBubble(title: "What are you into right now?",
+                          message: "Tap to set it. It sits up here like a status, and you can change it whenever.",
+                          arrow: .up(x: 285), width: 346) {
+                    TipGhostButton(title: "Not now") { tips.finishInto() }
+                }
+                .padding(.leading, 28).padding(.top, 186)
+                .transition(TipBubble<EmptyView>.appear(from: .topTrailing, reduceMotion: reduceMotion))
+            }
         }
         .frame(height: Mast.openHeight)
     }
@@ -432,8 +494,14 @@ private struct TitleBar: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: Mast.barHeight, alignment: .top)
         .ignoresSafeArea(edges: .top)
-        .contentShape(.rect)
-        .onTapGesture(perform: onTap)
+        // only the title strip toggles the card; the bubbles under it (like "currently into") take their own taps
+        .overlay(alignment: .top) {
+            Color.clear
+                .frame(height: 100)
+                .contentShape(.rect)
+                .onTapGesture(perform: onTap)
+                .ignoresSafeArea(edges: .top)
+        }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Prompts")
         .accessibilityHint(offset < Mast.range / 2 ? "Closes the prompts" : "Opens the prompts")
