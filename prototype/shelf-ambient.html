@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARC-01 — Shelf, ambient colors</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf") format("truetype");font-weight:400 500}
+:root{
+  --paper:#f5f5f5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:920px;line-height:1.45}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .r{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .r i{display:block;background:#111;border-radius:2px}
+.tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:33px;display:flex;gap:6px;padding:8px 14px;border-radius:32px;background:rgba(255,255,255,.8);backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,.08);z-index:50}
+.tabbar .tb{width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 4px;border-radius:28px;font-size:13px}
+.tabbar .tb.on{background:rgba(0,0,0,.07);font-weight:510}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+svg.ic{width:20px;height:20px;fill:none;stroke:#000;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lock{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* header */
+.head{position:absolute;left:0;right:0;top:44px;z-index:30;padding:6px 20px 0;display:flex;justify-content:space-between;align-items:center;height:70px;background:linear-gradient(var(--paper) 70%,rgba(245,245,245,0))}
+.head .who{display:flex;align-items:center;gap:10px}
+.head h3{font-size:24px;font-weight:700;letter-spacing:-.3px}
+.avatar{width:36px;height:36px;border-radius:50%;background:#cdddf9}
+.circ{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.circs{display:flex;gap:10px}
+.fade{position:absolute;left:0;right:0;bottom:0;height:200px;z-index:20;pointer-events:none;background:linear-gradient(rgba(245,245,245,0),var(--paper) 78%)}
+
+/* the cascade */
+.cas{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:130px 0 230px;scrollbar-width:none;perspective:900px;-webkit-mask-image:linear-gradient(transparent 0,transparent 96px,#000 150px);mask-image:linear-gradient(transparent 0,transparent 96px,#000 150px)}
+.cas::-webkit-scrollbar{display:none}
+.cc{position:relative;margin:0 22px 18px;border-radius:26px;cursor:pointer;will-change:transform;transition:filter .2s;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.cc .txt{position:absolute;left:20px;top:0;bottom:0;right:122px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.cc .nm{font-weight:800;letter-spacing:-1px;line-height:.98}
+.cc .sub{font-family:var(--mono);font-size:12px;opacity:.6}
+.cc .cv{position:absolute;right:14px;top:50%;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.cc .cv img{width:100%;height:100%;object-fit:cover;display:block}
+.cc.locked{background:#dcdce0;color:rgba(0,0,0,.45)}
+.cc.locked .cv{background:rgba(0,0,0,.06);box-shadow:none;display:grid;place-items:center}
+
+.ctl{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin-top:14px;font-size:14px;max-width:560px}
+.ctl input{flex:1}.ctl output{font-family:var(--mono);font-size:13px;width:40px}.ctl .hint{color:#888;font-size:12px}
+.cc .nm{white-space:nowrap}
+.cc .txt{z-index:2}
+.cc{height:140px}
+.cc .nm{font-size:88px;letter-spacing:-4px;position:absolute;left:14px;bottom:-4px;line-height:1;opacity:.94;font-weight:800}
+.cc .txt{position:absolute;inset:0;right:0}
+.cc .sub{position:absolute;left:22px;top:18px;font:510 13px var(--ui);opacity:.65}
+.cc .cv{right:14px;top:14px;bottom:14px;width:44%;height:auto;margin:0;border-radius:20px;box-shadow:0 3px 12px rgba(0,0,0,.22)}
+.cc.locked .nm{font-size:60px;bottom:6px;left:20px}
+.cc.locked .cv{border-radius:20px}
+.cc{background:#e4e4e8}
+/* the three treatments */
+.V2 .cc::before{content:"";position:absolute;inset:-30px;background:var(--src) center/cover;filter:blur(26px) saturate(1.3);transform:scale(1.4)}
+.V2 .cc::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,var(--veil,.5))}
+.V2 .cc.locked::before,.V2 .cc.locked::after{display:none}
+.V2 .cv,.V2 .txt{position:absolute}
+.V2 .txt{z-index:3}.V2 .cv{z-index:3}
+/* tapping a month opens its sheet */
+.sheet{position:absolute;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;padding:100px 24px 40px;opacity:0;pointer-events:none;transform:scale(.92);transition:opacity .25s,transform .45s cubic-bezier(.3,1.2,.4,1)}
+.sheet.on{opacity:1;pointer-events:auto;transform:none}
+.sheet .x{position:absolute;right:20px;top:60px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.12);display:grid;place-items:center}
+.sheet .big{width:168px;height:168px;border-radius:34px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:rotate(-14deg) scale(.8);transition:transform .6s cubic-bezier(.3,1.4,.4,1)}
+.sheet.on .big{transform:rotate(-8deg)}
+.sheet .big img{width:100%;height:100%;object-fit:cover;display:block}
+.sheet h4{font-size:46px;font-weight:800;letter-spacing:-1.6px;line-height:.98;text-align:center;margin-top:-20px;position:relative;max-width:340px}
+.sheet .when{font-family:var(--mono);font-size:13px;opacity:.6;margin-top:14px}
+.sheet .btns{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:26px}
+.sheet .btns button{background:rgba(255,255,255,.4);border-radius:999px;padding:11px 20px;font-size:16px;font-weight:600;min-width:150px;box-shadow:0 1px 0 rgba(255,255,255,.4) inset}
+.sheet .btns button.main{background:#000;color:#fff}
+.sheet .stats{display:flex;gap:26px;margin-top:20px}
+.sheet .stats div{font-family:var(--mono);font-size:26px;text-align:center}.sheet .stats small{display:block;font:500 11px var(--ui);opacity:.6;margin-top:3px}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ARC-01 — Shelf, cropped month with ambient color</h1>
+  <p>Option S, with the card's background built from its own photo: the page samples the thumbnail's colors (top-left, top-right, bottom-left, bottom-right, average) and turns them into an ambient mesh, the way a music player tints itself from album art. Three treatments below, and a softness control for the sampled ones, since you don't want loud color.</p>
+  <div class="ctl"><span>Softness</span><input id="soft" type="range" min="0" max="85" value="25"><output id="softv">25%</output><span class="hint">0 = the photo's real colors, 85 = almost paper</span></div>
+</header>
+<div class="grid" id="grid"></div>
+<script>
+const C={banana:["#F4E8C4","#F4CB52"],celery:["#D1F4C4","#9EE086"],shrimp:["#FFCFCF","#F08383"],shark:["#CAECFF","#7CC1F2"],grape:["#CAD6FF","#7C98F2"],urchin:["#EAD5FF","#B484E7"],orange:["#FFDDC0","#ECAE82"]};
+const P=["assets/sp-60.jpg","assets/sp-IMG_4209.jpg","assets/sp-IMG_4359.jpg","assets/sp-IMG_6859.jpg","assets/pic-a.jpg","assets/pic-b.jpg"];
+const M=[
+ {m:"October",s:"Oct",t:"the month of yzma",c:"urchin",pins:24,notes:31,busy:14,ph:0},
+ {m:"September",s:"Sep",t:"back to school",c:"shark",pins:17,notes:12,busy:3,ph:1},
+ {m:"August",s:"Aug",t:"beach, mostly",c:"banana",pins:31,notes:22,busy:21,ph:2},
+ {m:"July",s:"Jul",t:"no plans",c:"shrimp",pins:9,notes:5,busy:4,ph:3},
+ {m:"June",s:"Jun",t:"moved apartments",c:"celery",pins:28,notes:19,busy:12,ph:4},
+ {m:"May",s:"May",locked:true},
+ {m:"April",s:"Apr",t:"tulips",c:"orange",pins:14,notes:8,busy:9,ph:5},
+ {m:"March",s:"Mar",t:"the long rain",c:"grape",pins:21,notes:15,busy:18,ph:1},
+];
+const lockSvg='<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const tabbar=`<div class="tabbar"><div class="tb"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg>bulletin</div><div class="tb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 10v1M15 10v1M8.5 14.5c1.8 2 5.2 2 7 0"/></svg>friends</div><div class="tb on"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/></svg>shelf</div></div>`;
+const sb=`<div class="sb"><span class="t">9:41</span><span class="r"><i style="width:18px;height:10px"></i><i style="width:24px;height:11px"></i></span></div>`;
+const head=`<div class="head"><div class="who"><div class="avatar"></div><h3>Shelf</h3></div><div class="circs"><div class="circ"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg></div><div class="circ"><svg class="ic" viewBox="0 0 24 24"><path d="M5 8h14M8 12h8M11 16h2"/></svg></div></div></div>`;
+
+function card(m,i,v){
+  if(m.locked) return `<div class="cc locked" data-i="${i}"><div class="txt"><div class="nm">${m.s}</div><div class="sub">locked · ask to open</div></div><div class="cv">${lockSvg}</div></div>`;
+  return `<div class="cc" data-i="${i}" data-ph="${m.ph}" style="--src:url(${P[m.ph]})"><div class="txt"><div class="nm">${m.s}</div><div class="sub">${m.t}</div></div><div class="cv"><img src="${P[m.ph]}"></div></div>`;
+}
+function build(v,sheetBg){
+  return `<div class="frame"><div class="phone ${v}" data-v="${v}" id="ph-${v}">${sb}${head}
+    <div class="cas">${M.map((m,i)=>card(m,i,v)).join("")}</div><div class="fade"></div>${tabbar}
+    <div class="sheet"><button class="x"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="big"><img></div><h4></h4><div class="when"></div><div class="stats"></div><div class="btns"></div></div></div></div>`;
+}
+const opts=[
+ {k:"V1",cls:"V1",n:"Sampled mesh",d:"Five colors sampled from the thumbnail become soft overlapping glows (corners and middle) over the average color. The type color follows the background's brightness.",pl:["Colors really come from the photo","Feels like the photo's atmosphere"],mi:["Can look muddy when a photo is brown"]},
+ {k:"V2",cls:"V2",n:"Blurred photo",d:"No sampling: the photo itself, scaled up and heavily blurred behind a light veil. The closest to how a music player does it.",pl:["Richest, most natural gradients","No palette math"],mi:["Heavier to render","Less control over the exact colors"]},
+ {k:"V3",cls:"V3",n:"Sampled, two-tone",d:"Only two sampled colors, light and dark, as a diagonal wash. Calmer and more graphic than the mesh, and easier to keep legible.",pl:["Quietest and cleanest","Type stays readable"],mi:["Less of the photo's feel"]},
+];
+document.getElementById("grid").innerHTML=opts.map(o=>`<div class="cell">${build(o.cls)}<h2><em>${o.k}</em>${o.n}</h2><p>${o.d}</p><div class="tags">${o.pl.map(t=>`<b class="plus">+ ${t}</b>`).join("")}${o.mi.map(t=>`<b class="minus">− ${t}</b>`).join("")}</div></div>`).join("");
+
+/* scroll-driven tilt: straight at the middle, tilting away toward the edges */
+function tilt(cas){
+  const r=cas.getBoundingClientRect(), scale=r.height/874, mid=r.top+r.height*0.46, half=r.height*0.42;
+  cas.querySelectorAll(".cc").forEach((el,k)=>{
+    const b=el.getBoundingClientRect(), d=Math.max(-1.4,Math.min(1.4,((b.top+b.height/2)-mid)/half));
+    const ad=Math.abs(d), alt=(el.dataset.i%2?1:-1);
+    const rot=d*13 + alt*Math.min(ad*2,1)*3;
+    const sx=1-ad*.07, ty=0, x=alt*ad*10;
+    el.style.transform=`translateX(${x}px) rotate(${rot}deg) scale(${sx})`;
+    el.style.opacity=Math.max(.25,1-Math.max(0,ad-.55)*.9);
+    el.style.filter=ad>.95?`blur(${(ad-.95)*5}px)`:"none";
+  });
+}
+function openSheet(phone,i){
+  const m=M[i], s=phone.querySelector(".sheet"), v=phone.dataset.v;
+  const card=phone.querySelectorAll(".cc")[i]; s.style.background = m.locked ? "#dcdce0" : (card.style.background||"#e4e4e8"); if(!m.locked&&card.style.backgroundImage==="") s.style.background=card.style.background; s.style.color = card.dataset.fg||"#111"; if(m.locked) s.style.color="#111"; if(!m.locked&&phone.dataset.v==="V2"){ s.style.background="linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)), url("+P[m.ph]+") center/cover"; s.style.color="#111"; }
+  s.querySelector(".big img").src = m.locked?"":P[m.ph];
+  s.querySelector(".big").style.display = m.locked?"none":"block";
+  s.querySelector("h4").textContent = m.m;
+  s.querySelector(".when").textContent = m.locked? "locked · private to its owner" : `${m.t} · sealed`;
+  s.querySelector(".stats").innerHTML = m.locked? "" : `<div>${m.pins}<small>pinned</small></div><div>${m.notes}<small>notes</small></div><div>${m.busy}<small>busiest day</small></div>`;
+  s.querySelector(".btns").innerHTML = m.locked
+    ? `<button class="main">Ask to open</button>`
+    : `<button class="main">Open ${m.m}</button><button>Notes from friends</button><button>Recap</button><button>Mark “just for me”</button>`;
+  s.classList.add("on");
+}
+document.querySelectorAll(".phone").forEach(ph=>{
+  const cas=ph.querySelector(".cas");
+  cas.addEventListener("scroll",()=>tilt(cas),{passive:true});
+  cas.addEventListener("click",e=>{const c=e.target.closest(".cc"); if(c) openSheet(ph,+c.dataset.i)});
+  ph.querySelector(".sheet .x").addEventListener("click",()=>ph.querySelector(".sheet").classList.remove("on"));
+  tilt(cas);
+});
+addEventListener("load",()=>document.querySelectorAll(".cas").forEach(tilt));
+
+/* ambient: sample the thumbnail */
+const pal={};
+function sample(img){
+  const c=document.createElement("canvas"); c.width=c.height=6; const x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0,6,6);
+  const d=x.getImageData(0,0,6,6).data, px=(i,j)=>{const k=(j*6+i)*4;return [d[k],d[k+1],d[k+2]]};
+  const avg=(i0,i1,j0,j1)=>{let r=0,g=0,b=0,n=0;for(let j=j0;j<j1;j++)for(let i=i0;i<i1;i++){const p=px(i,j);r+=p[0];g+=p[1];b+=p[2];n++}return [r/n,g/n,b/n]};
+  return {tl:avg(0,3,0,3),tr:avg(3,6,0,3),bl:avg(0,3,3,6),br:avg(3,6,3,6),mid:avg(1,5,1,5),all:avg(0,6,0,6)};
+}
+function boost(c,k){ // a touch more color, then mix toward white by k
+  const m=(c[0]+c[1]+c[2])/3, s=1.25; const v=c.map(u=>Math.max(0,Math.min(255,m+(u-m)*s)));
+  return v.map(u=>u+(255-u)*k);
+}
+const css=c=>`rgb(${c.map(Math.round).join(",")})`;
+const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
+function paint(){
+  const k=document.getElementById("soft").value/100; document.getElementById("softv").textContent=Math.round(k*100)+"%";
+  document.querySelectorAll(".cc[data-ph]").forEach(el=>{
+    const p=pal[el.dataset.ph]; if(!p) return; const v=el.closest(".phone").dataset.v;
+    const b={}; for(const n in p) b[n]=boost(p[n],k);
+    el.style.backgroundImage=""; let bg, L;
+    if(v==="V1"){
+      bg=`radial-gradient(circle at 12% 18%,${css(b.tl)} 0,transparent 62%),radial-gradient(circle at 92% 12%,${css(b.tr)} 0,transparent 58%),radial-gradient(circle at 18% 105%,${css(b.bl)} 0,transparent 60%),radial-gradient(circle at 88% 100%,${css(b.br)} 0,transparent 55%),${css(b.all)}`;
+      L=lum(b.all);
+    } else if(v==="V3"){
+      const lo=boost(p.all,k*.55), hi=boost(p.mid,Math.min(.9,k+.18));
+      bg=`linear-gradient(120deg,${css(hi)} 0%,${css(boost(p.tl,k))} 45%,${css(lo)} 100%)`; L=lum(boost(p.all,k));
+    } else { el.style.setProperty("--veil",(.25+k*.7).toFixed(2)); L=.8; bg=""; }
+    if(v!=="V2") el.style.background=bg;
+    el.dataset.fg = L<.5?"#fff":"#111";
+    el.querySelector(".nm").style.color = L<.5?"#fff":"#111"; el.querySelector(".sub").style.color = L<.5?"#fff":"#111";
+  });
+}
+const imgs=[...new Set(M.filter(m=>!m.locked).map(m=>m.ph))]; let loaded=0;
+imgs.forEach(i=>{const im=new Image(); im.onload=()=>{pal[i]=sample(im); if(++loaded===imgs.length) paint()}; im.src=P[i];});
+document.getElementById("soft").addEventListener("input",paint);
+</script>
+</body>
+</html>

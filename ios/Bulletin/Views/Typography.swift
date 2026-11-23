@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CoreText
 
 /// Design sizes that don't land exactly on a system text style are scaled with Dynamic Type
 /// relative to the closest style, so they still respond to the user's text-size setting.
@@ -13,10 +14,17 @@ enum Typo {
     /// Text you write on paper (sticky and page): 17pt semibold, scales with Dynamic Type.
     static var body17: Font { scaled(17, .semibold, relativeTo: .body) }
 
-    /// Stand-in for CoFo Sans Pixel (trial font, not bundled yet).
+    /// JetBrains Mono (bundled in Fonts/, registered at launch): captions, dates, the prompt chat, anything typed.
+    static let monoName = "JetBrainsMono-Regular"
     static func pixel(_ size: CGFloat) -> Font {
         let scaled = UIFontMetrics(forTextStyle: .subheadline).scaledValue(for: size)
-        return .system(size: scaled, design: .monospaced)
+        return .custom(monoName, size: scaled)
+    }
+
+    /// The font file ships inside the app, so register it once before the first screen draws.
+    static func registerFonts() {
+        guard let url = Bundle.main.url(forResource: monoName, withExtension: "ttf") else { return }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
 }
 

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONB-01 — Intro, text stays</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink:#000;
+  --sticky:#f5e5be; --fold:#f3c943;
+  --butter:#f3e6c4; --blush:#f4d9d6; --sage:#d8e6d3;
+  --ui:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;
+  --display:"SF Pro Display",-apple-system,"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --s:.7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e9ec;color:#111;font:15px/1.45 var(--ui);padding:28px 24px 80px}
+.head{max-width:1180px;margin:0 auto 30px;display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between}
+.head h1{font:700 26px/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 6px}
+.head p{margin:0;color:#555;max-width:62ch}
+button{font:500 13px var(--ui);border:0;border-radius:99px;padding:8px 16px;background:#111;color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(402px*var(--s) + 4px),1fr));gap:34px 24px;justify-items:center}
+.cell{display:flex;flex-direction:column;gap:12px;width:calc(402px*var(--s))}
+.frame{width:calc(402px*var(--s));height:calc(874px*var(--s));border-radius:calc(46px*var(--s));overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.06),0 18px 40px -14px rgba(0,0,0,.35);background:var(--paper);position:relative}
+.phone{width:402px;height:874px;transform:scale(var(--s));transform-origin:0 0;position:absolute;left:0;top:0;background:var(--paper);overflow:hidden;color:var(--ink);cursor:pointer}
+.cell h2{font:650 15px/1.2 var(--ui);margin:2px 0 0}
+.cell p{margin:0;font-size:13px;color:#555;text-wrap:pretty}
+.pm{display:flex;flex-direction:column;gap:3px;font:400 11.5px/1.3 var(--mono);color:#666}
+.ctl{display:flex;gap:8px}
+
+/* ---- the screen, in the Figma's coordinates ---- */
+.sb{position:absolute;left:0;right:0;top:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 49px;font:600 15px var(--ui);z-index:9}
+.sb svg{height:12px;fill:#000}
+.scene{position:absolute;inset:0}
+.line{position:absolute;left:35px;top:133px;width:335px;z-index:5;font:800 48px/43px var(--display);letter-spacing:-.03em;margin:0;color:var(--ink)}
+.w{display:inline-block;vertical-align:top}
+.wi{display:inline-block;will-change:transform,opacity,filter}
+.ph{border-radius:.12em;background-repeat:no-repeat;background-position:0 88%;background-size:0% 46%;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em}
+.t-butter{background-image:linear-gradient(var(--butter),var(--butter))}
+.t-blush{background-image:linear-gradient(var(--blush),var(--blush))}
+.t-sage{background-image:linear-gradient(var(--sage),var(--sage))}
+.slot{position:absolute;z-index:3}
+.pos{position:absolute;left:0;top:0;transform:translate(-50%,-50%)}
+.comp{position:relative;transform-origin:50% 50%;will-change:transform,opacity}
+
+/* the real pieces, as they look on the board */
+.sticky{width:218px;height:218px;background:var(--sticky);border-radius:12px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,.1),0 10px 24px -8px rgba(0,0,0,.22);font:600 19px/23px var(--ui);letter-spacing:-.3px;overflow:hidden}
+.sticky::after{content:"";position:absolute;right:0;bottom:0;width:34px;height:34px;background:linear-gradient(135deg,var(--fold) 50%,var(--sticky) 50%);border-top-left-radius:7px;box-shadow:-2px -2px 5px rgba(0,0,0,.1)}
+.sticky .caret{display:inline-block;width:2px;height:.95em;background:#000;vertical-align:-.12em;margin-left:1px;animation:bl 1s steps(2) infinite}
+@keyframes bl{50%{opacity:0}}
+.journal{width:238px;height:292px;background:#fff;border-radius:14px;padding:18px 18px 0;box-shadow:0 1px 3px rgba(0,0,0,.08),0 12px 26px -8px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.journal b{font:650 17px/1.15 var(--ui);letter-spacing:-.2px}
+.journal .jb{font:400 14.5px/19px var(--ui);color:rgba(0,0,0,.58);flex:1;overflow:hidden}
+.journal .jw{display:inline-block}
+.journal i{font:normal 500 12.5px var(--ui);color:rgba(0,0,0,.4);padding-bottom:16px}
+.journal::after{content:"";position:absolute;right:0;bottom:0;width:38px;height:38px;background:linear-gradient(135deg,#e3e3e3 50%,#fff 50%);border-top-left-radius:8px;box-shadow:-2px -2px 5px rgba(0,0,0,.08)}
+.photo{width:218px;height:274px;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12),0 12px 26px -8px rgba(0,0,0,.3);background:#ddd}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .cap{position:absolute;left:10px;bottom:10px;font:600 14px var(--ui);color:#fff;background:rgba(0,0,0,.34);backdrop-filter:blur(8px);padding:5px 10px;border-radius:99px}
+.pile{position:relative;width:260px;height:300px}
+.pile > .comp{position:absolute;left:50%;top:50%;margin:0}
+.pile .sticky{margin:-109px 0 0 -109px}.pile .journal{margin:-146px 0 0 -119px}.pile .photo{margin:-137px 0 0 -109px}
+/* variant C: a pin through the top, like on the board */
+.pinned .comp.pile::before{display:none}
+.pinned .comp::before{content:"";position:absolute;left:50%;top:-7px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a6a,#e8501c 70%);box-shadow:0 2px 3px rgba(0,0,0,.3);z-index:5}
+
+.btns{position:absolute;left:27px;width:343px;height:125px;top:621px;z-index:6;pointer-events:none}
+.btn{position:absolute;left:0;width:343px;height:54px;background:#d9d9d9;border-radius:3px;display:flex;align-items:center;padding-left:40px;font:700 24px var(--display);letter-spacing:-.035em;opacity:0}
+.btn:nth-child(1){top:0}.btn:nth-child(2){top:71px}
+.dots{position:absolute;left:0;right:0;bottom:46px;display:flex;justify-content:center;gap:7px;z-index:7}
+.dots i{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.14);transition:background .3s,transform .3s}
+.dots i.on{background:#000;transform:scale(1.15)}
+@media (max-width:700px){:root{--s:.8}}
+
+/* ---- the paragraph stays; pieces land on top of it ---- */
+.copy{position:absolute;left:35px;top:133px;width:335px;z-index:2}
+.copy h1,.copy p{font:800 48px/43px var(--display);letter-spacing:-.03em;margin:0;color:var(--ink)}
+.copy p{margin-top:56px}
+.t-peach{background-image:linear-gradient(#f6dfca,#f6dfca)}
+.t-sky{background-image:linear-gradient(#d5e3f1,#d5e3f1)}
+.copy .wi{transition:opacity .5s}
+.copy.dim .wi{opacity:.12}
+.copy.dim .ph.on .wi{opacity:1}
+.fx{position:absolute;left:50%;top:50%;pointer-events:none}
+.halo{border-radius:50%;-webkit-backdrop-filter:blur(15px);backdrop-filter:blur(15px);background:radial-gradient(closest-side,rgba(245,245,245,.8),rgba(245,245,245,0));-webkit-mask-image:radial-gradient(closest-side,#000 58%,transparent 100%);mask-image:radial-gradient(closest-side,#000 58%,transparent 100%)}
+.panel{border-radius:36px;-webkit-backdrop-filter:blur(22px) saturate(1.3);backdrop-filter:blur(22px) saturate(1.3);background:rgba(255,255,255,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.75),0 22px 50px -14px rgba(0,0,0,.3)}
+.cut .comp{box-shadow:0 0 0 7px #fff,0 14px 30px -6px rgba(0,0,0,.34)!important}
+.cut .pile > .comp{box-shadow:0 0 0 6px #fff,0 12px 26px -6px rgba(0,0,0,.34)!important}
+.strong .comp{box-shadow:0 2px 6px rgba(0,0,0,.14),0 26px 50px -10px rgba(0,0,0,.4)!important}
+</style>
+</head>
+<body>
+<div class="head">
+  <div>
+    <h1>ONB-01 · Intro, text stays</h1>
+    <p>Your original idea: the whole paragraph stays on screen, and each piece (sticky, long note, photo) lands on top of the words it belongs to. The phrase it belongs to gets highlighted and stays highlighted. The four versions differ in what happens at the edge where a piece covers text. Pieces arrive the center-stage way. Tap a phone to skip ahead.</p>
+  </div>
+  <button id="all">Replay all</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EASE="cubic-bezier(.2,.8,.2,1)";
+const D=ms=>RM?1:ms;
+const TITLE="Welcome to your [[butter:Bulletin.]]";
+const BODY="Jot down [[blush:what’s on your mind,]] [[peach:journal like you usually do,]] [[sage:keep things you want to remember,]] and [[sky:look back so you don’t forget.]]";
+const STEPS=[{comp:"sticky",ph:1},{comp:"journal",ph:2},{comp:"photo",ph:3},{comp:"pile",ph:4}];
+const STICKY_TEXT="plants. call mom back. buy the good tape.";
+const JOURNAL_BODY="Walked the long way to work today. Got a coffee I didn’t need and sat in the park for ten minutes doing absolutely nothing. It was great. I want more days like this, where nothing happens and I notice everything.";
+const SIZE={sticky:[218,218],journal:[238,292],photo:[218,274],pile:[290,320]};
+const rot={sticky:-3,journal:2.5,photo:-2,pile:0};
+
+function words(text){
+  let html="",need=false;
+  text.split(/(\[\[[a-z]+:|\]\])/).forEach(seg=>{
+    const m=seg.match(/^\[\[([a-z]+):$/);
+    if(m){ if(need){html+=" ";need=false} html+=`<span class="ph t-${m[1]}">`; }
+    else if(seg==="]]") html+="</span>";
+    else seg.split(" ").filter(Boolean).forEach(w=>{ if(need) html+=" "; html+=`<span class="w"><span class="wi">${w}</span></span>`; need=true; });
+  });
+  return html;
+}
+const SB='<div class="sb"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3.2" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2"/></svg></span></div>';
+const $=h=>{const d=document.createElement("div");d.innerHTML=h.trim();return d.firstChild};
+
+function make(kind){
+  if(kind==="sticky") return $(`<div class="comp sticky"><span class="tx"></span><span class="caret"></span></div>`);
+  if(kind==="journal") return $(`<div class="comp journal"><b>a slow, good day</b><div class="jb">${JOURNAL_BODY.split(" ").map(w=>`<span class="jw">${w}</span>`).join(" ")}</div><i>1 min read</i></div>`);
+  if(kind==="photo") return $(`<div class="comp photo"><img src="assets/sp-IMG_4209.jpg" alt=""><span class="cap">claypot night</span></div>`);
+  return $(`<div class="comp pile"><div class="comp sticky" style="transform:rotate(-10deg) translate(-44px,-16px) scale(.84)"><span class="tx">${STICKY_TEXT}</span></div><div class="comp journal" style="transform:rotate(6deg) translate(40px,6px) scale(.84)"><b>a slow, good day</b><div class="jb">${JOURNAL_BODY}</div><i>1 min read</i></div><div class="comp photo" style="transform:rotate(-3deg) translate(0,44px) scale(.84)"><img src="assets/sp-IMG_4209.jpg" alt=""><span class="cap">claypot night</span></div></div>`);
+}
+function fill(ph,comp,kind,delay){
+  if(kind==="sticky"){
+    const tx=comp.querySelector(".tx"); let i=0;
+    const t0=setTimeout(()=>{const t=setInterval(()=>{ if(RM)i=STICKY_TEXT.length; tx.textContent=STICKY_TEXT.slice(0,++i); if(i>=STICKY_TEXT.length)clearInterval(t)},RM?1:48);ph._timers.push(t)},delay);ph._timers.push(t0);
+  }
+  if(kind==="journal") comp.querySelectorAll(".jw").forEach((w,i)=>w.animate([{opacity:0},{opacity:1}],{duration:D(260),delay:D(delay+i*30),fill:"both"}));
+  if(kind==="photo"){
+    comp.querySelector("img").animate([{filter:"blur(14px)",transform:"scale(1.08)"},{filter:"blur(0)",transform:"none"}],{duration:D(1100),delay:D(delay),easing:EASE,fill:"both"});
+    comp.querySelector(".cap").animate([{opacity:0},{opacity:1}],{duration:D(400),delay:D(delay+700),fill:"both"});
+  }
+}
+
+/* center stage entrance and exit, shared by all four */
+const IN=[{opacity:0,transform:"scale(.86) translateY(26px) rotate(-6deg)"},{opacity:1,transform:"none"}];
+const OUT=[{opacity:1,transform:"none"},{opacity:0,transform:"scale(.94) translateY(-34px)"}];
+const enter=(el,delay)=>el.animate(IN,{duration:D(850),delay:D(delay),easing:"cubic-bezier(.2,1.25,.4,1)",fill:"both"});
+const leave=el=>el.animate(OUT,{duration:D(430),easing:"ease-in",fill:"forwards"});
+
+const VERS=[
+ {k:"A",n:"Blur halo",d:"A soft, feathered blur spreads out around each piece, so the words behind it go out of focus toward the edge and sharpen again as you move away. No hard border anywhere.",
+  pl:["Closest to what you described","Text stays visible around the piece"],mi:["Blur behind moving pieces costs more to render","Words under the piece are only softened, not hidden"],
+  fx:(k)=>{const[w,h]=SIZE[k];return `<div class="fx halo" style="width:${w+130}px;height:${h+130}px;margin:${-(h+130)/2}px 0 0 ${-(w+130)/2}px"></div>`}},
+ {k:"B",n:"Focus on the phrase",d:"The paragraph dims to a pale gray except the phrase the piece belongs to, which stays black and highlighted. The piece sits on top with a deeper shadow, and the paragraph comes back when it leaves.",
+  pl:["Tells you which words the piece is about","Very easy to read"],mi:["The whole paragraph flickers pale and dark four times"],
+  dim:true,cls:"strong",fx:()=>""},
+ {k:"C",n:"Frosted panel",d:"Each piece sits on a frosted-glass panel with a thin bright edge, like a card lifting off the page. The words behind the panel blur evenly.",
+  pl:["The clearest edge","Looks native to iOS"],mi:["A panel with a piece inside it reads as a card on a card","Hides the most text"],
+  fx:(k)=>{const[w,h]=SIZE[k];return `<div class="fx panel" style="width:${w+56}px;height:${h+56}px;margin:${-(h+56)/2}px 0 0 ${-(w+56)/2}px"></div>`}},
+ {k:"D",n:"Die-cut sticker",d:"No blur at all. Each piece gets a thick white edge and a soft shadow, like a printed sticker slapped onto the paragraph. The words stay sharp right up to the edge.",
+  pl:["Playful and simple","Cheap to render"],mi:["The words behind are fully covered, so keep pieces from hiding the key phrase"],
+  cls:"cut",fx:()=>""}
+];
+
+const sleep=(ph,ms)=>new Promise(res=>{const done=()=>{clearTimeout(t);ph._skip=null;res()};const t=setTimeout(done,RM?30:ms);ph._skip=done});
+async function run(ph,v,tok){
+  const live=()=>{ if(ph._tok!==tok) throw "stop" };
+  ph._timers.forEach(clearTimeout); ph._timers.forEach(clearInterval); ph._timers=[];
+  ph.innerHTML=SB+`<div class="scene"><div class="copy"><h1>${words(TITLE)}</h1><p>${words(BODY)}</p></div></div><div class="dots">${[0,1,2,3,4].map(()=>"<i></i>").join("")}</div><div class="btns"><div class="btn">Continue with phone</div><div class="btn">or Continue with Apple</div></div>`;
+  const scene=ph.querySelector(".scene"), copy=ph.querySelector(".copy"), dots=[...ph.querySelectorAll(".dots i")], phs=[...copy.querySelectorAll("p .ph")];
+  const titleWs=[...copy.querySelectorAll("h1 .wi")], bodyWs=[...copy.querySelectorAll("p .wi")];
+  const hl=(m,delay)=>m.animate([{backgroundSize:"0% 46%"},{backgroundSize:"100% 46%"}],{duration:D(700),delay:D(delay),easing:"cubic-bezier(.5,0,.2,1)",fill:"forwards"});
+  try{
+    dots[0].classList.add("on");
+    // the whole paragraph comes in, words in focus one by one
+    titleWs.forEach((w,j)=>w.animate([{opacity:0,filter:"blur(12px)",transform:"scale(.94)"},{opacity:1,filter:"blur(0)",transform:"none"}],{duration:D(850),delay:D(j*50),easing:"cubic-bezier(.3,.7,.2,1)",fill:"backwards"}));
+    const off=titleWs.length*50+250;
+    bodyWs.forEach((w,j)=>w.animate([{opacity:0,filter:"blur(12px)",transform:"scale(.94)"},{opacity:1,filter:"blur(0)",transform:"none"}],{duration:D(850),delay:D(off+j*34),easing:"cubic-bezier(.3,.7,.2,1)",fill:"backwards"}));
+    hl(copy.querySelector("h1 .ph"),titleWs.length*50+300);
+    await sleep(ph,off+bodyWs.length*34+1300); live();
+    for(let i=0;i<STEPS.length;i++){
+      const st=STEPS[i], last=i===STEPS.length-1;
+      dots.forEach((d,j)=>d.classList.toggle("on",j===i+1));
+      const m=phs[st.ph-1]; if(v.dim){ copy.classList.add("dim"); m.classList.add("on"); }
+      hl(m,350);
+      const [w,h]=SIZE[st.comp];
+      const slot=$(`<div class="slot ${v.cls||""}" style="left:201px;top:545px"><div class="pos" style="transform:translate(-50%,-50%) rotate(${rot[st.comp]}deg)">${v.fx(st.comp)}</div></div>`);
+      const pos=slot.firstChild, comp=make(st.comp), fx=pos.querySelector(".fx");
+      pos.append(comp); scene.append(slot);
+      if(fx) enter(fx,350).onfinish=null;
+      if(st.comp==="pile"){ [...comp.children].forEach((c,j)=>{const b=c.style.transform;c.animate([{opacity:0,transform:b+" translateY(60px)"},{opacity:1,transform:b}],{duration:D(800),delay:D(450+j*160),easing:EASE,fill:"both"})}); }
+      else { enter(comp,450); fill(ph,comp,st.comp,450+850); }
+      await sleep(ph,3500); live();
+      if(last) break;
+      leave(comp); fx&&leave(fx);
+      if(v.dim){ copy.classList.remove("dim"); }
+      await sleep(ph,600); live();
+      m.classList.remove("on"); slot.remove();
+    }
+    // the swipe up to sign-in
+    ph.querySelector(".dots").animate([{opacity:1},{opacity:0}],{duration:D(300),fill:"forwards"});
+    scene.animate([{transform:"translateY(0)"},{transform:"translateY(-900px)"}],{duration:D(900),easing:"cubic-bezier(.6,0,.2,1)",fill:"forwards"});
+    ph.querySelectorAll(".btn").forEach((bt,i)=>bt.animate([{transform:"translateY(60px)",opacity:0},{transform:"none",opacity:1}],{duration:D(750),delay:D(420+i*100),easing:EASE,fill:"forwards"}));
+  }catch(e){ if(e!=="stop") throw e }
+}
+
+const plays=[];
+VERS.forEach(v=>{
+  const el=document.createElement("div");el.className="cell";
+  el.innerHTML=`<div class="frame"><div class="phone"></div></div><h2>${v.k} · ${v.n}</h2><p>${v.d}</p>
+   <div class="pm">${v.pl.map(x=>"+ "+x).join("<br>")}<br>${v.mi.map(x=>"− "+x).join("<br>")}</div>
+   <div class="ctl"><button class="ghost" data-a="r">Replay</button><button data-a="s">Skip ahead</button></div>`;
+  document.getElementById("grid").append(el);
+  const ph=el.querySelector(".phone"); ph._timers=[]; ph._tok=0;
+  const play=()=>{ph._tok++;run(ph,v,ph._tok)};
+  el.querySelector('[data-a="r"]').onclick=play;
+  el.querySelector('[data-a="s"]').onclick=()=>ph._skip&&ph._skip();
+  ph.addEventListener("click",()=>ph._skip&&ph._skip());
+  plays.push(play); play();
+});
+document.getElementById("all").onclick=()=>plays.forEach(f=>f());
+</script>
+</body>
+</html>

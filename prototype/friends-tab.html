@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FRN-01 — Friends tab</title>
+<style>
+:root{
+  --paper:#f5f5f5; --card:#e8e8e8; --avatar:#dedede; --pink:#e55bb5; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --mint:#aee0ce; --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:860px;line-height:1.45}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px auto 0;max-width:1500px;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar label{color:#555}.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar button{padding:7px 13px;border-radius:999px;background:rgba(0,0,0,.05);font-weight:510;font-size:13px}
+.bar button.on{background:#000;color:#fff}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:40;pointer-events:none;display:flex;align-items:center;padding:0 12px}
+.sb .t{flex:1;text-align:center;font-weight:600;font-size:17px;letter-spacing:-.68px;padding-top:16px;line-height:1}
+.sb .n{width:164px}.sb .r{flex:1;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-top:6px}
+
+/* ---- friends content ---- */
+.main{position:absolute;inset:0;padding:62px 13px 0;overflow:hidden}
+.fcard{background:var(--card);border-radius:24px;padding:17px 17px 18px;position:relative}
+.fcard h3{font-size:24px;font-weight:500;letter-spacing:-.2px;line-height:29px}
+.fcard .sub{font-size:14px;color:var(--ink50);margin-top:6px;font-weight:510}
+.afaces{display:grid;grid-template-columns:repeat(4,60px);justify-content:space-between;margin-top:20px;row-gap:24px;padding:0 0 0 0}
+.av{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;width:60px}
+.av .c{position:relative;width:60px;height:60px;border-radius:50%;background:var(--avatar);border:2px solid #fff;display:grid;place-items:center;font-weight:600;font-size:20px;color:rgba(0,0,0,.3)}
+.av .c.new::after{content:"";position:absolute;right:-1px;top:-1px;width:14px;height:14px;border-radius:50%;background:var(--pink);border:2.5px solid var(--card)}
+.av.ring .c.new{box-shadow:0 0 0 2.5px var(--pink)}
+.av span{font-size:13px;color:var(--ink50);font-weight:510}
+.gcard{background:var(--card);border-radius:24px;padding:18px 20px 20px;position:relative;margin:12px 3px 0}
+.gcard h3{font-size:24px;font-weight:500;letter-spacing:-.2px;line-height:29px}
+.gcard .sub{font-size:14px;color:var(--ink50);margin-top:6px;font-weight:510}
+.gcard .edit{position:absolute;right:20px;top:14px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.4);border:1px solid rgba(0,0,0,.12);font-weight:600;font-size:16px}
+.slots{display:grid;grid-template-columns:repeat(10,1fr);gap:7px 4px;margin-top:16px}
+.slots i{aspect-ratio:1;border-radius:50%;display:block;background:var(--avatar);border:2px solid var(--card)}
+.slots i.empty{background:none;border:1.5px dashed rgba(0,0,0,.25)}
+.slots.full i{background:var(--pink);border-color:var(--card)}
+.left{font-size:14px;color:var(--ink50);margin-top:12px;font-weight:510}
+.left.full{color:#c2318a}
+
+/* doorbell */
+.bell{display:inline-flex;align-items:center;gap:8px;background:#000;color:#fff;border-radius:999px;padding:11px 18px 11px 14px;font-size:14px;font-weight:510;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.bell .dot{width:9px;height:9px;border-radius:50%;background:var(--pink)}
+.bell.quiet{background:rgba(0,0,0,.06);color:rgba(0,0,0,.45);box-shadow:none;cursor:default}
+.bell.quiet .dot{background:rgba(0,0,0,.25)}
+.bell .chev{opacity:.6;margin-left:2px}
+.topbell{display:flex;justify-content:center;margin:2px 0 14px}
+.chipbell{position:absolute;right:16px;top:16px;display:inline-flex;align-items:center;gap:7px;background:#000;color:#fff;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:510}
+.chipbell .dot{width:8px;height:8px;border-radius:50%;background:var(--pink)}
+.chipbell.quiet{background:rgba(0,0,0,.07);color:rgba(0,0,0,.45)}
+.chipbell.quiet .dot{background:rgba(0,0,0,.25)}
+.floatbell{position:absolute;left:0;right:0;bottom:104px;display:flex;justify-content:center;z-index:12}
+
+/* add-back */
+.addback{background:#fff;border-radius:24px;padding:16px 18px;margin:0 3px 12px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;align-items:center;gap:14px}
+.addback .c{width:48px;height:48px;border-radius:50%;background:var(--avatar);border:2px solid #fff;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+.addback b{font-weight:600;font-size:16px;display:block;line-height:1.2}
+.addback small{display:block;font-size:13px;color:var(--ink50);margin-top:3px;line-height:1.3;font-weight:510}
+.addback .btns{margin-left:auto;display:flex;flex-direction:column;gap:6px}
+.addback .btns button{padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;background:#000;color:#fff}
+.addback .btns button.ghost{background:none;color:var(--ink50);font-weight:510;padding:2px}
+.addback .btns button:disabled{opacity:.25;cursor:default}
+.hint{font-size:12px;color:#c2318a;margin-top:6px;font-weight:510}
+
+/* tab bar */
+.tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:33px;display:flex;gap:6px;padding:8px 14px;border-radius:32px;background:rgba(255,255,255,.7);backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,.08);z-index:10}
+.tabbar .tb{width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 4px;border-radius:28px;font-size:13px}
+.tabbar .tb.on{background:rgba(0,0,0,.07);font-weight:510}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* queue overlay */
+.queue{position:absolute;inset:0;background:var(--paper);z-index:30;display:none;padding:62px 0 0}
+.phone[data-s="queue"] .queue{display:block}
+.prog{display:flex;gap:5px;padding:0 20px}
+.prog i{flex:1;height:4px;border-radius:2px;background:rgba(0,0,0,.12);overflow:hidden;position:relative}
+.prog i.done::after,.queue.hold .prog i.cur::after{animation-play-state:paused}
+.qhint{position:absolute;left:0;right:0;top:128px;text-align:center;font-size:12px;color:var(--ink50);font-weight:510;opacity:0;transition:opacity .15s;pointer-events:none}
+.queue.hold .qhint{opacity:1}
+.prog i.cur::after{content:"";position:absolute;inset:0;background:#000;border-radius:2px}
+.prog i.cur::after{animation:fill 9s linear forwards;transform-origin:left}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.qhead{display:flex;align-items:center;gap:12px;padding:18px 22px 0}
+.qhead .c{width:44px;height:44px;border-radius:50%;background:var(--avatar);border:2px solid #fff}
+.qhead b{font-size:19px;font-weight:600;display:block}.qhead small{font-size:13px;color:var(--ink50);font-weight:510}
+.qhead .x{margin-left:auto;font-size:22px;padding:6px 10px;color:rgba(0,0,0,.5)}
+.qboard{margin:22px 20px 0;background:#fff;border-radius:24px;height:470px;padding:22px;position:relative;overflow:hidden}
+.qboard .day{font-size:14px;font-weight:510;color:var(--ink50);display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.qboard .day::before{content:"";width:8px;height:8px;border-radius:50%;background:#000}
+.qpost{width:150px;height:140px;background:var(--mint);padding:14px;font-family:var(--pixel);font-size:12.5px;line-height:1.4;box-shadow:0 2px 3px rgba(0,0,0,.12);position:relative;margin-left:12px}
+.qpost.new{outline:2.5px solid var(--pink);outline-offset:3px}
+.qpost.new::before{content:"new";position:absolute;right:-8px;top:-12px;background:var(--pink);color:#fff;font:600 10px var(--ui);padding:3px 8px;border-radius:999px}
+.qrow{display:flex;gap:16px;margin-bottom:22px}
+.qnote{position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center}
+.qnote span{background:#000;color:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:510}
+.qfoot{position:absolute;left:20px;right:20px;bottom:56px;display:flex;justify-content:space-between;align-items:center}
+.qfoot small{font-size:13px;color:var(--ink50);font-weight:510}
+.qfoot button{background:#000;color:#fff;border-radius:999px;padding:12px 22px;font-weight:600;font-size:15px}
+.caught{display:none;position:absolute;inset:140px 40px auto;text-align:center}
+.caught .tick{width:68px;height:68px;border-radius:50%;background:#000;color:#fff;display:grid;place-items:center;margin:0 auto 18px;font-size:30px}
+.caught h4{font-size:24px;font-weight:600;margin-bottom:8px}.caught p{font-size:15px;color:var(--ink50);line-height:1.4}
+.caught button{margin-top:26px;background:#000;color:#fff;border-radius:999px;padding:12px 26px;font-weight:600;font-size:15px}
+.queue.done .qhead,.queue.done .qboard,.queue.done .qfoot,.queue.done .prog{display:none}
+.queue.done .caught{display:block}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>FRN-01 · Friends tab</h1>
+  <p>Doorbell chip inside the Friends card, the add-back card on top, and the guest list shows 20 slots: filled for friends, dashed for open spots. Tap the chip or a friend with a pink ring to walk the queue; each board plays for about 9 seconds, then moves on by itself. Press and hold the board to pause while you read.</p>
+</header>
+<div class="bar">
+  <label>Boards with news</label>
+  <button id="b-new" class="on">4 updated</button><button id="b-none">none</button>
+  <span class="sep"></span>
+  <label>Guest list</label>
+  <button id="g-17" class="on">17 / 20</button><button id="g-20">20 / 20 (full)</button>
+  <span class="sep"></span>
+  <label>Add-back card</label>
+  <button id="a-on" class="on">Maya added you</button><button id="a-off">none</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const FRIENDS = ['Maya','Liam','Noah','Emma','Olivia','Ethan','Ava','Sophia','Mia','Lucas','Zoe','Leo'];
+  const NEWSET = ['Maya','Liam','Emma','Ava'];
+  let hasNew = true, guests = 17;
+
+  const ICON = {
+    note:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>',
+    smile:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2"/><circle cx="9" cy="10" r=".6" fill="#000"/><circle cx="15" cy="10" r=".6" fill="#000"/></svg>',
+    book:'<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 7h6"/></svg>'
+  };
+  const tab = `<div class="tabbar"><div class="tb">${ICON.note}bulletin</div><div class="tb on">${ICON.smile}friends</div><div class="tb">${ICON.book}shelf</div></div>`;
+
+  const VARIANTS = [{ id:'B', name:'Friends tab', desc:'Doorbell chip in the Friends card, updated friends first with a ring. Add-back card on top. Guest list as 20 slots.', tags:[] }];
+  let showAdd = true;
+
+  function avatars(v){
+    const list = hasNew ? [...NEWSET, ...FRIENDS.filter(n=>!NEWSET.includes(n))] : FRIENDS;
+    return list.map(n=>{
+      const isNew = hasNew && NEWSET.includes(n);
+      return `<div class="av ring" data-friend="${n}" data-new="${isNew?1:0}"><div class="c ${isNew?'new':''}">${n[0]}</div><span>${n}</span></div>`;
+    }).join('');
+  }
+  const chipHTML = () => hasNew
+    ? `<button class="chipbell" data-bell><i class="dot"></i>${NEWSET.length} new</button>`
+    : `<span class="chipbell quiet"><i class="dot"></i>all quiet</span>`;
+
+  function guestCard(){
+    const full = guests >= 20, left = 20-guests;
+    const slots = Array.from({length:20},(_,i)=>`<i class="${i<guests?'':'empty'}"></i>`).join('');
+    return `<div class="gcard"><button class="edit">Edit</button><h3>Guest list (${guests}/20)</h3><div class="sub">People who can see your bulletin</div>
+      <div class="slots ${full?'full':''}">${slots}</div>
+      <div class="left ${full?'full':''}">${full?'Full. Take someone off first':`${left} spot${left===1?'':'s'} left`}</div></div>`;
+  }
+
+  function addback(v){
+    if(!showAdd || v.__addDismissed) return '';
+    const full = guests >= 20;
+    return `<div class="addback"><div class="c"></div><div><b>Maya put you on her list</b><small>Add her to yours?${full?'<br><span class="hint">Your list is full. Take someone off first.</span>':''}</small></div>
+      <div class="btns"><button data-add ${full?'disabled':''}>Add</button><button class="ghost" data-skip>Not now</button></div></div>`;
+  }
+
+  function render(cell, v){
+    const phone = cell.querySelector('.phone');
+    phone.dataset.s = 'main';
+    let body = addback(v);
+    body += `<div class="fcard">${chipHTML()}<h3>Friends</h3><div class="sub">People who put you on their guest list</div><div class="afaces">${avatars(v)}</div></div>`;
+    body += guestCard();
+    phone.querySelector('.main').innerHTML = body;
+    phone.querySelector('.float').innerHTML = '';
+    buildQueue(phone, null);
+  }
+
+  function buildQueue(phone, startName){
+    const q = phone.querySelector('.queue');
+    const who = hasNew ? (startName && NEWSET.includes(startName) ? [startName, ...NEWSET.filter(n=>n!==startName)] : NEWSET) : [];
+    phone.__queue = {who, i:0};
+    q.classList.remove('done');
+    paintQueue(phone);
+  }
+  function paintQueue(phone){
+    const {who,i} = phone.__queue; const q = phone.querySelector('.queue');
+    if(!who.length) return;
+    const name = who[i];
+    q.querySelector('.prog').innerHTML = who.map((_,k)=>`<i class="${k<i?'done':k===i?'cur':''}"></i>`).join('');
+    q.querySelector('[data-qname]').textContent = `${name}’s board`;
+    q.querySelector('[data-qcount]').textContent = `${i+1} of ${who.length} with news`;
+    q.querySelector('.qhead .c').textContent = '';
+    q.querySelector('[data-qnext]').textContent = i === who.length-1 ? 'Finish' : 'Next board';
+    q.querySelector('[data-qtext]').textContent = ['sunday at the lake','new haircut!!','made soup for everyone','finally finished the book'][i%4];
+  }
+
+  function advance(phone){
+    const qq = phone.__queue; qq.i++;
+    if(qq.i >= qq.who.length){ phone.querySelector('.queue').classList.add('done'); } else paintQueue(phone);
+  }
+
+  function build(v){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-s="main">
+      <div class="sb"><span class="t">9:41</span><span class="n"></span><span class="r"><img src="assets/wifi.svg" width="16" height="11" alt=""><img src="assets/battery.svg" width="28" height="14" alt=""></span></div>
+      <div class="main"></div>
+      <div class="float floatbell"></div>
+      ${tab}
+      <div class="queue">
+        <div class="prog"></div>
+        <div class="qhint">Paused</div>
+        <div class="qhead"><div class="c"></div><div><b data-qname></b><small data-qcount></small></div><button class="x" data-qclose>✕</button></div>
+        <div class="qboard">
+          <div class="day">Tues 3</div>
+          <div class="qrow"><div class="qpost new" data-qtext></div></div>
+          <div class="day">Mon 2</div>
+          <div class="qrow"><div class="qpost" style="background:#fff">pumpkin carving night</div></div>
+          <div class="qnote"><span>Leave a note</span></div>
+        </div>
+        <div class="qfoot"><small>Only boards with news. Then you’re done.</small><button data-qnext>Next board</button></div>
+        <div class="caught"><div class="tick">✓</div><h4>All caught up</h4><p>You’ve seen everything new.<br>See you next week.</p><button data-qclose>Done</button></div>
+      </div>
+    </div></div>
+    `;
+    const phone = cell.querySelector('.phone');
+    phone.querySelector('.prog').addEventListener('animationend', e=>{ if(e.animationName==='fill' && phone.dataset.s==='queue') advance(phone); });
+    const qb = phone.querySelector('.qboard'), qEl = phone.querySelector('.queue');
+    const hold = on => qEl.classList.toggle('hold', on);
+    qb.addEventListener('pointerdown', ()=>hold(true));
+    ['pointerup','pointercancel','pointerleave'].forEach(t=>qb.addEventListener(t, ()=>hold(false)));
+    phone.addEventListener('click', e=>{
+      if(e.target.closest('[data-bell]')){ buildQueue(phone,null); phone.dataset.s='queue'; return; }
+      const av = e.target.closest('.av'); if(av && av.dataset.new==='1'){ buildQueue(phone, av.dataset.friend); phone.dataset.s='queue'; return; }
+      if(e.target.closest('[data-qclose]')){ phone.dataset.s='main'; return; }
+      if(e.target.closest('[data-qnext]')){ advance(phone); return; }
+      if(e.target.closest('[data-add]')){ guests = Math.min(20, guests+1); v.__addDismissed = true; renderAll(); return; }
+      if(e.target.closest('[data-skip]')){ v.__addDismissed = true; renderAll(); return; }
+    });
+    cell.__v = v; cell.__render = () => render(cell, v);
+    render(cell, v);
+    return cell;
+  }
+
+  const grid = document.getElementById('grid');
+  const cells = VARIANTS.map(v => { const c = build(v); grid.appendChild(c); return c; });
+  const renderAll = () => cells.forEach(c => c.__render());
+
+  const $ = id => document.getElementById(id);
+  function seg(a,b,fn){ $(a).onclick=()=>{ fn(); $(a).classList.add('on'); $(b).classList.remove('on'); VARIANTS.forEach(v=>v.__addDismissed=false); renderAll(); };
+                         $(b).onclick=()=>{ fn(true); $(b).classList.add('on'); $(a).classList.remove('on'); VARIANTS.forEach(v=>v.__addDismissed=false); renderAll(); }; }
+  seg('b-new','b-none', alt => { hasNew = !alt; });
+  seg('g-17','g-20', alt => { guests = alt ? 20 : 17; });
+  seg('a-on','a-off', alt => { showAdd = !alt; });
+})();
+</script>
+</body>
+</html>

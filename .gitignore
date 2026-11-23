@@ -10,3 +10,6 @@ DerivedData/
 
 # Claude local settings
 .claude/settings.local.json
+
+# Firebase config (download from the Firebase console: Project settings > Your apps)
+ios/Bulletin/GoogleService-Info.plist

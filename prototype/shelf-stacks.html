@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARC-01 — Shelf, colored stacks</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf") format("truetype");font-weight:400 500}
+:root{
+  --paper:#f5f5f5; --blue:#0078fc;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:900px;line-height:1.45}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .r{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .r i{display:block;background:#111;border-radius:2px}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:62px 0 140px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+
+/* the app's floating tab bar */
+.tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:33px;display:flex;gap:6px;padding:8px 14px;border-radius:32px;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,.08);z-index:50}
+.tabbar .tb{width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 4px;border-radius:28px;font-size:13px}
+.tabbar .tb.on{background:rgba(0,0,0,.07);font-weight:510}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+.title{padding:0 24px 16px;display:flex;align-items:baseline;justify-content:space-between}
+.title h3{font-size:26px;font-weight:700;letter-spacing:-.3px}
+.title span{font-family:var(--mono);font-size:18px;color:rgba(0,0,0,.4)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;font-size:13px;font-weight:510;border-radius:999px;padding:5px 12px;line-height:1}
+.lock{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- A: stacked strips ---------- */
+.stack{padding:0 16px}
+.strip{position:relative;border-radius:24px 24px 0 0;padding:16px 20px 0;height:122px;margin-top:-34px;box-shadow:0 -2px 8px rgba(0,0,0,.05);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.strip:first-child{margin-top:0}
+.strip:last-child{border-radius:24px;height:auto;min-height:150px;padding-bottom:20px}
+.strip:active{transform:translateY(-6px)}
+.strip .row{display:flex;justify-content:space-between;align-items:flex-start}
+.strip .big{font-family:var(--mono);font-size:50px;line-height:1;letter-spacing:-1px}
+.strip .big small{font-size:14px;letter-spacing:0;margin-left:6px;opacity:.55}
+.strip .side{text-align:right;font-size:14px;font-weight:510;max-width:170px;line-height:1.3}
+.strip .side i{display:block;font-style:normal;font-size:12px;opacity:.55;margin-top:3px;font-weight:400}
+.strip.locked{background:#dcdce0;color:rgba(0,0,0,.45)}
+.strip .more{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap}
+.strip .more .pill{background:rgba(255,255,255,.55)}
+
+/* ---------- B: pull-up wallet ---------- */
+.wallet{padding:0 16px}
+.card{position:relative;border-radius:24px;margin-top:-22px;padding:0 20px;height:96px;overflow:hidden;box-shadow:0 -3px 10px rgba(0,0,0,.07);transition:height .45s cubic-bezier(.3,1.1,.4,1);cursor:pointer}
+.card:first-child{margin-top:0}
+.card .top{height:96px;padding-top:15px;display:flex;justify-content:space-between;align-items:flex-start}
+.card .top .big{font-family:var(--mono);font-size:30px;line-height:1.1}
+.card .top .side{text-align:right;font-size:14px;font-weight:510}
+.card .top .side i{display:block;font-style:normal;font-size:12px;opacity:.55;font-weight:400;margin-top:2px}
+.card .inner{display:flex;gap:16px;padding:0 0 22px;opacity:0;transition:opacity .25s}
+.card.open{height:304px}.card.open .inner{opacity:1;transition-delay:.15s}
+.card .cover{width:132px;flex:none}
+.pol{background:#fff;padding:6px 6px 22px;box-shadow:0 2px 6px rgba(0,0,0,.18);transform:rotate(-3deg);border-radius:2px}
+.pol img{display:block;width:100%;aspect-ratio:.82;object-fit:cover}
+.card .facts{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding-top:2px}
+.facts dl{display:grid;gap:9px}
+.facts dt{font-family:var(--mono);font-size:26px;line-height:1}.facts dd{font-size:12px;opacity:.6;margin-top:2px}
+.facts .open-btn{align-self:flex-start;background:#000;color:#fff;border-radius:999px;font-size:14px;font-weight:510;padding:9px 16px}
+.card.locked{background:#dcdce0;color:rgba(0,0,0,.45);height:96px}
+
+/* ---------- C: dashboard like the reference ---------- */
+.hello{padding:0 20px;display:flex;justify-content:space-between;align-items:center}
+.avatar{width:34px;height:34px;border-radius:50%;background:#cdddf9}
+.round{width:40px;height:40px;border-radius:50%;background:#000;display:grid;place-items:center}
+.round svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hello-t{padding:26px 20px 14px;font-size:30px;font-weight:700;letter-spacing:-.4px}
+.sum{margin:0 16px;background:#ececec;border-radius:20px;padding:18px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sum p{font-size:16px;line-height:1.3}
+.sum .pills{display:flex}.sum .pills .pill{margin-left:-8px;font-size:12px;padding:6px 12px}
+.sum .pills .pill:first-child{margin-left:0}
+.lab{padding:22px 20px 10px;font-size:15px;display:flex;align-items:center;gap:6px}
+.lab svg{width:12px;height:12px;fill:none;stroke:#000;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tiles{display:flex;gap:10px;padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.tiles::-webkit-scrollbar{display:none}
+.tile{flex:none;width:112px;height:150px;border-radius:16px;background:#ececec;padding:12px;display:flex;flex-direction:column;justify-content:space-between;font-size:14px}
+.tile .mo{font-family:var(--mono);font-size:22px}
+.tile.locked{background:repeating-linear-gradient(135deg,#e2e2e2 0 2px,#eee 2px 7px);color:rgba(0,0,0,.4)}
+.rec .strip{height:100px;margin-top:-30px}
+.rec .strip:last-child{height:auto;min-height:100px;padding-bottom:16px}
+.rec .strip .big{font-size:42px}
+.rec .strip .side{padding-top:14px;font-size:14px}
+.fab{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);width:62px;height:62px;border-radius:50%;background:#000;display:grid;place-items:center;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- D: spines on a shelf ---------- */
+.shelf{padding:26px 18px 0}
+.books{display:flex;align-items:flex-end;gap:5px;height:230px;border-bottom:10px solid #d9d9dc;padding:0 6px;position:relative}
+.books::after{content:"";position:absolute;left:-18px;right:-18px;bottom:-14px;height:4px;background:rgba(0,0,0,.06);border-radius:4px}
+.book{position:relative;width:40px;border-radius:6px 6px 2px 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 0 12px;transition:transform .35s cubic-bezier(.3,1.5,.5,1);cursor:pointer;box-shadow:inset -3px 0 0 rgba(0,0,0,.07),inset 2px 0 0 rgba(255,255,255,.4)}
+.book .n{font-family:var(--mono);font-size:13px}
+.book .v{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:11.5px;white-space:nowrap;max-height:130px;overflow:hidden;text-overflow:ellipsis}
+.book.on{transform:translateY(-22px) rotate(-3deg)}
+.book.locked{background:#dcdce0;color:rgba(0,0,0,.4)}
+.shelf .year{font-family:var(--mono);font-size:13px;color:rgba(0,0,0,.4);margin:22px 4px 8px}
+.detail{margin:26px 16px 0;border-radius:24px;padding:18px;display:flex;gap:16px;min-height:208px}
+.detail .cover{width:122px;flex:none}
+.detail .tt{font-size:20px;font-weight:600;line-height:1.2}
+.detail .mo{font-family:var(--mono);font-size:13px;opacity:.6;margin-bottom:6px}
+.detail .row{display:flex;gap:14px;margin-top:14px}
+.detail .row div{font-family:var(--mono);font-size:22px}.detail .row small{display:block;font:400 11px var(--ui);opacity:.6;margin-top:2px}
+.detail .open-btn{margin-top:16px;background:#000;color:#fff;border-radius:999px;font-size:14px;font-weight:510;padding:9px 16px}
+
+/* ---------- E: stacked covers grid ---------- */
+.zgrid{display:grid;grid-template-columns:1fr 1fr;gap:34px 18px;padding:6px 20px 0}
+.zc{position:relative;aspect-ratio:.76;cursor:pointer}
+.zc .sheet{position:absolute;inset:0;border-radius:14px;border:1px solid rgba(0,0,0,.06)}
+.zc .s3{transform:translate(7px,-7px) rotate(3deg);opacity:.55}
+.zc .s2{transform:translate(-5px,-4px) rotate(-2deg);opacity:.8}
+.zc .face{position:absolute;inset:0;border-radius:14px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.zc:active .face{transform:translateY(-5px) rotate(-1deg)}
+.zc .tab{align-self:flex-start;font-family:var(--mono);font-size:13px;background:rgba(255,255,255,.65);border-radius:999px;padding:5px 11px}
+.zc .photo{width:84%;margin:0 auto;background:#fff;padding:5px 5px 5px;box-shadow:0 1px 4px rgba(0,0,0,.18);transform:rotate(-2deg)}
+.zc .photo img{display:block;width:100%;aspect-ratio:1.05;object-fit:cover}
+.zc .nm{font-size:13.5px;font-weight:510;line-height:1.2}
+.zc.locked .face{background:#dcdce0;color:rgba(0,0,0,.4);align-items:center;justify-content:center;gap:6px;box-shadow:none}
+.zc.locked .sheet{display:none}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ARC-01 — Shelf, in colored stacks</h1>
+  <p>Five takes on the shelf, inspired by the reference: overlapping rounded cards, big numbers, pills. Every month wears its own sticky color (banana, celery, shrimp, shark, grape, orange), so the shelf keeps each month's look. One locked month is in each (plain gray, no title). Numbers are JetBrains Mono, text is SF Pro. Tap the cards, spines and tiles: A has a press, B / D / E react.</p>
+</header>
+<div class="grid" id="grid"></div>
+
+<script>
+const C = { // sticky colors: [body, flap]
+  banana:["#F4E8C4","#F4CB52"], celery:["#D1F4C4","#9EE086"], shrimp:["#FFCFCF","#F08383"],
+  shark:["#CAECFF","#7CC1F2"], grape:["#CAD6FF","#7C98F2"], urchin:["#EAD5FF","#B484E7"], orange:["#FFDDC0","#ECAE82"]
+};
+const M = [
+  {m:"Oct", n:10, t:"the month of yzma",    c:"urchin", pins:24, notes:31, busy:"Oct 14", ph:"assets/pic-a.jpg"},
+  {m:"Sep", n:9,  t:"back to school",       c:"shark",  pins:17, notes:12, busy:"Sep 3",  ph:"assets/pic-b.jpg"},
+  {m:"Aug", n:8,  t:"beach, mostly",        c:"banana", pins:31, notes:22, busy:"Aug 21", ph:"assets/sample-food.jpg"},
+  {m:"Jul", n:7,  t:"no plans",             c:"shrimp", pins:9,  notes:5,  busy:"Jul 4",  ph:"assets/sample-p3.jpg"},
+  {m:"Jun", n:6,  t:"moved apartments",     c:"celery", pins:28, notes:19, busy:"Jun 12", ph:"assets/sample-p4.jpg"},
+  {m:"May", n:5,  locked:true},
+  {m:"Apr", n:4,  t:"tulips",               c:"orange", pins:14, notes:8,  busy:"Apr 9",  ph:"assets/pic-a.jpg"},
+];
+const lockSvg = '<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const tabbar = `<div class="tabbar">
+  <div class="tb"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg>bulletin</div>
+  <div class="tb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 10v1M15 10v1M8.5 14.5c1.8 2 5.2 2 7 0"/></svg>friends</div>
+  <div class="tb on"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/></svg>shelf</div></div>`;
+const sb = `<div class="sb"><span class="t">9:41</span><span class="r"><i style="width:18px;height:10px"></i><i style="width:24px;height:11px"></i></span></div>`;
+const phone = (inner, extra="") => `<div class="frame"><div class="phone">${sb}<div class="screen">${inner}</div>${extra}${tabbar}</div></div>`;
+const body = m => C[m.c][0], flap = m => C[m.c][1];
+
+/* A: stacked strips */
+function A(){
+  const strips = M.map((m,i)=> m.locked
+    ? `<div class="strip locked"><div class="row"><div class="big">${String(m.n).padStart(2,"0")}<small>${m.m}</small></div><div class="side" style="display:flex;align-items:center;gap:6px;padding-top:8px">${lockSvg} locked<i></i></div></div></div>`
+    : `<div class="strip" style="background:${body(m)}"><div class="row"><div class="big">${String(m.n).padStart(2,"0")}<small>${m.m}</small></div><div class="side">${m.t}<i>${m.pins} pinned · ${m.notes} notes</i></div></div></div>`).join("");
+  return phone(`<div class="title"><h3>Shelf</h3><span>2026</span></div><div class="stack">${strips}</div>`);
+}
+
+/* B: pull-up wallet */
+function B(){
+  const cards = M.map((m,i)=> m.locked
+    ? `<div class="card locked"><div class="top"><div class="big">${m.m}</div><div class="side" style="display:flex;gap:6px;align-items:center">${lockSvg} locked</div></div></div>`
+    : `<div class="card ${i==0?"open":""}" style="background:${body(m)};z-index:${i}" onclick="pull(this)">
+        <div class="top"><div class="big">${m.m}</div><div class="side">${m.t}<i>${m.pins} pinned · ${m.notes} notes</i></div></div>
+        <div class="inner"><div class="cover"><div class="pol"><img src="${m.ph}"></div></div>
+          <div class="facts"><dl><div><dt>${m.pins}</dt><dd>things pinned</dd></div><div><dt>${m.notes}</dt><dd>notes from friends</dd></div><div><dt>${m.busy.split(" ")[1]}</dt><dd>busiest day</dd></div></dl>
+          <button class="open-btn">Open ${m.m}</button></div></div></div>`).join("");
+  return phone(`<div class="title"><h3>Shelf</h3><span>2026</span></div><div class="wallet" id="wallet">${cards}</div>`);
+}
+function pull(el){ const was = el.classList.contains("open"); el.parentElement.querySelectorAll(".card").forEach(c=>c.classList.remove("open")); if(!was) el.classList.add("open"); }
+
+/* C: dashboard, like the reference */
+function Cc(){
+  const tiles = M.map(m=> m.locked
+    ? `<div class="tile locked"><div class="mo">${m.m}</div><div>${lockSvg}</div></div>`
+    : `<div class="tile" style="background:${body(m)}"><div><div class="mo">${m.m}</div><div style="font-size:12px;opacity:.6;margin-top:3px">${m.t}</div></div><span class="pill" style="background:${flap(m)}">${m.pins} pins</span></div>`).join("");
+  const rec = [["212","Things pinned","urchin"],["148","Notes from friends","banana"],["17","Day streak","celery"],["7","Months sealed","shrimp"]]
+    .map(r=>`<div class="strip" style="background:${C[r[2]][0]}"><div class="row"><div class="big">${r[0]}</div><div class="side">${r[1]}</div></div></div>`).join("");
+  return phone(`
+    <div class="hello"><div class="avatar"></div><div class="round"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg></div></div>
+    <div class="hello-t">Your shelf</div>
+    <div class="sum"><p>7 months sealed<br>on the shelf</p><div class="pills"><span class="pill" style="background:#CAECFF">Shared</span><span class="pill" style="background:#F4CB52">Private</span><span class="pill" style="background:#B484E7">Locked</span></div></div>
+    <div class="lab">2026 months</div>
+    <div class="tiles">${tiles}</div>
+    <div class="lab">Your records this year <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="stack rec">${rec}</div>`,
+    `<div class="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>`);
+}
+
+/* D: spines on a shelf */
+function D(){
+  const hs = [210,176,196,160,200,170,186];
+  const spines = M.map((m,i)=> m.locked
+    ? `<div class="book locked" style="height:${hs[i]}px" data-i="${i}"><span class="n">${String(m.n).padStart(2,"0")}</span><span class="v">locked</span><span>${lockSvg}</span></div>`
+    : `<div class="book ${i==0?"on":""}" style="height:${hs[i]}px;background:${body(m)}" data-i="${i}" onclick="pickBook(${i})"><span class="n">${String(m.n).padStart(2,"0")}</span><span class="v">${m.t}</span><span style="width:14px;height:14px;border-radius:50%;background:${flap(m)}"></span></div>`).join("");
+  return phone(`<div class="title"><h3>Shelf</h3><span>2026</span></div>
+    <div class="shelf"><div class="books" id="books">${spines}</div></div>
+    <div class="detail" id="detail" style="background:${body(M[0])}">${detail(0)}</div>`);
+}
+function detail(i){ const m=M[i]; return `<div class="cover"><div class="pol"><img src="${m.ph}"></div></div>
+  <div style="flex:1"><div class="mo">${m.m} 2026 · sealed</div><div class="tt">${m.t}</div>
+  <div class="row"><div>${m.pins}<small>pinned</small></div><div>${m.notes}<small>notes</small></div><div>${m.busy.split(" ")[1]}<small>busiest</small></div></div>
+  <button class="open-btn">Open ${m.m}</button></div>`; }
+function pickBook(i){ const m=M[i]; document.querySelectorAll("#books .book").forEach(b=>b.classList.toggle("on", +b.dataset.i===i)); const d=document.getElementById("detail"); d.style.background=body(m); d.innerHTML=detail(i); }
+
+/* E: stacked covers */
+function E(){
+  const z = M.map(m=> m.locked
+    ? `<div class="zc locked"><div class="face">${lockSvg.replace('class="lock"','class="lock" style="width:22px;height:22px"')}<div class="nm">${m.m} · locked</div></div></div>`
+    : `<div class="zc"><div class="sheet s3" style="background:${flap(m)}"></div><div class="sheet s2" style="background:${body(m)}"></div>
+        <div class="face" style="background:${body(m)}"><span class="tab">${m.m}</span><div class="photo"><img src="${m.ph}"></div><div class="nm">${m.t}</div></div></div>`).join("");
+  return phone(`<div class="title"><h3>Shelf</h3><span>2026</span></div><div class="zgrid">${z}</div>`);
+}
+
+const options = [
+  {k:"A", n:"Stacked strips", f:A, d:"The reference's records stack, almost literally: each month is a full-width colored card that tucks under the next, showing a big mono month number and its title. The oldest sits fully open at the bottom.", pl:["Calm, fast to scan","Looks like nothing else in the app"], mi:["No cover photo until you open a month"]},
+  {k:"B", n:"Pull-up wallet", f:B, d:"Same stack, but tapping a card pulls it up like a card in a wallet: it grows to show the cover photo, three recap numbers and an Open button. One open at a time.", pl:["Cover and recap without leaving the shelf","Playful, one gesture"], mi:["Needs more room per open month"]},
+  {k:"C", n:"Dashboard, like the reference", f:Cc, d:"The reference's whole layout: a title, a rounded summary card with pills (shared / private / locked), a row of month tiles you scroll sideways, then a stack of big-number records for the year.", pl:["Gives the shelf a 'year in review' feel","Pills reuse the sticky colors"], mi:["More going on than a shelf needs","Months are small tiles"]},
+  {k:"D", n:"Spines on a shelf", f:D, d:"Months stand like books on a shelf, each spine in its sticky color with the title running up it. Tap one and it slides out; the card below shows its cover and recap.", pl:["Literally a shelf","Lots of months fit in one row"], mi:["Titles are small and vertical","Different from the rest of the app's cards"]},
+  {k:"E", n:"Stacked covers grid", f:E, d:"Two-up grid of zine covers. Each cover has two colored sheets peeking out behind it, matching the stacked blocks on the Friends tab, with the month as a pill tab and the title below.", pl:["Reads as zines you flip through","Consistent with the Friends tab stacks"], mi:["Quieter: no recap numbers on the shelf"]},
+];
+document.getElementById("grid").innerHTML = options.map(o=>`<div class="cell">${o.f()}<h2><em>${o.k}</em>${o.n}</h2><p>${o.d}</p><div class="tags">${o.pl.map(t=>`<b class="plus">+ ${t}</b>`).join("")}${o.mi.map(t=>`<b class="minus">− ${t}</b>`).join("")}</div></div>`).join("");
+</script>
+</body>
+</html>

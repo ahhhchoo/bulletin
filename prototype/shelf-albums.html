@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARC-01 — Shelf, album cards</title>
+<style>
+@font-face{font-family:"JetBrains Mono";src:url("assets/JetBrainsMono-Regular.ttf") format("truetype");font-weight:400 500}
+:root{
+  --paper:#f5f5f5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:900px;line-height:1.45}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .r{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .r i{display:block;background:#111;border-radius:2px}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:58px 0 150px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:33px;display:flex;gap:6px;padding:8px 14px;border-radius:32px;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,.08);z-index:50}
+.tabbar .tb{width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 4px;border-radius:28px;font-size:13px}
+.tabbar .tb.on{background:rgba(0,0,0,.07);font-weight:510}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+svg.ic{width:20px;height:20px;fill:none;stroke:#000;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* top row: you, search, filter (like the reference) */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 14px}
+.topbar .who{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:#cdddf9}
+.topbar h3{font-size:24px;font-weight:700;letter-spacing:-.3px}
+.circ{width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.circs{display:flex;gap:10px}
+
+/* the album: a colored card, a collage of the month's photos, a frosted band across the bottom */
+.album{position:relative;margin:0 16px;border-radius:26px;height:196px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+.album .tile{position:absolute;top:14px;height:150px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.18);border:2px solid #fff}
+.album .tile img{width:100%;height:100%;object-fit:cover;display:block}
+.t1{left:14px;width:28%;border-radius:22px 6px 6px 22px;transform:rotate(-1.5deg)}
+.t2{left:26%;width:27%;border-radius:10px 22px 10px 10px;transform:rotate(2.5deg);top:8px!important}
+.t3{left:50%;width:22%;border-radius:8px;transform:rotate(-2deg);top:18px!important;opacity:.95}
+.t4{right:14px;width:30%;border-radius:6px 22px 22px 6px;transform:rotate(1.5deg)}
+.album .glass{position:absolute;left:12px;right:12px;bottom:12px;height:76px;border-radius:22px;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);background:var(--tint);display:flex;align-items:center;justify-content:flex-end;padding:0 12px}
+.go{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+.cap{text-align:center;padding:14px 20px 0}
+.cap .nm{font-size:23px;font-weight:700;letter-spacing:-.3px}
+.cap .meta{font-size:14px;color:rgba(0,0,0,.5);margin-top:4px;font-weight:510}
+.cap .meta i{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,.4);margin:0 7px;vertical-align:middle}
+.faces{display:flex;justify-content:center;margin-top:10px;align-items:center}
+.faces s{width:30px;height:30px;border-radius:50%;border:2px solid var(--paper);margin-left:-8px;display:block;text-decoration:none}
+.faces s:first-child{margin-left:0}
+.faces b{font-weight:510;font-size:12px;background:#fff;border-radius:999px;padding:6px 8px;margin-left:-6px;box-shadow:0 0 0 2px var(--paper)}
+.item{margin-bottom:28px;cursor:pointer;transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.item:active{transform:scale(.985)}
+.lock{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.locked.album{background:#dcdce0}
+.locked .glass{background:rgba(255,255,255,.45);justify-content:center;gap:8px;color:rgba(0,0,0,.5);font-weight:510;font-size:15px}
+.locked .ghost{position:absolute;top:14px;height:150px;background:rgba(0,0,0,.05);border-radius:22px}
+
+/* G: title lives on the glass */
+.album.short{height:172px}
+.album.short .tile{height:126px;top:12px}
+.album.short .glass{height:64px;justify-content:space-between;padding:0 16px;bottom:10px}
+.glass .gt{font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.15}
+.glass .gm{font-size:12.5px;opacity:.6;margin-top:3px;font-weight:510}
+
+/* H: two across */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px 12px;padding:0 14px}
+.two .album{margin:0;height:158px;border-radius:22px}
+.two .album .tile{height:106px;top:10px}
+.two .t1{left:8px;width:34%}.two .t2{left:30%;width:32%;top:6px!important}.two .t3{display:none}.two .t4{right:8px;width:34%}
+.two .glass{left:8px;right:8px;bottom:8px;height:54px;border-radius:17px;padding:0 10px;justify-content:space-between}
+.two .glass .gt{font-size:15px}
+.two .cap{padding:10px 4px 0;text-align:left}
+.two .cap .nm{font-size:15px;font-weight:600;letter-spacing:0}
+.two .cap .meta{font-size:12px;margin-top:2px}
+.two .go{width:32px;height:32px}
+.pick{font-family:var(--mono);font-size:13px;opacity:.7}
+
+/* I: deck, the top album open and the rest tucked under */
+.deck{position:relative;padding:0 16px}
+.deck .slot{position:relative;border-radius:26px;margin-top:-132px;transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
+.deck .slot:first-child{margin-top:0}
+.deck .slot .album{margin:0;height:196px;box-shadow:0 -4px 14px rgba(0,0,0,.1),inset 0 0 0 1px rgba(0,0,0,.05)}
+.deck .slot .bar{position:absolute;left:0;right:0;top:0;height:64px;display:none}
+.deck .slot.open{margin-top:12px}
+.deck .slot.open + .slot{margin-top:12px}
+.deck .slot:first-child.open{margin-top:0}
+.deck .slot .under{position:absolute;left:20px;right:20px;top:14px;display:flex;justify-content:space-between;align-items:center;z-index:4;pointer-events:none;font-weight:600;font-size:17px}
+.deck .slot .under span{font-family:var(--mono);font-size:14px;opacity:.6;font-weight:400}
+.deck .slot:not(.open) .tile,.deck .slot:not(.open) .glass{opacity:0}
+.deck .slot .tile,.deck .slot .glass{transition:opacity .25s}
+.deck .slot.open .under{display:none}
+.deck .slot .capmini{display:none}
+
+/* J: wide strips with a timeline */
+.tl{position:relative;padding:0 16px 0 52px}
+.tl::before{content:"";position:absolute;left:27px;top:8px;bottom:8px;width:3px;background:rgba(0,0,0,.1);border-radius:3px}
+.tl .row{position:relative;margin-bottom:20px}
+.tl .row::before{content:"";position:absolute;left:-30px;top:6px;width:9px;height:9px;border-radius:50%;background:#000}
+.tl .mo{font-family:var(--mono);font-size:14px;color:rgba(0,0,0,.5);margin-bottom:8px}
+.tl .album{margin:0;height:116px;border-radius:22px}
+.tl .album .tile{height:84px;top:10px}
+.tl .album .t3{display:none}
+.tl .t1{left:10px;width:26%}.tl .t2{left:25%;width:28%;top:6px!important}.tl .t4{right:10px;width:30%}
+.tl .glass{left:8px;right:8px;bottom:8px;height:50px;border-radius:16px;justify-content:space-between;padding:0 14px}
+.tl .glass .gt{font-size:16px}
+.tl .go{width:34px;height:34px}
+.yr{font-family:var(--mono);font-size:13px;color:rgba(0,0,0,.4);padding:4px 20px 10px}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ARC-01 — Shelf, album cards</h1>
+  <p>Round two, from the new reference: each sealed month is an album, a colored card with a collage of its photos and a frosted band across the bottom, the title and date under it, and the friends who left notes as a row of faces. The month's color is its sticky color. Photos here are samples. Arrow buttons stand in for the "+", since a sealed month can't take new posts. One locked month in each. Tap the deck in I; the rest are static.</p>
+</header>
+<div class="grid" id="grid"></div>
+<script>
+const C = {banana:["#F4E8C4","#F4CB52"], celery:["#D1F4C4","#9EE086"], shrimp:["#FFCFCF","#F08383"], shark:["#CAECFF","#7CC1F2"], grape:["#CAD6FF","#7C98F2"], urchin:["#EAD5FF","#B484E7"], orange:["#FFDDC0","#ECAE82"]};
+const P = ["assets/pic-a.jpg","assets/pic-b.jpg","assets/sample-food.jpg","assets/sample-p3.jpg","assets/sample-p4.jpg","assets/sample-wide.jpg"];
+const F = ["#AEE0CE","#FACCD6","#CCDBFA","#FCE6AB","#DBCCF7","#FDD4B3"];
+const M = [
+  {m:"Oct",full:"October 2026",t:"the month of yzma", c:"urchin",pins:24,notes:31,ph:[0,1,2,3],faces:[0,1,2],more:4},
+  {m:"Sep",full:"September 2026",t:"back to school",    c:"shark", pins:17,notes:12,ph:[4,2,5,1],faces:[3,1,4],more:2},
+  {m:"Aug",full:"August 2026",t:"beach, mostly",       c:"banana",pins:31,notes:22,ph:[2,5,0,4],faces:[5,0,2],more:7},
+  {m:"Jul",full:"July 2026",t:"no plans",              c:"shrimp",pins:9, notes:5, ph:[3,1,4,0],faces:[1,4],more:0},
+  {m:"Jun",full:"June 2026",t:"moved apartments",      c:"celery",pins:28,notes:19,ph:[1,4,3,2],faces:[2,3,5],more:3},
+  {m:"May",full:"May 2026",locked:true},
+  {m:"Apr",full:"April 2026",t:"tulips",                c:"orange",pins:14,notes:8, ph:[0,3,5,2],faces:[0,5],more:1},
+];
+const lockSvg='<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const arrow='<svg class="ic" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const tabbar=`<div class="tabbar"><div class="tb"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg>bulletin</div><div class="tb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 10v1M15 10v1M8.5 14.5c1.8 2 5.2 2 7 0"/></svg>friends</div><div class="tb on"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/></svg>shelf</div></div>`;
+const sb=`<div class="sb"><span class="t">9:41</span><span class="r"><i style="width:18px;height:10px"></i><i style="width:24px;height:11px"></i></span></div>`;
+const phone=(inner)=>`<div class="frame"><div class="phone">${sb}<div class="screen">${inner}</div>${tabbar}</div></div>`;
+const topRow=(title)=>`<div class="topbar"><div class="who"><div class="avatar"></div>${title?`<h3>${title}</h3>`:""}</div><div class="circs"><div class="circ"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg></div><div class="circ"><svg class="ic" viewBox="0 0 24 24"><path d="M5 8h14M8 12h8M11 16h2"/></svg></div></div></div>`;
+const tiles=m=>m.ph.map((p,i)=>`<div class="tile t${i+1}"><img src="${P[p]}"></div>`).join("");
+const faces=m=>`<div class="faces">${m.faces.map(f=>`<s style="background:${F[f]}"></s>`).join("")}${m.more?`<b>+${m.more}</b>`:""}</div>`;
+const tint=m=>`color-mix(in srgb, ${C[m.c][1]} 38%, transparent)`;
+const lockedAlbum=(cls="")=>`<div class="album locked ${cls}"><div class="ghost" style="left:14px;width:28%"></div><div class="ghost" style="left:31%;width:26%"></div><div class="ghost" style="right:14px;width:30%"></div><div class="glass">${lockSvg} locked</div></div>`;
+
+/* F: the reference, as the shelf */
+function Fa(){ return phone(topRow("Shelf")+M.map(m=> m.locked
+  ? `<div class="item">${lockedAlbum()}<div class="cap"><div class="nm">${m.m}</div><div class="meta">${m.full} <i></i> request to open</div></div></div>`
+  : `<div class="item"><div class="album" style="background:${C[m.c][0]}">${tiles(m)}<div class="glass" style="--tint:${tint(m)}"><div class="go">${arrow}</div></div></div>
+     <div class="cap"><div class="nm">${m.t}</div><div class="meta">${m.full} <i></i> ${m.pins} pinned</div>${faces(m)}</div></div>`).join("")); }
+
+/* G: title on the glass, shorter */
+function Ga(){ return phone(topRow("Shelf")+M.map(m=> m.locked
+  ? `<div class="item" style="margin-bottom:18px">${lockedAlbum("short")}</div>`
+  : `<div class="item" style="margin-bottom:18px"><div class="album short" style="background:${C[m.c][0]}">${tiles(m)}<div class="glass" style="--tint:${tint(m)}"><div><div class="gt">${m.t}</div><div class="gm">${m.full} · ${m.pins} pinned · ${m.notes} notes</div></div><div class="go" style="width:38px;height:38px">${arrow}</div></div></div></div>`).join("")); }
+
+/* H: two across */
+function Ha(){ return phone(topRow("Shelf")+`<div class="two">`+M.map(m=> m.locked
+  ? `<div class="item">${lockedAlbum()}<div class="cap"><div class="nm">May</div><div class="meta">locked</div></div></div>`
+  : `<div class="item"><div class="album" style="background:${C[m.c][0]}">${tiles(m)}<div class="glass" style="--tint:${tint(m)}"><span class="pick">${m.m.toUpperCase()}</span><div class="go">${arrow}</div></div></div><div class="cap"><div class="nm">${m.t}</div><div class="meta">${m.pins} pinned · ${m.notes} notes</div></div></div>`).join("")+`</div>`); }
+
+/* I: deck */
+function Ia(){ return phone(topRow("Shelf")+`<div class="deck" id="deck">`+M.map((m,i)=> m.locked
+  ? `<div class="slot" style="z-index:${i}"><div class="album locked" style="background:#dcdce0"><div class="under"><b style="font-weight:600">May</b><span>locked</span></div></div></div>`
+  : `<div class="slot ${i==0?"open":""}" style="z-index:${i}" onclick="openSlot(this)"><div class="album" style="background:${C[m.c][0]}">
+      <div class="under"><b style="font-weight:600">${m.t}</b><span>${m.m} 2026</span></div>${tiles(m)}<div class="glass" style="--tint:${tint(m)};justify-content:space-between;padding:0 16px"><div><div class="gt">${m.t}</div><div class="gm">${m.pins} pinned · ${m.notes} notes</div></div><div class="go">${arrow}</div></div></div></div>`).join("")+`</div>`); }
+function openSlot(el){ const was=el.classList.contains("open"); el.parentElement.querySelectorAll(".slot").forEach(s=>s.classList.remove("open")); if(!was) el.classList.add("open"); }
+
+/* J: timeline of wide albums */
+function Ja(){ return phone(topRow("Shelf")+`<div class="yr">2026</div><div class="tl">`+M.map(m=> m.locked
+  ? `<div class="row"><div class="mo">May</div>${lockedAlbum()}</div>`
+  : `<div class="row"><div class="mo">${m.m} ${String(M.indexOf(m)+0?"":"")}</div><div class="album" style="background:${C[m.c][0]}">${tiles(m)}<div class="glass" style="--tint:${tint(m)}"><div><div class="gt">${m.t}</div></div><div class="go">${arrow}</div></div></div></div>`).join("")+`</div>`); }
+
+const options=[
+ {k:"F",n:"Album cards (the reference)",f:Fa,d:"The reference as the shelf: one big album per month, photos collaged on a sticky-colored card, a frosted band across the bottom, then the title, date, how many things were pinned and the friends who left notes.",pl:["Closest to the reference","Every month gets a real cover"],mi:["Two months per screen","A lot of vertical scrolling"]},
+ {k:"G",n:"Title on the glass",f:Ga,d:"Same album, shorter: the title and the recap sit on the frosted band itself, so there is no caption under it. About three months fit on a screen.",pl:["Denser, still photo-led","Recap lives on the card"],mi:["Text over a blur is harder to read","No faces row"]},
+ {k:"H",n:"Two across",f:Ha,d:"Albums in a two-column grid, each with a smaller collage, a frosted band that carries the month and an arrow, and the title under it. Locked months are gray cards.",pl:["Six months at a glance","Feels like a shelf of covers"],mi:["Collage is small","Title is small"]},
+ {k:"I",n:"Album deck",f:Ia,d:"Albums stacked like a deck: the open one shows its full collage and glass band, the others tuck under with just their title and month. Tap one to open it.",pl:["Whole year in one view","Keeps the stacked look from the reference you sent before"],mi:["Only one cover visible at a time"]},
+ {k:"J",n:"Timeline of wide albums",f:Ja,d:"A thin timeline down the left like your bulletin, with a wide short album for each month: a one-row collage and a frosted band with the title.",pl:["Matches the bulletin's timeline","Four or five months per screen"],mi:["Smaller photos","Less recap detail"]},
+];
+document.getElementById("grid").innerHTML=options.map(o=>`<div class="cell">${o.f()}<h2><em>${o.k}</em>${o.n}</h2><p>${o.d}</p><div class="tags">${o.pl.map(t=>`<b class="plus">+ ${t}</b>`).join("")}${o.mi.map(t=>`<b class="minus">− ${t}</b>`).join("")}</div></div>`).join("");
+</script>
+</body>
+</html>

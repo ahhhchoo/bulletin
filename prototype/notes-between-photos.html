@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stickies between photos</title>
+<style>
+:root{
+  --paper:#f5f5f5; --mint:#aee0ce; --pink:#e55bb5; --blush:#f9d0e6; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button,textarea{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:920px;line-height:1.45}
+.rules{max-width:1500px;margin:12px auto 0;background:#fff;border-radius:14px;padding:12px 16px;font-size:13.5px;line-height:1.55;color:#444}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.reset{margin:8px 2px 0;padding:5px 12px;border-radius:999px;background:#fff;font-size:12.5px;font-weight:510}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;touch-action:none}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .ic{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .ic i{display:block;background:#111;border-radius:2px}
+.who{position:absolute;left:25px;top:58px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:510}
+.who i{width:28px;height:28px;border-radius:50%;background:#f9cdd6;display:block}
+.x{position:absolute;right:16px;top:54px;font-size:20px;padding:4px 8px}
+.cards{position:absolute;left:12px;right:12px;top:100px;display:flex;gap:8px}
+.cards div{height:76px;border-radius:23px;padding:16px 18px;font-size:13px;font-weight:510}
+.cards .a{width:152px;background:#eceef2}.cards .a small{display:block;font-size:10.5px;color:var(--ink50);margin-bottom:2px}.cards .a b{font-size:17px;font-weight:500}
+.cards .b{flex:1;background:#e4eaf5;padding:10px 12px}
+.cards .b span{display:block;background:#fff;border-radius:11px 11px 11px 3px;padding:4px 9px;font-size:11px;color:var(--ink50);width:fit-content}
+.cards .b em{display:block;background:var(--pink);color:#fff;border-radius:11px 11px 3px 11px;padding:4px 9px;font-style:normal;font-size:11px;width:fit-content;margin:5px 0 0 auto}
+.sheet{position:absolute;left:0;right:0;top:192px;bottom:0;background:#fff;border-radius:24px 24px 0 0;overflow:hidden}
+.tl{position:absolute;left:27px;top:28px;bottom:0;width:3px;background:rgba(0,0,0,.1)}
+.day{position:absolute;left:44px;top:22px;font-size:14px;font-weight:510;color:var(--ink50)}
+.day::before{content:"";position:absolute;left:-19px;top:5px;width:8px;height:8px;border-radius:50%;background:#000}
+.post{position:absolute}
+.post .img{position:relative;background:#fff;padding:3px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.post .img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+.post .img::before{content:"";position:absolute;top:-5px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c;z-index:2}
+.post .cap{position:absolute;left:12px;right:12px;background:#fff;font-family:var(--pixel);font-size:11.5px;padding:6px 8px;box-shadow:0 1px 2px rgba(0,0,0,.2);z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post.target .img{outline:3px dashed var(--pink);outline-offset:5px}
+.bn{position:absolute;width:118px;height:92px;background:var(--mint);font-family:var(--pixel);font-size:12px;line-height:1.35;padding:16px 10px 16px;box-shadow:0 2px 3px rgba(0,0,0,.2);z-index:5}
+.bn.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+.bn::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.bn p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bn small{position:absolute;left:10px;bottom:4px;font:600 9.5px var(--ui);color:rgba(0,0,0,.45)}
+.bn.mine{background:#bfe9d9}
+@keyframes pop{from{transform:scale(1.5);opacity:0}}
+.under{position:absolute;width:118px;height:92px;background:#9fd6c2;box-shadow:0 1px 2px rgba(0,0,0,.2);z-index:4}
+.more{position:absolute;z-index:6;background:#000;color:#fff;font:600 11px var(--ui);border-radius:999px;padding:3px 8px}
+svg.tether{position:absolute;left:0;top:0;width:402px;height:700px;pointer-events:none;z-index:3}
+svg.tether line{stroke:var(--pink);stroke-width:1.6;stroke-dasharray:1.5 5;stroke-linecap:round}
+.land{position:absolute;width:118px;height:92px;border:2.5px dashed var(--pink);border-radius:3px;background:rgba(229,91,181,.08);z-index:7;pointer-events:none;display:none}
+.land.on{display:block}
+.tag{position:absolute;z-index:8;pointer-events:none;background:var(--pink);color:#fff;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;display:none;white-space:nowrap}
+.tag.on{display:block}
+.dock{position:absolute;left:0;right:0;bottom:0;height:130px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:26px;gap:8px;background:linear-gradient(rgba(255,255,255,0),#fff 55%);pointer-events:none}
+.dock .tiles{display:flex;gap:56px;align-items:flex-end;pointer-events:auto}
+.tile{width:52px;height:52px;background:var(--mint);border-radius:3px;transform:rotate(8deg);box-shadow:0 2px 3px rgba(0,0,0,.14);display:grid;place-items:center;font-size:30px;color:rgba(0,0,0,.35);cursor:grab;touch-action:none}
+.dock small{font-size:13px;color:rgba(0,0,0,.45)}
+.ghost{position:absolute;z-index:80;width:118px;height:92px;background:var(--mint);box-shadow:0 12px 24px rgba(0,0,0,.28);transform:translate(-50%,-50%) rotate(-4deg) scale(1.05);display:none;pointer-events:none;opacity:.92}
+.phone.dragging .ghost{display:block}
+.compose{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:95;display:none;flex-direction:column;align-items:center;padding-top:150px;gap:14px}
+.phone[data-c="1"] .compose{display:flex}
+.compose .pad{position:relative;width:240px;min-height:150px;background:var(--mint);padding:22px 14px 12px;box-shadow:0 8px 20px rgba(0,0,0,.3);transform:rotate(-2deg)}
+.compose .pad::before{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.compose textarea{width:100%;height:96px;background:none;border:0;outline:0;resize:none;font-family:var(--pixel);font-size:14px;line-height:1.35}
+.compose .to{font:600 11px var(--ui);color:rgba(0,0,0,.5)}
+.compose .btns{display:flex;gap:10px}
+.compose .btns button{padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;background:#fff}
+.compose .btns button.go{background:#000;color:#fff}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Stickies between photos</h1>
+  <p>Stickies are full size and land where you let go. A pink dashed sticky shows the spot, and the photo it belongs to gets a dashed outline. If the photo already has notes, the new one goes on top of them: the newest note is the one you read, with the older ones peeking out from underneath. A sticky may tuck a little over a photo’s edge, never its middle or its caption. If you drop it on a photo, it lands in the nearest open space, and a dotted line ties it back to its photo.</p>
+</header>
+<div class="rules"><b>Rules in play:</b> a note belongs to the nearest photo (within about 90pt) · full-size stickies · lands where dropped, or the nearest open space · newest on top, older ones underneath with a +N count · a dotted line connects a sticky that landed away from its photo · one note per person per photo · the thread shows them all.</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const POSTS = [
+    {id:0,x:52, y:56, w:150,h:170,img:'sample-food.jpg',cap:'Rained all day'},
+    {id:1,x:222,y:56, w:150,h:96, img:'sample-wide.jpg',cap:'this is a picture'},
+    {id:2,x:222,y:196,w:150,h:170,img:'sample-p3.jpg',cap:'dinner'},
+    {id:3,x:52, y:266,w:150,h:96, img:'sample-p4.jpg',cap:'soup arc'}
+  ];
+  const NOTE = {w:118,h:92}, SHEET_W = 402, BOTTOM = 560, EDGE = 18;
+  const NAMES = ['Liam','Emma','Noah','Ava','Sophia','Mia','Lucas','Zoe'];
+  const TEXTS = ['that looks so good','where is this??','save me one','omg the sauce','dinner of the year','take me next time','jealous','recipe please'];
+
+  // A sticky may tuck a little over a photo's top and side edges. Its middle and its caption are off limits.
+  const block = p => ({x:p.x+EDGE,y:p.y+EDGE,w:p.w-2*EDGE,h:p.h+35-EDGE});
+  const hit = (a,b) => a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y;
+  const rectAt = c => ({x:c.x-NOTE.w/2,y:c.y-NOTE.h/2,w:NOTE.w,h:NOTE.h});
+  const free = c => !POSTS.some(p => hit(rectAt(c),block(p)));
+  const gapTo = (post,c) => { const r={x:post.x,y:post.y,w:post.w,h:post.h+35}, dx=Math.max(r.x-c.x,0,c.x-(r.x+r.w)), dy=Math.max(r.y-c.y,0,c.y-(r.y+r.h)); return Math.hypot(dx,dy); };
+  // nearest open spot to where the finger is: scan the board and take the closest one that fits
+  function snap(p0){
+    let best=null, bd=1e9;
+    for(let x=48+NOTE.w/2; x<=SHEET_W-6-NOTE.w/2; x+=6) for(let y=44+NOTE.h/2; y<=BOTTOM-NOTE.h/2; y+=6){
+      const c={x,y}, d=Math.hypot(x-p0.x,y-p0.y); if(d<bd && free(c)){best=c;bd=d;} }
+    return best;
+  }
+  const nearest = p => { let b=null,bd=1e9; POSTS.forEach(q=>{const d=gapTo(q,p); if(d<bd){bd=d;b=q}}); return bd<=90 ? b : null; };
+  const esc = s => s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  // the point on a photo's edge closest to a sticky, for the dotted line
+  const edgePoint = (post,c) => ({x:Math.min(Math.max(c.x,post.x+8),post.x+post.w-8), y:Math.min(Math.max(c.y,post.y+8),post.y+post.h+27)});
+  const line = (post,c) => { const e = edgePoint(post,c), top = {x:c.x,y:c.y-NOTE.h/2}; return gapTo(post,c)>34 ? `<line x1="${top.x}" y1="${top.y}" x2="${e.x}" y2="${e.y}"/>` : ''; };
+
+  const seed = spec => spec.flatMap(s => Array.from({length:s.n},(_,k)=>{
+      const post = POSTS[s.post], at = snap({x:post.x+post.w/2+(k%2?30:-30),y:post.y+post.h+70+(k%2)*10});
+      return {post:s.post,off:{x:at.x-post.x,y:at.y-post.y},by:NAMES[(s.post*3+k)%8],text:TEXTS[(s.post*3+k)%8],mine:false,t:k};
+    }));
+  const VARIANTS = [
+    {t:'A few notes',d:'One or two notes per photo. Each photo’s newest note is the one you see; they sit in the nearest open board, with a dotted line back to the photo.',spec:[{post:0,n:1},{post:2,n:2}]},
+    {t:'A busy photo',d:'Nine notes on one photo and one on another. The newest is on top, the other eight are underneath, counted.',spec:[{post:0,n:9},{post:3,n:1}]},
+  ];
+
+  function build(v){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-c="0"></div></div><h2>${v.t}</h2><p>${v.d}</p><button class="reset">Reset</button>`;
+    const phone = cell.querySelector('.phone');
+    let notes = seed(v.spec), compose = null, lastId = null;
+    const mine = pid => notes.find(n=>n.mine && n.post===pid);
+
+    const render = () => {
+      let lines = '';
+      const posts = POSTS.map(p => {
+        const all = notes.filter(n=>n.post===p.id).sort((a,b)=>a.t-b.t);
+        const top = all[all.length-1], older = all.length-1;
+        let piles = '';
+        if(top){
+          const c = {x:p.x+top.off.x,y:p.y+top.off.y}; lines += line(p,c);
+          const u = (dx,dy,r) => `<div class="under" style="left:${c.x-NOTE.w/2+dx}px;top:${c.y-NOTE.h/2+dy}px;transform:rotate(${r}deg)"></div>`;
+          piles = (older>=2?u(-7,-5,-6):'') + (older>=1?u(6,5,5):'') +
+            `<div class="bn ${top.mine?'mine':''} ${top===lastId?'pop':''}" style="left:${c.x-NOTE.w/2}px;top:${c.y-NOTE.h/2}px;transform:rotate(${((top.t*37+p.id*11)%7)-3}deg)"><p>${esc(top.text)}</p><small>${top.mine?'you':top.by}</small></div>`+
+            (older>0?`<div class="more" style="left:${c.x+NOTE.w/2-26}px;top:${c.y-NOTE.h/2-8}px">+${older}</div>`:'');
+        }
+        return `<div class="post" data-post="${p.id}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px">
+          <div class="img" style="height:${p.h}px"><img src="assets/${p.img}" alt=""></div><div class="cap" style="top:${p.h-10}px">${p.cap}</div></div>${piles}`;
+      }).join('');
+      phone.innerHTML = `<div class="sb"><span class="t">9:41</span><span class="ic"><i style="width:17px;height:10px"></i><i style="width:15px;height:11px;border-radius:6px"></i><i style="width:26px;height:12px;border-radius:4px"></i></span></div>
+        <div class="who"><i></i>Liam’s Bulletin</div><button class="x">✕</button>
+        <div class="cards"><div class="a"><small>currently into</small><b>sourdough</b></div><div class="b"><span>what made you smile lately?</span><em>my cat asleep in…</em></div></div>
+        <div class="sheet"><div class="tl"></div><div class="day">Wed 4</div><svg class="tether" data-tether>${lines}</svg>${posts}<svg class="tether" style="z-index:9" data-prev></svg><div class="land"></div><div class="tag"></div></div>
+        <div class="dock"><div class="tiles"><div class="tile" data-drag>+</div></div><small>Drag a sticky onto the board</small></div>
+        <div class="ghost"></div>
+        <div class="compose">${compose?`<div class="pad"><div class="to">To Liam, about this photo</div><textarea maxlength="140" placeholder="Write something…">${esc(compose.text||'')}</textarea></div><div class="btns"><button data-cancel>Cancel</button><button class="go" data-send>Stick it</button></div>`:''}</div>`;
+      phone.dataset.c = compose ? '1' : '0';
+      lastId = null;
+    };
+
+    let dragging=false, cur=null;
+    const k = () => phone.getBoundingClientRect().width/402;
+    const loc = e => { const r = phone.getBoundingClientRect(); return {gx:(e.clientX-r.left)/k(), gy:(e.clientY-r.top)/k(), x:(e.clientX-r.left)/k(), y:(e.clientY-r.top)/k()-192}; };
+    const update = e => {
+      const p = loc(e), g = phone.querySelector('.ghost'); g.style.left=p.gx+'px'; g.style.top=p.gy+'px';
+      const target = nearest(p), land = phone.querySelector('.land'), tag = phone.querySelector('.tag'), prev = phone.querySelector('[data-prev]');
+      phone.querySelectorAll('.post').forEach(el=>el.classList.toggle('target', !!target && +el.dataset.post===target.id));
+      land.classList.remove('on'); tag.classList.remove('on'); prev.innerHTML=''; cur=null;
+      if(!target) return;
+      const s = snap(p); cur = {post:target, at:s};
+      land.style.left=(s.x-NOTE.w/2)+'px'; land.style.top=(s.y-NOTE.h/2)+'px'; land.classList.add('on');
+      prev.innerHTML = line(target,s);
+      tag.textContent = notes.some(n=>n.post===target.id) ? 'On top of this photo’s notes' : 'Stick it to this photo';
+      tag.style.left=Math.max(10,Math.min(target.x,402-230))+'px'; tag.style.top=(target.y-30)+'px'; tag.classList.add('on');
+    };
+    phone.addEventListener('pointerdown', e => { if(!e.target.closest('[data-drag]')) return; dragging=true; phone.classList.add('dragging'); phone.setPointerCapture(e.pointerId); update(e); });
+    phone.addEventListener('pointermove', e => { if(dragging) update(e); });
+    const end = () => { if(!dragging) return; dragging=false; phone.classList.remove('dragging');
+      phone.querySelectorAll('.post').forEach(el=>el.classList.remove('target'));
+      ['.land','.tag'].forEach(q=>phone.querySelector(q)?.classList.remove('on')); const pv=phone.querySelector('[data-prev]'); if(pv) pv.innerHTML='';
+      if(cur){ const m = mine(cur.post.id); compose = {post:cur.post.id, at:cur.at, text:m?m.text:''}; render(); } };
+    phone.addEventListener('pointerup', end); phone.addEventListener('pointercancel', end);
+
+    phone.addEventListener('click', e => {
+      if(e.target.closest('[data-cancel]')){ compose=null; render(); return; }
+      if(e.target.closest('[data-send]')){
+        const text = phone.querySelector('textarea').value.trim(); if(!text) return;
+        const post = POSTS[compose.post];
+        notes = notes.filter(n=>!(n.mine&&n.post===compose.post));
+        const n = {post:compose.post,off:{x:compose.at.x-post.x,y:compose.at.y-post.y},by:'Jules',text,mine:true,t:Date.now()};
+        notes.push(n); lastId = n; compose=null; render();
+      }
+    });
+    cell.querySelector('.reset').onclick = () => { notes = seed(v.spec); compose=null; render(); };
+    render();
+    return cell;
+  }
+  const grid = document.getElementById('grid');
+  VARIANTS.forEach(v => grid.appendChild(build(v)));
+})();
+</script>
+</body>
+</html>

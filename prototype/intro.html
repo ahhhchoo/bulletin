@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONB-01 — Intro, text animation</title>
+<style>
+:root{
+  --paper:#f5f5f5; --ink:#000; --ghost:rgba(0,0,0,.13);
+  --butter:#f3e6c4; --blush:#f4d9d6; --sage:#d8e6d3;
+  --ui:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;
+  --display:"SF Pro Display",-apple-system,"Inter",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --s:.62;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e9ec;color:#111;font:15px/1.45 var(--ui);padding:28px 24px 80px}
+.head{max-width:1180px;margin:0 auto 28px;display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between}
+.head h1{font:700 26px/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 6px}
+.head p{margin:0;color:#555;max-width:60ch}
+.head button,.ctl button{font:500 13px var(--ui);border:0;border-radius:99px;padding:8px 16px;background:#111;color:#fff;cursor:pointer}
+.ctl button.ghost{background:#fff;color:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.band{max-width:1180px;margin:34px auto 14px;font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#777}
+.grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(402px*var(--s) + 4px),1fr));gap:30px 22px;justify-items:center}
+.cell{display:flex;flex-direction:column;gap:12px;width:calc(402px*var(--s))}
+.frame{width:calc(402px*var(--s));height:calc(874px*var(--s));border-radius:calc(46px*var(--s));overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.06),0 18px 40px -14px rgba(0,0,0,.35);background:var(--paper);position:relative}
+.phone{width:402px;height:874px;transform:scale(var(--s));transform-origin:0 0;position:absolute;left:0;top:0;background:var(--paper);overflow:hidden;color:var(--ink)}
+.cell h2{font:650 15px/1.2 var(--ui);margin:2px 0 0;display:flex;gap:8px;align-items:center}
+.tag{font:500 10px var(--mono);padding:3px 8px;border-radius:99px;background:#111;color:#fff;letter-spacing:.04em}
+.tag.s{background:var(--butter);color:#111}
+.cell p{margin:0;font-size:13px;color:#555;text-wrap:pretty}
+.pm{display:flex;flex-direction:column;gap:3px;font:400 11.5px/1.3 var(--mono);color:#666}
+.ctl{display:flex;gap:8px}
+
+/* ---- the screen, in the Figma's own coordinates (402 x 874) ---- */
+.sb{position:absolute;left:0;right:0;top:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 49px;font:600 15px var(--ui);z-index:3}
+.sb svg{height:12px;fill:#000}
+.copy{position:absolute;left:35px;top:133px;width:335px}
+.copy h1,.copy p{font:800 48px/43px var(--display);letter-spacing:-.03em;margin:0;color:var(--ink)}
+.copy p{margin-top:56px;font-weight:800}
+.w{display:inline-block;vertical-align:top}
+.wi{display:inline-block;will-change:transform,opacity}
+.mask .w{overflow:hidden;padding-bottom:.14em;margin-bottom:-.14em}
+.c{display:inline-block}
+.caret{display:inline-block;width:.075em;height:.86em;background:#000;vertical-align:-.1em;margin-left:.03em;animation:bl 1s steps(2) infinite}
+@keyframes bl{50%{opacity:0}}
+.ph{border-radius:.12em;background-repeat:no-repeat;background-position:0 88%;background-size:0% 46%;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em}
+.ph1{background-image:linear-gradient(var(--butter),var(--butter))}
+.ph2{background-image:linear-gradient(var(--blush),var(--blush))}
+.ph3{background-image:linear-gradient(var(--sage),var(--sage))}
+.btns{position:absolute;left:27px;width:343px;height:198px;top:621px;pointer-events:none}
+.btn{position:absolute;left:0;width:343px;height:54px;background:#d9d9d9;border-radius:3px;display:flex;align-items:center;padding-left:40px;font:700 24px var(--display);letter-spacing:-.035em;opacity:0}
+.btn:nth-child(1){top:0}.btn:nth-child(2){top:71px}
+.hint{position:absolute;left:0;right:0;bottom:44px;text-align:center;font:500 12px var(--mono);color:rgba(0,0,0,.4);opacity:0}
+.scroller{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;z-index:4}
+.scroller::-webkit-scrollbar{display:none}
+@media (max-width:700px){:root{--s:.78}}
+@media (prefers-reduced-motion:reduce){.caret{animation:none}}
+</style>
+</head>
+<body>
+<div class="head">
+  <div>
+    <h1>ONB-01 · Intro, text animation</h1>
+    <p>Your three frames, played as one sequence: the text comes in, scrolls up and away, then the two sign-in buttons settle at the bottom. Tap a phone or press Continue to move on. Each version animates the text differently.</p>
+  </div>
+  <button id="all">Replay all</button>
+</div>
+
+<div class="band">Straight reads of your frames</div>
+<div class="grid" id="g1"></div>
+<div class="band">Suggestions</div>
+<div class="grid" id="g2"></div>
+
+<script>
+const TITLE="Welcome to your Bulletin.";
+const BODY="Jot down what’s on your mind, journal like you usually do, keep things you want to remember, and look back so you don’t forget.";
+const MARK_TITLE="Welcome to your [[Bulletin.]]";
+const MARK_BODY="Jot down [[what’s on your mind,]] journal like you usually do, keep things you want to [[remember,]] and look back so you don’t forget.";
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EASE="cubic-bezier(.2,.8,.2,1)";
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const D=ms=>RM?1:ms;
+
+/* ---------- building the text ---------- */
+function words(text,{chars=false}={}){
+  const toks=[]; let n=0;
+  text.split(/(\[\[|\]\])/).forEach(seg=>{
+    if(seg==="[[") toks.push({t:"open",n:++n}); else if(seg==="]]") toks.push({t:"close"});
+    else seg.split(" ").filter(Boolean).forEach(w=>toks.push({t:"word",w}));
+  });
+  let html="",need=false;
+  for(const k of toks){
+    if(k.t==="word"){
+      if(need) html+=" ";
+      const inner=chars?[...k.w].map(c=>`<span class="c">${c}</span>`).join(""):k.w;
+      html+=`<span class="w"><span class="wi">${inner}</span></span>`; need=true;
+    }else if(k.t==="open"){ if(need){html+=" ";need=false} html+=`<span class="ph ph${k.n}">`; }
+    else html+="</span>";
+  }
+  return html;
+}
+const SB='<div class="sb"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3.2" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2"/></svg></span></div>';
+function screen(o={}){
+  return SB+`<div class="copy ${o.mask?"mask":""}"><h1>${words(o.title||TITLE,o)}</h1><p>${words(o.body||BODY,o)}</p></div>
+    <div class="btns"><div class="btn">Continue with Phone</div><div class="btn">continue with apple</div></div>`;
+}
+
+/* ---------- the move from text to buttons (your frames 2 and 3) ---------- */
+function advance(ph){
+  const copy=ph.querySelector(".copy"), btns=[...ph.querySelectorAll(".btn")];
+  copy.animate([{transform:"translateY(0)",opacity:1},{transform:"translateY(-340px)",opacity:0}],{duration:D(650),easing:"cubic-bezier(.5,0,.8,.4)",fill:"forwards"});
+  btns.forEach((b,i)=>b.animate([{transform:"translateY(40px)",opacity:0},{transform:"translateY(0)",opacity:1}],{duration:D(700),delay:D(380+i*90),easing:EASE,fill:"forwards"}));
+  ph._at=2;
+}
+function stagger(els,from,to,{dur=700,step=40,start=0,easing=EASE}={}){
+  els.forEach((el,i)=>el.animate([from,to],{duration:D(dur),delay:D(start+i*step),easing,fill:"both"}));
+}
+
+/* ---------- the versions ---------- */
+const V=[
+ {k:"A",n:"Rise",tag:"your frames",d:"Every word slides up and fades in, one after another. Title first, then the body. The plainest option and the easiest to build.",
+  pl:["Reads as it arrives","Calm"],mi:["Familiar"],
+  mount(ph){ph.innerHTML=screen();
+    const t=ph.querySelectorAll("h1 .wi"),b=ph.querySelectorAll("p .wi");
+    stagger(t,{opacity:0,transform:"translateY(.5em)"},{opacity:1,transform:"none"},{step:55});
+    stagger(b,{opacity:0,transform:"translateY(.5em)"},{opacity:1,transform:"none"},{step:34,start:t.length*55+280});}},
+ {k:"B",n:"Line reveal",tag:"your frames",d:"Each line rises out from behind an invisible edge, all words on a line together. The editorial, book-title version.",
+  pl:["Feels confident","Few moving parts, so it stays smooth"],mi:["Line breaks must be right at every text size"],
+  mount(ph){ph.innerHTML=screen({mask:true});
+    const lines=(sel,off)=>{const ws=[...ph.querySelectorAll(sel+" .w")];const tops=[...new Set(ws.map(w=>w.offsetTop))];
+      ws.forEach(w=>{const li=tops.indexOf(w.offsetTop);w.firstChild.animate([{transform:"translateY(115%)"},{transform:"none"}],{duration:D(900),delay:D(off+li*110),easing:EASE,fill:"both"})});return tops.length};
+    const n=lines("h1",0); lines("p",n*110+260);}},
+ {k:"C",n:"Focus pull",tag:"your frames",d:"Words start blurred and a touch small, then snap into focus in order, like a camera finding the subject.",
+  pl:["Soft and a little dreamy","Suits a journal"],mi:["Blur is heavier to render on older phones"],
+  mount(ph){ph.innerHTML=screen();
+    const w=[...ph.querySelectorAll(".wi")];
+    stagger(w,{opacity:0,filter:"blur(12px)",transform:"scale(.94)"},{opacity:1,filter:"blur(0)",transform:"none"},{dur:850,step:42,easing:"cubic-bezier(.3,.7,.2,1)"});}},
+ {k:"D",n:"Ink fill",tag:"suggestion",d:"All the words are there from the start in the same pale gray as the “26” on the shelf cards. They darken one by one, as if you are reading them. The layout never shifts.",
+  pl:["Nothing jumps around","Echoes the shelf’s ghosted type","Easy to read as it happens"],mi:["Less of an entrance"],
+  mount(ph){ph.innerHTML=screen();
+    const w=[...ph.querySelectorAll(".wi")]; w.forEach(x=>x.style.opacity=.13);
+    stagger(w,{opacity:.13},{opacity:1},{dur:380,step:62,start:200,easing:"ease-out"});}},
+ {k:"E",n:"Typed",tag:"suggestion",d:"The words are typed out letter by letter with a blinking caret, like writing in a journal. The caret stays on the last letter, then the text moves on.",
+  pl:["Says “journal” without a word","Slow enough to feel intentional"],mi:["Longest to wait through (about 4 seconds)","Needs a skip"],
+  mount(ph){ph.innerHTML=screen({chars:true});
+    const cs=[...ph.querySelectorAll(".c")]; cs.forEach(c=>c.style.visibility="hidden");
+    const caret=document.createElement("span");caret.className="caret";
+    let i=0; ph._t&&clearInterval(ph._t);
+    ph._t=setInterval(()=>{ if(RM){i=cs.length}
+      if(i<cs.length){cs[i].style.visibility="visible";cs[i].after(caret);i++}else{clearInterval(ph._t)} },RM?1:30);}},
+ {k:"F",n:"Read to continue",tag:"suggestion",d:"Matches your three frames literally. The body starts pale and darkens as you scroll, the text rides up the screen, and the buttons rise in at the end. Try scrolling or dragging inside the phone.",
+  pl:["You control the pace","The scroll is the animation","Feels like turning a page"],mi:["Some people will not scroll","Needs a visible nudge"],
+  mount(ph){ph.innerHTML=screen()+'<div class="hint">scroll</div><div class="scroller"><div style="height:1400px"></div></div>';
+    const copy=ph.querySelector(".copy"),bw=[...ph.querySelectorAll("p .wi")],btns=[...ph.querySelectorAll(".btn")],hint=ph.querySelector(".hint"),sc=ph.querySelector(".scroller");
+    bw.forEach(x=>x.style.opacity=.13);
+    copy.animate([{opacity:0,transform:"translateY(18px)"},{opacity:1,transform:"none"}],{duration:D(800),easing:EASE,fill:"backwards"});
+    hint.animate([{opacity:0},{opacity:1}],{duration:D(600),delay:D(1200),fill:"forwards"});
+    const RANGE=520, N=bw.length;
+    const upd=()=>{const p=clamp(sc.scrollTop/RANGE);
+      bw.forEach((x,i)=>x.style.opacity=.13+.87*clamp(p*1.5*N-i));
+      copy.style.transform=`translateY(${-p*400}px)`; copy.style.opacity=1-clamp((p-.72)/.28);
+      hint.style.opacity=clamp(1-p*6);
+      btns.forEach((b,i)=>{const q=clamp((p-.8-i*.05)/.15);b.style.opacity=q;b.style.transform=`translateY(${(1-q)*40}px)`});};
+    sc.addEventListener("scroll",upd);upd();
+    ph._advance=()=>sc.scrollTo({top:RANGE,behavior:"smooth"}); ph._custom=true;}},
+ {k:"G",n:"Highlighter",tag:"suggestion",d:"Same rise as A, then a soft marker swipe lands under “Bulletin.”, “what’s on your mind,” and “remember,” in the same pastel tones as your sticky notes.",
+  pl:["Ties the intro to the stickies","Points at the three ideas that matter"],mi:["More to tune so the swipe never looks cheap"],
+  mount(ph){ph.innerHTML=screen({title:MARK_TITLE,body:MARK_BODY});
+    const t=ph.querySelectorAll("h1 .wi"),b=ph.querySelectorAll("p .wi");
+    stagger(t,{opacity:0,transform:"translateY(.5em)"},{opacity:1,transform:"none"},{step:55});
+    stagger(b,{opacity:0,transform:"translateY(.5em)"},{opacity:1,transform:"none"},{step:34,start:t.length*55+280});
+    const total=t.length*55+280+b.length*34+700;
+    [...ph.querySelectorAll(".ph")].forEach((m,i)=>m.animate([{backgroundSize:"0% 46%"},{backgroundSize:"100% 46%"}],{duration:D(700),delay:D(i===0?t.length*55+300:total-600+i*220),easing:"cubic-bezier(.5,0,.2,1)",fill:"both"}));}}
+];
+
+/* ---------- page ---------- */
+const cells=[];
+function cell(v,host){
+  const el=document.createElement("div");el.className="cell";
+  el.innerHTML=`<div class="frame"><div class="phone"></div></div>
+    <h2>${v.k} · ${v.n} <span class="tag ${v.tag==="suggestion"?"s":""}">${v.tag}</span></h2>
+    <p>${v.d}</p>
+    <div class="pm">${v.pl.map(x=>"+ "+x).join("<br>")}<br>${v.mi.map(x=>"− "+x).join("<br>")}</div>
+    <div class="ctl"><button class="ghost" data-a="replay">Replay</button><button data-a="next">Continue</button></div>`;
+  host.append(el);
+  const ph=el.querySelector(".phone");
+  const play=()=>{ph._t&&clearInterval(ph._t);ph._at=1;ph._custom=false;ph._advance=null;v.mount(ph)};
+  const next=()=>{ if(ph._advance){ph._advance();return} if(ph._at===1) advance(ph); };
+  el.querySelector('[data-a="replay"]').onclick=play;
+  el.querySelector('[data-a="next"]').onclick=next;
+  ph.addEventListener("click",e=>{ if(!ph._custom) next(); });
+  cells.push(play); play();
+}
+V.forEach((v,i)=>cell(v,i<3?g1:g2));
+document.getElementById("all").onclick=()=>cells.forEach(f=>f());
+</script>
+</body>
+</html>

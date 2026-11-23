@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detailed view — notes on a photo</title>
+<style>
+:root{
+  --paper:#f5f5f5; --mint:#aee0ce; --pink:#e55bb5; --blush:#f9d0e6; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:900px;line-height:1.45}
+.rules{max-width:1500px;margin:12px auto 0;background:#fff;border-radius:14px;padding:12px 16px;font-size:13.5px;line-height:1.55;color:#444}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px auto 0;max-width:1500px;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar label{color:#555}.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar button{padding:7px 13px;border-radius:999px;background:rgba(0,0,0,.05);font-weight:510;font-size:13px}
+.bar button.on{background:#000;color:#fff}
+.grid{display:flex;flex-wrap:wrap;gap:34px 28px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell h2 em{font-style:normal;color:#999;font-weight:500;margin-right:6px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.cell .tags{display:flex;gap:6px;margin:8px 2px 0;flex-wrap:wrap}
+.cell .tags b{font-weight:500;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff;color:#444}
+.cell .tags b.plus{background:#dff3e8;color:#1f6b45}.cell .tags b.minus{background:#fde4e4;color:#8a2b2b}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:#a9a9ad;transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:60;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .r{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .r i{display:block;background:#111;border-radius:2px}
+
+/* the photo, in detailed view */
+.dv{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:70px 0 140px}
+.dv::-webkit-scrollbar{display:none}
+.ph{position:relative;width:250px;height:334px;margin:0 auto;background:#fff;padding:5px;border-radius:5px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+.ph::before{content:"";position:absolute;top:-6px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c;z-index:2}
+.slip{position:relative;width:216px;margin:-14px auto 0;background:#fff;padding:9px 10px;font-family:var(--pixel);font-size:14px;line-height:1.3;box-shadow:0 1px 3px rgba(0,0,0,.2);transform:rotate(1deg);z-index:3}
+.meta{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:16px}
+.pill{background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:510}
+.pile{display:flex;align-items:center;background:rgba(255,255,255,.7);border-radius:999px;padding:4px 10px 4px 6px}
+.pile svg{width:26px;height:26px;margin-right:-8px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.pile span{margin-left:14px;font-size:12px;font-weight:600;color:rgba(0,0,0,.55)}
+.pile.add{cursor:pointer;padding:7px 14px;font-size:13px;font-weight:600;gap:6px}
+
+/* notes */
+.n{position:relative;background:var(--mint);font-family:var(--pixel);font-size:13px;line-height:1.35;padding:18px 12px 10px;box-shadow:0 2px 3px rgba(0,0,0,.18)}
+.n::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.n .by{display:flex;justify-content:space-between;align-items:center;font:600 10.5px var(--ui);color:rgba(0,0,0,.5);margin-top:8px}
+.n .by button{font:600 10.5px var(--ui);color:rgba(0,0,0,.55);padding:2px 0 2px 8px;text-decoration:underline;text-underline-offset:2px}
+.n.mine{background:#bfe9d9}
+.rp{position:relative;background:var(--blush);font-family:var(--pixel);font-size:12.5px;line-height:1.35;padding:14px 11px 8px;box-shadow:0 2px 3px rgba(0,0,0,.16)}
+.rp::before{content:"";position:absolute;top:-4px;left:22px;width:8px;height:8px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.rp .by{font:600 10.5px var(--ui);color:rgba(0,0,0,.5);margin-top:6px}
+
+/* A: thread */
+.thread{padding:22px 22px 0;display:flex;flex-direction:column;gap:20px}
+.thead{display:flex;justify-content:space-between;align-items:baseline;color:rgba(0,0,0,.65);font-size:13px;font-weight:600;padding:0 4px}
+.thread .item{display:flex;flex-direction:column}
+.thread .n{width:78%;align-self:flex-start;transform:rotate(-1.2deg)}
+.thread .item:nth-child(odd) .n{align-self:flex-end;transform:rotate(1.4deg)}
+.thread .rp{width:66%;margin:-6px 0 0 26px;transform:rotate(1.2deg);align-self:flex-start}
+.thread .item:nth-child(odd) .rp{align-self:flex-end;margin:-6px 26px 0 0}
+
+/* B: sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;height:268px;background:#f5f5f5;border-radius:26px 26px 0 0;z-index:30;transition:height .35s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;box-shadow:0 -6px 24px rgba(0,0,0,.2)}
+.sheet.up{height:640px}
+.sheet .grab{padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer}
+.sheet .grab i{width:38px;height:5px;border-radius:3px;background:rgba(0,0,0,.2)}
+.sheet .grab b{font-size:14px;font-weight:600}
+.sheet .list{flex:1;overflow-y:auto;padding:8px 20px 100px;display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;align-content:start;scrollbar-width:none}
+.sheet .list::-webkit-scrollbar{display:none}
+.sheet .item{display:flex;flex-direction:column}
+.sheet .item:nth-child(odd) .n{transform:rotate(-1.4deg)}.sheet .item:nth-child(even) .n{transform:rotate(1.2deg)}
+.sheet .rp{margin:-6px 8px 0 14px;transform:rotate(1deg)}
+.sheet.has-bar .list{padding-bottom:110px}
+
+/* C: rail */
+.rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:26px 60px 8px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .item{flex:none;width:230px;scroll-snap-align:center;position:relative}
+.rail .n{min-height:92px}
+.rail .item:nth-child(odd) .n{transform:rotate(-1.2deg)}.rail .item:nth-child(even) .n{transform:rotate(1.4deg)}
+.rail .rp{margin:-6px 10px 0 22px;transform:rotate(1deg)}
+.rcount{text-align:center;font-size:12.5px;font-weight:600;color:rgba(0,0,0,.6);margin-top:10px}
+
+/* bottom bar + composer */
+.dock{position:absolute;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;padding:34px 0 36px;background:linear-gradient(transparent,rgba(169,169,173,.95) 55%)}
+.dock button{background:#000;color:#fff;border-radius:999px;padding:13px 24px;font-weight:600;font-size:15px}
+.dock button.alt{background:#fff;color:#111}
+.sheet ~ .dock{background:linear-gradient(transparent,#f5f5f5 55%)}
+.compose{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:70;display:none;flex-direction:column;align-items:center;padding-top:150px;gap:14px}
+.phone[data-c="1"] .compose{display:flex}
+.compose .pad{position:relative;width:240px;min-height:150px;background:var(--mint);padding:22px 14px 12px;box-shadow:0 8px 20px rgba(0,0,0,.3);transform:rotate(-2deg)}
+.compose .pad.reply{background:var(--blush)}
+.compose .pad::before{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.compose textarea{width:100%;height:96px;background:none;border:0;outline:0;resize:none;font-family:var(--pixel);font-size:14px;line-height:1.35}
+.compose .to{font:600 11px var(--ui);color:rgba(0,0,0,.5)}
+.compose .btns{display:flex;gap:10px}
+.compose .btns button{padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;background:#fff}
+.compose .btns button.go{background:#000;color:#fff}
+.hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:11.5px;color:rgba(0,0,0,.55);z-index:41;pointer-events:none}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Detailed view · notes on a photo</h1>
+  <p>Three ways to show the notes people leave on a photo, once it’s opened. Each note belongs to one post. Try it as a visitor (leave a note or a sticker) and as the owner (reply to a note, tuck one away), and flip between 1, 5 and 15 notes to see how each layout copes.</p>
+</header>
+<div class="rules"><b>Rules I assumed</b> (tell me if any are wrong): one note per person per post, which they can take back · only the owner replies, one reply per note, one level deep · one sticker per person per post, shown as a small pile with no counts · notes show who they’re from.</div>
+<div class="bar">
+  <label>Viewing as</label>
+  <button id="v-visitor" class="on">a visitor (Jules)</button><button id="v-owner">the owner (Maya)</button>
+  <span class="sep"></span>
+  <label>Notes on this photo</label>
+  <button id="n-1">1</button><button id="n-5" class="on">5</button><button id="n-15">15</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const NAMES = ['Liam','Emma','Noah','Ava','Sophia','Mia','Lucas','Zoe','Leo','Olivia','Ethan','Priya','Sam','Kai','Nora'];
+  const TEXTS = ['that looks so good','where is this??','save me one','omg the sauce','i need this rn','dinner of the year','take me next time','the best kind of rainy day','is that bamboo shoot?','you always find the spots','jealous','recipe please','ok i’m hungry now','that table setting!!','this made my day'];
+  const REPLIES = {0:'it was so good, next time!',1:'thai place on 5th'};
+  const SVG = {
+    heart:c=>`<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" fill="${c}" stroke="#fff" stroke-width="2.4" paint-order="stroke"/></svg>`,
+    star:c=>`<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${c}" stroke="#fff" stroke-width="2.4" paint-order="stroke"/></svg>`
+  };
+  let owner = false, count = 5;
+  let notes = [], stickers = [], compose = null;
+
+  function seed(){
+    notes = Array.from({length:count},(_,i)=>({id:i,by:NAMES[i%NAMES.length],text:TEXTS[i%TEXTS.length],reply:count>=5&&REPLIES[i]?REPLIES[i]:null,mine:false}));
+    stickers = [{by:'Emma',k:'heart',c:'#ff7373'},{by:'Noah',k:'star',c:'#ffcc33'},{by:'Ava',k:'heart',c:'#ff7373'}];
+    compose = null;
+  }
+  const mine = () => notes.find(n=>n.mine);
+  const myStickers = () => stickers.find(s=>s.by==='Jules');
+
+  const noteHTML = n => `<div class="item"><div class="n ${n.mine?'mine':''}">${esc(n.text)}<div class="by"><span>${n.mine?'you':'from '+n.by}</span>
+      ${owner?`<span>${n.reply?'':`<button data-reply="${n.id}">Reply</button>`}<button data-tuck="${n.id}">Tuck away</button></span>`:''}
+      ${!owner&&n.mine?`<span><button data-edit="${n.id}">Edit</button><button data-take="${n.id}">Take back</button></span>`:''}</div></div>
+    ${n.reply?`<div class="rp">${esc(n.reply)}<div class="by">Maya</div></div>`:''}</div>`;
+  const esc = s => s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  const pile = () => `<div class="pile">${stickers.slice(-4).map(s=>SVG[s.k](s.c)).join('')}${stickers.length>4?`<span>+${stickers.length-4}</span>`:''}</div>
+    ${owner||myStickers()?'':'<button class="pile add" data-sticker>+ sticker</button>'}`;
+
+  const top = () => `<div class="ph"><img src="assets/sample-food.jpg" alt=""></div><div class="slip">Rained all day</div>
+    <div class="meta"><div class="pill">Mon 11/2</div>${pile()}</div>`;
+
+  const dockHTML = () => owner ? '' : `<div class="dock"><button data-add>${mine()?'Edit your note':'Add a note'}</button></div>`;
+
+  const LAYOUT = {
+    A: s => `<div class="dv" data-scroll>${top()}<div class="thread"><div class="thead"><span>${notes.length} note${notes.length===1?'':'s'}</span><span>newest last</span></div>${notes.map(noteHTML).join('')}</div></div>${dockHTML()}`,
+    B: s => `<div class="dv">${top()}</div><div class="sheet ${s.up?'up':''}"><div class="grab" data-grab><i></i><b>${notes.length} note${notes.length===1?'':'s'}${s.up?'':' · pull up to see all'}</b></div><div class="list">${notes.map(noteHTML).join('')}</div></div>${dockHTML()}`,
+    C: s => `<div class="dv">${top()}<div class="rail" data-rail>${notes.map(noteHTML).join('')}</div><div class="rcount">${notes.length} note${notes.length===1?'':'s'} · swipe</div></div>${dockHTML()}`
+  };
+  const VARIANTS = [
+    {id:'A',name:'Thread under the photo',desc:'The photo, then every note in order, zig-zagging down the page like stickies on a wall. The owner’s reply tucks under the note it answers. Scroll to read.',
+     tags:[['plus','Easiest to read, and the reply sits right under its note'],['plus','Handles 15 notes fine'],['minus','The photo scrolls away as the thread grows']]},
+    {id:'B',name:'Pull-up sheet',desc:'The photo stays big. Notes live in a sheet that starts low, showing the first couple, and pulls up to a two-column wall of notes.',
+     tags:[['plus','Photo stays the star, matches the journal page sheet'],['plus','Great glance, then depth when you want it'],['minus','Sheet covers the lower photo when open']]},
+    {id:'C',name:'Swipe through the notes',desc:'A single row of notes under the photo that you swipe sideways, with the owner’s reply tucked behind each one. Takes the least height.',
+     tags:[['plus','Photo and notes both fit on one screen'],['plus','Takes the same space for 1 note or 15'],['minus','You see one or two notes at a time'],['minus','Hard to scan or find a reply']]}
+  ];
+
+  function build(v){
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<div class="frame"><div class="phone" data-c="0"><div class="sb"><span class="t">9:41</span><span class="r"><i style="width:17px;height:10px"></i><i style="width:15px;height:11px;border-radius:6px"></i><i style="width:26px;height:12px;border-radius:4px"></i></span></div>
+      <div class="body"></div><div class="compose"></div></div></div>
+      <h2><em>${v.id}</em>${v.name}</h2><p>${v.desc}</p><div class="tags">${v.tags.map(([k,t])=>`<b class="${k}">${t}</b>`).join('')}</div>`;
+    const phone = cell.querySelector('.phone'); const s = {up:false};
+    const paint = () => {
+      const body = phone.querySelector('.body'); const keep = {};
+      body.querySelectorAll('.dv,.list,.rail').forEach((el,i)=>keep[i]=[el.scrollTop,el.scrollLeft]);
+      body.innerHTML = LAYOUT[v.id](s);
+      body.querySelectorAll('.dv,.list,.rail').forEach((el,i)=>{ if(keep[i]){el.scrollTop=keep[i][0];el.scrollLeft=keep[i][1];} });
+      const c = phone.querySelector('.compose');
+      if(compose){
+        const isReply = compose.type==='reply';
+        c.innerHTML = `<div class="pad ${isReply?'reply':''}"><div class="to">${isReply?'Reply to '+esc(notes[compose.id].by):'To Maya, about this photo'}</div><textarea maxlength="140" placeholder="${isReply?'Write a reply…':'Write something…'}">${esc(compose.text||'')}</textarea></div>
+          <div class="btns"><button data-cancel>Cancel</button><button class="go" data-send>${isReply?'Reply':'Stick it'}</button></div>`;
+        phone.dataset.c='1';
+      } else phone.dataset.c='0';
+    };
+    phone.addEventListener('click', e => {
+      const t = e.target; let el;
+      if(t.closest('[data-grab]')){ s.up=!s.up; paint(); return; }
+      if(t.closest('[data-add]')||(el=t.closest('[data-edit]'))){ const m=mine(); compose={type:'note',id:m?m.id:null,text:m?m.text:''}; renderAll(); return; }
+      if(el=t.closest('[data-reply]')){ compose={type:'reply',id:+el.dataset.reply,text:''}; renderAll(); return; }
+      if(el=t.closest('[data-tuck]')){ notes=notes.filter(n=>n.id!==+el.dataset.tuck); renderAll(); return; }
+      if(el=t.closest('[data-take]')){ notes=notes.filter(n=>!n.mine); renderAll(); return; }
+      if(t.closest('[data-sticker]')){ stickers.push({by:'Jules',k:'heart',c:'#ff7373'}); renderAll(); return; }
+      if(t.closest('[data-cancel]')){ compose=null; renderAll(); return; }
+      if(t.closest('[data-send]')){
+        const text = phone.querySelector('textarea').value.trim(); if(!text) return;
+        if(compose.type==='reply'){ notes.find(n=>n.id===compose.id).reply=text; }
+        else if(compose.id!=null){ notes.find(n=>n.id===compose.id).text=text; }
+        else { notes.push({id:Date.now(),by:'Jules',text,reply:null,mine:true}); }
+        compose=null; renderAll(); return;
+      }
+    });
+    cell.__paint = paint; paint();
+    return cell;
+  }
+
+  const grid = document.getElementById('grid');
+  const cells = VARIANTS.map(v => { const c = build(v); grid.appendChild(c); return c; });
+  const renderAll = () => cells.forEach(c=>c.__paint());
+  const $ = id => document.getElementById(id);
+  const seg = (ids, on) => ids.forEach(id => $(id).onclick = () => { on(id); ids.forEach(i=>$(i).classList.toggle('on', i===id)); });
+  seg(['v-visitor','v-owner'], id => { owner = id==='v-owner'; seed_keep(); });
+  seg(['n-1','n-5','n-15'], id => { count = +id.split('-')[1]; seed(); renderAll(); });
+  function seed_keep(){ compose=null; renderAll(); }
+  seed(); renderAll();
+})();
+</script>
+</body>
+</html>

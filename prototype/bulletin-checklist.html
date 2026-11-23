@@ -1,0 +1,376 @@
+<title>Bulletin Checklist</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm column. A big ghosted count up top (the shelf cards' "Oct26" move), three hero cards for what's
+   next, then quiet sections. Sticky-note tones mark each section; black is the only action color, as in the app. */
+:root{
+  --paper:#f5f5f5; --card:#ffffff; --ink:#0b0b0c; --ink-2:rgba(11,11,12,.56); --ink-3:rgba(11,11,12,.34);
+  --line:rgba(11,11,12,.09); --ghost:rgba(11,11,12,.13); --blue:#0078fc;
+  --butter:#f3e6c4; --blush:#f4d9d6; --sage:#d8e6d3; --sky:#d5e3f1; --lilac:#e3dbef; --peach:#f6dfca;
+  --shadow:0 1px 1px rgba(0,0,0,.05),0 8px 24px -8px rgba(0,0,0,.14);
+  --ui:"Inter",system-ui,-apple-system,"SF Pro Text",sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101011; --card:#1b1b1d; --ink:#f4f4f5; --ink-2:rgba(244,244,245,.6); --ink-3:rgba(244,244,245,.36);
+  --line:rgba(244,244,245,.1); --ghost:rgba(244,244,245,.15); --blue:#4c9bff;
+  --butter:#4a432c; --blush:#4d3534; --sage:#32402f; --sky:#2c3a49; --lilac:#3b3449; --peach:#4b3a2b;
+  --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 28px -10px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101011; --card:#1b1b1d; --ink:#f4f4f5; --ink-2:rgba(244,244,245,.6); --ink-3:rgba(244,244,245,.36);
+  --line:rgba(244,244,245,.1); --ghost:rgba(244,244,245,.15); --blue:#4c9bff;
+  --butter:#4a432c; --blush:#4d3534; --sage:#32402f; --sky:#2c3a49; --lilac:#3b3449; --peach:#4b3a2b;
+  --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 28px -10px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--ui);-webkit-font-smoothing:antialiased;margin:0;
+  padding-block:20px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+
+/* header */
+.top{display:flex;flex-direction:column;gap:18px;padding-top:12px}
+.eyebrow{font:500 12px var(--mono);color:var(--ink-3);letter-spacing:.04em}
+.count{font-weight:800;letter-spacing:-.055em;line-height:.9;font-size:clamp(88px,26vw,148px);display:flex;align-items:baseline;white-space:nowrap;font-variant-numeric:tabular-nums}
+.count .of{color:var(--ghost)}
+.count-label{font-size:17px;color:var(--ink-2);max-width:30ch;text-wrap:balance}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:99px;transition:width .5s cubic-bezier(.3,1.1,.4,1)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:500 13px var(--ui);padding:7px 14px;border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-2);transition:transform .2s}
+.chip:active{transform:scale(.95)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);box-shadow:none}
+.tools .sp{flex:1}
+
+/* section titles */
+h2{font:600 22px/1.2 var(--ui);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.sec-head small{font:500 12px var(--mono);color:var(--ink-3);margin-left:auto;white-space:nowrap}
+.sub{font-size:14px;color:var(--ink-2);margin:4px 0 0;max-width:60ch}
+
+/* checkbox */
+.box{flex:none;width:26px;height:26px;border-radius:9px;box-shadow:inset 0 0 0 1.6px var(--ink-3);display:grid;place-items:center;transition:background .2s,box-shadow .2s,transform .25s cubic-bezier(.3,1.6,.5,1)}
+.box svg{width:14px;height:14px;stroke:var(--paper);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .3s .05s}
+.item[aria-checked="true"] .box{background:var(--ink);box-shadow:none;transform:scale(1.04)}
+.item[aria-checked="true"] .box svg{stroke-dashoffset:0}
+
+/* hero cards */
+.heroes{display:flex;flex-direction:column;gap:16px}
+.hero{border-radius:28px;padding:22px;display:flex;flex-direction:column;gap:18px;box-shadow:var(--shadow)}
+.hero.t-butter{background:var(--butter)} .hero.t-sky{background:var(--sky)} .hero.t-blush{background:var(--blush)}
+.hero-head{display:flex;align-items:flex-start;gap:12px}
+.hero-head h2{font-size:26px;font-weight:700}
+.hero-head .tag{margin-left:auto}
+.tag{font:500 11px var(--mono);padding:4px 9px;border-radius:99px;background:rgba(255,255,255,.55);color:var(--ink);white-space:nowrap;letter-spacing:.02em}
+:root[data-theme="dark"] .tag{background:rgba(0,0,0,.28)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tag{background:rgba(0,0,0,.28)}}
+.frames{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.frame{display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0}
+.phone{aspect-ratio:9/17;border-radius:14px;background:var(--paper);box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 6px 14px -6px rgba(0,0,0,.28);position:relative;overflow:hidden;padding:9% 10%;display:flex;flex-direction:column;gap:7%;align-items:center;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+.frame:hover .phone{transform:translateY(-4px) rotate(-1.5deg)}
+.frame[aria-checked="true"] .phone{opacity:.55}
+.frame .badge{position:absolute;right:6px;top:6px}
+.frame[aria-checked="true"] .box{background:var(--ink);box-shadow:none}
+.frame[aria-checked="true"] .box svg{stroke-dashoffset:0}
+.frame .box{width:20px;height:20px;border-radius:7px;background:rgba(255,255,255,.4);box-shadow:inset 0 0 0 1.4px var(--ink-3)}
+.frame .box svg{width:11px;height:11px}
+.frame .cap{font:500 11px/1.25 var(--mono);color:var(--ink-2)}
+.frame .nm{font:600 12.5px/1.25 var(--ui);color:var(--ink)}
+/* little wireframes */
+.w-c{width:46%;aspect-ratio:1;border-radius:50%;background:var(--butter)}
+.w-l{height:5px;border-radius:9px;background:var(--line);width:100%}
+.w-l.s{width:62%} .w-l.xs{width:38%}
+.w-f{width:100%;height:13%;border-radius:7px;background:var(--line)}
+.w-p{width:70%;height:12%;border-radius:99px;background:var(--ink);margin-top:auto}
+.w-p.g{background:var(--line);margin-top:0}
+.w-b{align-self:flex-start;width:78%;height:13%;border-radius:8px 8px 8px 2px;background:var(--card);box-shadow:0 0 0 1px var(--line)}
+.w-b.r{align-self:flex-end;border-radius:8px 8px 2px 8px;background:var(--blush);box-shadow:none;width:60%}
+.w-s{width:62%;aspect-ratio:1;border-radius:6px;background:var(--butter);transform:rotate(-4deg);box-shadow:0 3px 6px -3px rgba(0,0,0,.3)}
+.w-d{width:80%;height:15%;border-radius:8px;border:1.4px dashed var(--ink-3);margin-top:auto}
+.w-row{display:flex;align-items:center;gap:8%;width:100%}
+.w-row i{width:26%;aspect-ratio:1;border-radius:50%;background:var(--sage);flex:none}
+.w-row i:nth-child(odd){background:var(--sky)}
+.w-row b{flex:1;height:5px;border-radius:9px;background:var(--line)}
+
+.rows{display:flex;flex-direction:column;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.5)}
+:root[data-theme="dark"] .rows{background:rgba(0,0,0,.18)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rows{background:rgba(0,0,0,.18)}}
+.hero .item{padding:14px 16px}
+.hero .item + .item{border-top:1px solid var(--line)}
+
+.names{display:flex;flex-wrap:wrap;gap:8px}
+.name{font-weight:800;letter-spacing:-.04em;font-size:30px;line-height:1;padding:12px 18px;border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
+.name:nth-child(2){transform:rotate(-2deg)} .name:nth-child(3){transform:rotate(1.5deg)} .name:nth-child(5){transform:rotate(-1deg)}
+.names-note{font:400 12px var(--mono);color:var(--ink-2)}
+
+/* rows */
+.item{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;padding:15px 0;transition:opacity .25s}
+.item + .item{border-top:1px solid var(--line)}
+.item .tx{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.item .tt{font-weight:500;font-size:16px;letter-spacing:-.01em;text-wrap:pretty}
+.item .ds{font-size:13.5px;color:var(--ink-2);text-wrap:pretty}
+.item .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.item[aria-checked="true"] .tt{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--ink-3)}
+.item[aria-checked="true"] .ds{opacity:.6}
+.ans{font:500 13px var(--ui);color:var(--ink);background:var(--butter);align-self:flex-start;padding:3px 10px;border-radius:99px}
+.item[aria-checked="true"] .ans{background:var(--line);color:var(--ink-2)}
+.code{font:500 11px var(--mono);padding:3px 8px;border-radius:7px;background:var(--line);color:var(--ink-2)}
+.k{font:500 11px var(--mono);padding:3px 8px;border-radius:99px;color:var(--ink)}
+.k.design{background:var(--blush)} .k.build{background:var(--sky)} .k.decide{background:var(--butter)}
+.k.you{background:var(--ink);color:var(--paper)} .k.sug{background:transparent;box-shadow:inset 0 0 0 1px var(--ink-3);color:var(--ink-2)}
+
+/* grouped sections */
+.stack{display:flex;flex-direction:column;gap:30px}
+.group{display:flex;flex-direction:column}
+.group-label{display:flex;align-items:center;gap:10px;font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding-bottom:8px;border-bottom:1px solid var(--line)}
+.group-label i{width:12px;height:12px;border-radius:4px;display:block}
+.group-label span:last-child{margin-left:auto;font-weight:500;color:var(--ink-3)}
+.done-toggle{margin-top:6px;font:500 13px var(--ui);color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.save{font:400 12px var(--mono);color:var(--ink-3);text-align:center}
+.empty{padding:36px 0;text-align:center;color:var(--ink-2)}
+
+@media (max-width:560px){
+  .frames{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:16px}
+  .hero{padding:18px;border-radius:24px}
+  .hero-head h2{font-size:22px}
+  .name{font-size:24px;padding:10px 14px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}.frame:hover .phone{transform:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">BULLETIN · WHAT'S LEFT</div>
+    <div class="count" aria-live="polite"><span id="done">0</span><span class="of" id="total">/0</span></div>
+    <div class="count-label" id="label">things finished so far</div>
+    <div class="bar" role="progressbar" aria-label="Progress"><i id="fill"></i></div>
+    <div class="tools" id="tools"></div>
+  </header>
+
+  <section id="heroes" class="heroes" aria-label="Next up"></section>
+  <main id="sections" class="stack"></main>
+  <div class="save" id="save"></div>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const TICK='<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+const SECTIONS=[
+ {id:"screens",title:"Screens in the spec still to design",sub:"From the screen map. Anything without a check in the prototype.",groups:[
+  {label:"My board",tone:"var(--butter)",items:[
+   {id:"brd07",code:"BRD-07",t:"Month view",d:"The pinch-out calendar grid. Each day shows its first photo or note; empty days stay blank.",k:"design"},
+   {id:"edt01",code:"EDT-01",t:"Post actions",d:"Edit, delete, move to another day (same day only).",k:"design"},
+   {id:"edt02",code:"EDT-02",t:"Friend note actions",d:"Move or tuck away a note a friend left.",k:"design"},
+   {id:"edt04",code:"EDT-02",t:"Several notes from one friend",d:"A visitor can now leave as many notes as they like on a photo. Each needs its own edit and take-back, and the pile should group them.",k:"design"},
+   {id:"edt03",code:"EDT-03",t:"Tucked-away notes",d:"Where you recover hidden notes.",k:"design"}]},
+  {label:"Visiting a friend",tone:"var(--sky)",items:[
+   {id:"vis03",code:"VIS-03",t:"Place a note",d:"The signature interaction: drag the note into position. Needs a mid-drag frame.",k:"design"},
+   {id:"vis04",code:"VIS-04",t:"All caught up",d:"The end of the doorbell queue.",k:"design"},
+   {id:"vis05",code:"VIS-05",t:"Friend's shelf",d:"Shared months open, the rest as plain locked covers. This is where the lock belongs.",k:"design"},
+   {id:"vis06",code:"VIS-06",t:"Request a past month",d:"“Ask Alina to see October?”",k:"design"},
+   {id:"vis07",code:"VIS-07",t:"Friend's past month opened",d:"Read-only.",k:"design"}]},
+  {label:"Guest list and invites",tone:"var(--sage)",items:[
+   {id:"gst03",code:"GST-03",t:"Guest detail",d:"Months shared, remove, block.",k:"design"},
+   {id:"gst04",code:"GST-04",t:"Share past months",d:"The step right after adding someone.",k:"design"},
+   {id:"gst05",code:"GST-05",t:"Past-month requests",d:"Incoming requests: share or ignore.",k:"design"},
+   {id:"inv",code:"INV-01 · 02",t:"Create invite and pending invites",d:"Generate a single-use link that lasts a week, then cancel or resend. Show how long is left.",k:"design"}]},
+  {label:"Shelf and sealing",tone:"var(--lilac)",items:[
+   {id:"arc02",code:"ARC-02",t:"Past month opened",d:"Read-only board, “sealed, no new notes”, arrows between months. This is what “Open October” goes to.",k:"build"},
+   {id:"arc03",code:"ARC-03",t:"Month settings",d:"“Just for me” privacy, delete posts.",k:"design"},
+   {id:"seal03",code:"SEAL-03",t:"Review next month's list",d:"Optional step in the seal ritual.",k:"design"},
+   {id:"seal04",code:"SEAL-04",t:"Set up the new month",d:"Look, “into”, prompt reveal.",k:"design"}]},
+  {label:"Settings and safety",tone:"var(--peach)",items:[
+   {id:"set01",code:"SET-01",t:"Board look",d:"Background presets and sticky color.",k:"design"},
+   {id:"set02",code:"SET-02",t:"Notifications",d:"Notes, doorbell day, month turnover.",k:"design"},
+   {id:"set04",code:"SET-04",t:"Show when the username can change next",d:"Changes are limited to once a month, so the screen needs a clear “next change on…” state.",k:"design"},
+   {id:"set03",code:"SET-03 · 04",t:"Blocked people, profile and username",d:"",k:"design"},
+   {id:"rpt01",code:"RPT-01",t:"Report",d:"A note or a board.",k:"design"}]}
+ ]},
+ {id:"empty",title:"Empty states",sub:"Placeholders are in the app and say they need design. Replace each one.",groups:[
+  {label:"Placeholders to design",tone:"var(--blush)",items:[
+   {id:"e-month",code:"BRD-08",t:"A new month",d:"Empty board. Doubles as the first-post screen, so it sets the personality.",k:"design"},
+   {id:"e-friends",code:"FRN-02",t:"Nobody has added you yet",d:"Explain the Shared tab and give an invite button.",k:"design"},
+   {id:"e-shelf",t:"Nothing on your shelf yet",d:"Sealed months show up here once a month ends.",k:"design"},
+   {id:"e-guests",t:"Your guest list is empty",d:"Nobody can see your bulletin yet. Point to search and invite.",k:"design"},
+   {id:"e-notes",t:"No notes yet on a photo",d:"What the owner sees before any friend has written.",k:"design"}]}
+ ]},
+ {id:"shelf",title:"Shelf follow-ups",sub:"The cards and the month sheet are built. These make them real.",groups:[
+  {label:"Wire it up",tone:"var(--lilac)",items:[
+   {id:"s-btn",t:"Make the month sheet buttons work",d:"Open the month, Notes from friends, Recap, Mark “just for me”. They do nothing yet.",k:"build"},
+   {id:"s-data",t:"Use real sealed months",d:"The shelf shows eight sample months with sample numbers and photos.",k:"build"},
+   {id:"s-ink",t:"Check card colors across more photos",d:"The sampled colors came out similar because the sample photos are all warm. Try a bright or night photo.",k:"design"},
+   {id:"s-dark",t:"Look at the shelf in dark mode",d:"",k:"design"}]}
+ ]},
+ {id:"decide",title:"Decisions waiting on you",sub:"Open questions from the spec. Small, but they block screens.",groups:[
+  {label:"Product",tone:"var(--butter)",items:[
+   {id:"d-user",t:"Username changes",ans:"Once a month",d:"",k:"decide",def:1},
+   {id:"d-exp",t:"Invite link lifetime",ans:"One week",d:"",k:"decide",def:1},
+   {id:"d-bell",t:"Default day for the weekly doorbell",d:"The doorbell is the weekly summary notification, “4 boards have new things”, sent on a day you pick. It also shows as the pill on the Friends tab. Suggested default: Sunday evening.",k:"decide"},
+   {id:"d-cap",t:"Notes per visitor per post",ans:"As many as they want",d:"",k:"decide",def:1},
+   {id:"d-bg",t:"Pick the ~8 background presets",d:"Each month's look swaps these in.",k:"decide"},
+   {id:"d-print",t:"Print format and size for months and the year book",d:"",k:"decide"}]}
+ ]},
+ {id:"plumb",title:"Getting it built",sub:"Not design, but they will bite.",groups:[
+  {label:"Plumbing",tone:"var(--sky)",items:[
+   {id:"p-figma",t:"Allow the project folder in Figma's MCP settings",d:"Dev Mode, MCP panel, Allowed directories. Without it, Figma designs can't be pulled into code.",k:"build"},
+   {id:"p-notes",t:"Allow more than one note per visitor per photo",d:"Today writing again replaces your note. It should add a new one, and edit and take back should work on each.",k:"build"},
+   {id:"p-act",t:"Make activity rows tappable",d:"Tapping “Mia left a note” should jump to that photo.",k:"build"},
+   {id:"p-back",t:"Real accounts, invites and data",d:"Everything is sample data on the device today.",k:"build"},
+   {id:"p-push",t:"Notifications for real",d:"Notes (batched), weekly doorbell, month turnover.",k:"build"}]}
+ ]},
+ {id:"sug",title:"Things you didn't list",sub:"My suggestions. Cross off or ignore.",groups:[
+  {label:"Before anyone else uses it",tone:"var(--peach)",items:[
+   {id:"x-icon",t:"App icon and launch screen",d:"The first thing anyone sees.",k:"design",sug:1},
+   {id:"x-a11y",t:"Accessibility pass",d:"Dynamic Type at the largest sizes, VoiceOver order on the board, Reduce Motion for the cascade and tilts.",k:"build",sug:1},
+   {id:"x-dark",t:"Dark mode",ans:"Yes, it is in",d:"",k:"decide",sug:1,def:1},
+   {id:"x-darkd",t:"Design dark mode",d:"Dark Paper, the seven stickies, tape, the shelf card washes and the month sheet.",k:"design",sug:1},
+   {id:"x-darkb",t:"Build dark mode",d:"Add dark values to the color assets so every screen follows the system setting.",k:"build",sug:1},
+   {id:"x-perm",t:"Permission moments",d:"When to ask for photos and notifications, and the words that go with it.",k:"design",sug:1},
+   {id:"x-motion",t:"Motion and haptics pass",d:"The fold, the stack, the tilt and the seal all want a consistent feel.",k:"design",sug:1},
+   {id:"x-legal",t:"Privacy policy and terms",d:"Needed for an app with user photos, notes and reporting.",k:"build",sug:1},
+   {id:"x-test",t:"A TestFlight build for a few friends",d:"The guest cap of 20 makes this easy to test for real.",k:"build",sug:1},
+   {id:"x-store",t:"App Store page",d:"Screenshots, name, one line that says what it is.",k:"design",sug:1}]}
+ ]}
+];
+const DONE_DEFAULT=[
+ {id:"z-board",t:"Board with fold-by-date and tap-to-collapse days",k:"build"},
+ {id:"z-friends",t:"Friends tab with stacked blocks and newest-last boards",k:"build"},
+ {id:"z-guests",t:"Guests page: requests, activity, guest list",k:"build"},
+ {id:"z-photo",t:"Photo detail with piled notes and the note writer",k:"build"},
+ {id:"z-shelf",t:"Shelf cards and the month sheet",k:"build"},
+ {id:"z-empty",t:"Placeholders for the empty states",k:"build"}
+];
+const HERO={
+ onb:{tone:"butter",title:"Onboarding",tag:"you asked for this",
+  sub:"Make it the most beautiful part. Six frames, from “Maya put you on her list” to the first post.",
+  frames:[
+   {id:"onb1",code:"ONB-01",t:"Invite welcome",d:"“Maya put you on her list.” Invite path only.",art:"welcome"},
+   {id:"onb2",code:"ONB-02",t:"Profile setup",d:"Name, username, photo.",art:"profile"},
+   {id:"onb3",code:"ONB-03",t:"Into this month",d:"Set the “currently into” header.",art:"into"},
+   {id:"onb4",code:"ONB-04",t:"Add inviter back",d:"“Add Maya to your list?” Invite path only.",art:"addback"},
+   {id:"onb5",code:"ONB-05",t:"Invite first people",d:"Skippable.",art:"invite"},
+   {id:"onb6",code:"ONB-06",t:"First post",d:"Empty board with a gentle first-post prompt.",art:"first"}]},
+ find:{tone:"sky",title:"Finding people",tag:"you asked for this",
+  sub:"What searching for someone looks like. The spec allows exact username lookup only. Open name search is off the table, so the screen has to feel good with exactly one answer.",
+  items:[
+   {id:"f1",t:"Search screen",d:"Type a username, see who it is before you add them.",k:"design"},
+   {id:"f2",t:"Result states",d:"Found, not found, already on your list, your list is full.",k:"design"},
+   {id:"f3",t:"Not found: invite instead",d:"A missing username turns into sending an invite link (INV-01).",k:"design"},
+   {id:"f4",t:"Usernames only for now",ans:"Exact username search. Contacts and friends of friends come later.",d:"Leave room for them in the search design.",k:"decide",def:1}]},
+ name:{tone:"blush",title:"Naming the shelf tiles",tag:"you asked for this",
+  sub:"One word for a sealed month, used everywhere. Decided: Edition.",
+  names:["Edition"],
+  items:[
+   {id:"n1",t:"Choose the word",ans:"Edition",d:"“Open the October Edition”, “Your shelf has 8 Editions”.",k:"decide",def:1},
+   {id:"n2",code:"SEAL-02",t:"Name it screen",d:"Where you title the month, pick the cover and see the recap stats.",k:"design"},
+   {id:"n3",t:"Use “Edition” everywhere",d:"Shelf, the month sheet (“Open October” becomes “Open this Edition”?), notifications, empty states, the spec.",k:"build"}]}
+};
+
+/* ---------- state ---------- */
+const state={}; // id -> bool, only for ids that have been touched
+let filter="all", hideDone=false, db=null, col=null;
+const allItems=()=>[
+  ...HERO.onb.frames, ...HERO.find.items, ...HERO.name.items,
+  ...SECTIONS.flatMap(s=>s.groups.flatMap(g=>g.items)), ...DONE_DEFAULT
+];
+const isDone=id=>{ if(id in state) return state[id]; const it=allItems().find(i=>i.id===id); return !!(it&&it.def)||DONE_DEFAULT.some(d=>d.id===id); };
+const $=s=>document.querySelector(s);
+const saveNote=m=>{$("#save").textContent=m};
+
+/* ---------- render ---------- */
+const kinds={design:"design",build:"build",decide:"decide"};
+const kindOf=i=>i.k||"design";
+const show=i=>filter==="all"||kindOf(i)===filter||(filter==="sug"&&i.sug);
+function row(i){
+  const done=isDone(i.id);
+  return `<button class="item" role="checkbox" aria-checked="${done}" data-id="${i.id}">
+    <span class="box">${TICK}</span>
+    <span class="tx"><span class="tt">${i.t}</span>${i.ans?`<span class="ans">Decided: ${i.ans}</span>`:""}${i.d?`<span class="ds">${i.d}</span>`:""}
+    <span class="meta">${i.code?`<span class="code">${i.code}</span>`:""}<span class="k ${kindOf(i)}">${kindOf(i)}</span>${i.sug?'<span class="k sug">suggested</span>':""}</span></span>
+  </button>`;
+}
+function art(a){
+  const A={
+   welcome:'<div class="w-c"></div><div class="w-l"></div><div class="w-l s"></div><div class="w-p"></div>',
+   profile:'<div class="w-c" style="background:var(--sage)"></div><div class="w-f"></div><div class="w-f"></div><div class="w-p"></div>',
+   into:'<div class="w-b"></div><div class="w-b r"></div><div class="w-b"></div><div class="w-p g"></div>',
+   addback:'<div class="w-c" style="background:var(--blush)"></div><div class="w-l"></div><div class="w-p"></div><div class="w-p g"></div>',
+   invite:'<div class="w-row"><i></i><b></b></div><div class="w-row"><i></i><b></b></div><div class="w-row"><i></i><b></b></div><div class="w-p g"></div>',
+   first:'<div class="w-s"></div><div class="w-l s"></div><div class="w-d"></div>'
+  }; return A[a];
+}
+function renderHeroes(){
+  const o=HERO.onb, f=HERO.find, n=HERO.name;
+  const cnt=a=>`${a.filter(i=>isDone(i.id)).length}/${a.length}`;
+  const head=(h,a)=>`<div class="hero-head"><div><h2>${h.title}</h2><p class="sub">${h.sub}</p></div><span class="tag">${cnt(a)}</span></div>`;
+  const frames=o.frames.filter(show);
+  let html="";
+  if(frames.length) html+=`<article class="hero t-${o.tone}">${head(o,o.frames)}<div class="frames">${frames.map(fr=>`
+    <button class="frame" role="checkbox" aria-checked="${isDone(fr.id)}" data-id="${fr.id}" aria-label="${fr.code} ${fr.t}">
+      <span class="phone">${art(fr.art)}</span>
+      <span class="cap">${fr.code}</span><span class="nm">${fr.t}</span>
+      <span class="box">${TICK}</span></button>`).join("")}</div></article>`;
+  const fi=f.items.filter(show);
+  if(fi.length) html+=`<article class="hero t-${f.tone}">${head(f,f.items)}<div class="rows">${fi.map(row).join("")}</div></article>`;
+  const ni=n.items.filter(show);
+  if(ni.length) html+=`<article class="hero t-${n.tone}">${head(n,n.items)}<div class="names" aria-label="Candidate names">${n.names.map(x=>`<span class="name">${x}</span>`).join("")}</div><div class="names-note">Decided. The spec still says “cover” and “zine” in places.</div><div class="rows">${ni.map(row).join("")}</div></article>`;
+  $("#heroes").innerHTML=html;
+}
+function renderSections(){
+  let html="";
+  for(const s of SECTIONS){
+    const groups=s.groups.map(g=>({...g,items:g.items.filter(i=>show(i)&&!(hideDone&&isDone(i.id)))})).filter(g=>g.items.length);
+    if(!groups.length) continue;
+    const all=s.groups.flatMap(g=>g.items), d=all.filter(i=>isDone(i.id)).length;
+    html+=`<section><div class="sec-head"><div><h2>${s.title}</h2><p class="sub">${s.sub}</p></div><small>${d}/${all.length}</small></div>
+      <div class="stack">${groups.map(g=>`<div class="group"><div class="group-label"><i style="background:${g.tone}"></i><span>${g.label}</span><span>${g.items.filter(i=>isDone(i.id)).length}/${g.items.length}</span></div>${g.items.map(row).join("")}</div>`).join("")}</div></section>`;
+  }
+  const dn=DONE_DEFAULT.filter(i=>show(i)&&!hideDone);
+  if(dn.length) html+=`<section><div class="sec-head"><div><h2>Already done</h2><p class="sub">So the count is honest.</p></div><small>${DONE_DEFAULT.filter(i=>isDone(i.id)).length}/${DONE_DEFAULT.length}</small></div><div class="group">${dn.map(row).join("")}</div></section>`;
+  $("#sections").innerHTML=html||'<div class="empty">Nothing here. Try another filter.</div>';
+}
+function renderTop(){
+  const items=allItems(), total=items.length, done=items.filter(i=>isDone(i.id)).length;
+  $("#done").textContent=done; $("#total").textContent="/"+total;
+  $("#fill").style.width=(done/total*100)+"%";
+  $("#label").textContent=done===total?"Everything is done.":`${total-done} left to do, ${done} finished so far`;
+  $("#tools").innerHTML=[["all","All"],["design","Design"],["build","Build"],["decide","Decide"],["sug","Suggested"]]
+    .map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${filter===k}">${l}</button>`).join("")+
+    `<span class="sp"></span><button class="chip" id="hide" aria-pressed="${hideDone}">Hide done</button>`;
+}
+function render(){ renderTop(); renderHeroes(); renderSections(); }
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-id]");
+  if(b){ toggle(b.dataset.id); return; }
+  const c=e.target.closest("[data-f]");
+  if(c){ filter=c.dataset.f; render(); return; }
+  if(e.target.closest("#hide")){ hideDone=!hideDone; render(); }
+});
+
+/* ---------- saving: shared db when this view has it, this browser otherwise ---------- */
+const LS="bulletin-checklist-v1";
+function lsRead(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch{ return {}; } }
+function lsWrite(){ try{ localStorage.setItem(LS,JSON.stringify(state)); }catch{} }
+function toggle(id){
+  const next=!isDone(id); state[id]=next; render();
+  if(col){ col.doc(id).set({done:next}).catch(()=>{ saveNote("Could not save. Kept on this device."); lsWrite(); }); }
+  else lsWrite();
+}
+Object.assign(state,lsRead());
+render();
+(async()=>{
+  try{
+    db=await (window.claude&&claude.use?claude.use("db"):null);
+    if(!db){ saveNote("Saved on this device."); return; }
+    col=db.collection("checklist");
+    const timer=setTimeout(()=>saveNote("Can't reach saved ticks yet."),10000);
+    col.onSnapshot(snap=>{
+      clearTimeout(timer);
+      for(const d of snap.docs){ const v=d.data(); if(v&&typeof v.done==="boolean") state[d.id]=v.done; }
+      render(); saveNote("Saved. Ticks follow you across devices.");
+    },()=>{ clearTimeout(timer); col=null; saveNote("Saved on this device."); });
+  }catch{ saveNote("Saved on this device."); }
+})();
+</script>

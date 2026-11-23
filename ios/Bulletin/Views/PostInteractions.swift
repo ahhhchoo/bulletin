@@ -16,15 +16,31 @@ struct PostToken: Codable, Transferable {
 ///   reorder within its day, like moving apps on the home screen.
 struct PostCell: View {
     @Environment(BoardStore.self) private var store
+    @Environment(NotesStore.self) private var notes
     let post: Post
 
     @State private var frame: CGRect = .zero
     @State private var dropTargeted = false
+    @State private var glow = 0.0               // the soft pulse after tapping the answered prompt card
 
     var body: some View {
         PostView(post: post)
+            .overlay(alignment: .topTrailing) {
+                // friends' notes live under the photo; the board only shows that there are some
+                if case .photo = post.kind, notes.count(post.id) > 0 { NoteBadge(count: notes.count(post.id)).offset(x: 8, y: -9) }
+            }
             .opacity(store.openedPostID == post.id ? 0 : 1)       // the opened card stands in for it
-            .scaleEffect(dropTargeted ? 1.05 : 1)
+            .shadow(color: Color("DayPink").opacity(0.75 * glow), radius: 22)
+            .scaleEffect((dropTargeted ? 1.05 : 1) + 0.04 * glow)
+            .onChange(of: store.highlightedPostID) { _, id in
+                guard id == post.id else { return }
+                store.highlightedPostID = nil
+                withAnimation(.easeOut(duration: 0.3)) { glow = 1 }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    withAnimation(.easeOut(duration: 1.7)) { glow = 0 }       // soft, then it fades
+                }
+            }
             .animation(.spring(duration: 0.28, bounce: 0.35), value: dropTargeted)
             .contentShape(.rect)
             .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
@@ -53,7 +69,7 @@ struct PostCell: View {
     }
 
     private func edit() {
-        if case .photo = post.kind { store.captionRequest = post.id } else { store.editRequest = post.id }
+        store.editRequest = post.id
     }
 
     private func open() {
@@ -68,37 +84,95 @@ struct PostCell: View {
 
 // MARK: - Opened card, in place
 
-/// A sticky or photo opened where it sits: it straightens up, grows, and the board dims behind it.
-/// Tap outside or pull it down to put it back.
+/// A sticky or photo opened where it sits on your own board.
 struct OpenedPostOverlay: View {
     @Environment(BoardStore.self) private var store
     let post: Post
 
+    var body: some View {
+        PostDetailView(post: post,
+                       origin: store.openedFrame,
+                       dayLabel: store.dayID(of: post.id).map(store.fullLabel),
+                       owner: true,
+                       friendName: "") { store.openedPostID = nil }
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: store.openedPostID)
+    }
+}
+
+/// The detailed view: the post straightens up and grows, and the board dims behind it. Tap outside or pull it down
+/// to put it back.
+///
+/// A photo can have notes from friends under it; photos open in `PhotoDetailView`, where the notes pile up as you scroll.
+struct PostDetailView: View {
+    let post: Post
+    /// Where it was on screen, so it grows from there. Nil: it grows from the middle (a friend's photo).
+    let origin: CGRect?
+    let dayLabel: String?
+    /// Your own post (read, reply, tuck away) or a friend's (leave a note).
+    let owner: Bool
+    let friendName: String
+    let onClose: () -> Void
+
     @State private var expanded = false
+    @State private var notesOpen = false
     @State private var cardSize = CGSize(width: 156, height: 150)
     @State private var pull: CGFloat = 0
 
+    private var isPhoto: Bool { if case .photo = post.kind { true } else { false } }
+
     var body: some View {
+        // photos open the new way: a flat dark backdrop, a big portrait photo and friends' notes piling up under it
+        if isPhoto {
+            PhotoDetailView(post: post, origin: origin, dayLabel: dayLabel, owner: owner, friendName: friendName, onClose: onClose)
+        } else {
+            stickyBody
+        }
+    }
+
+    private var stickyBody: some View {
         GeometryReader { geo in
-            let origin = CGPoint(x: store.openedFrame.midX, y: store.openedFrame.midY)
+            let start = origin.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.4)
             let target = CGPoint(x: geo.size.width / 2, y: geo.size.height * 0.40 + pull)
-            let scale = min(1.55, (geo.size.width - 64) / max(cardSize.width, 1))
+            // Photos open bigger than notes: they are the thing you want a good look at.
+            // Wide photos are short, so they can open nearly edge to edge without crowding the screen.
+            let isLandscape = (post.image?.aspect ?? 1) > 1.1
+            let scale = min(isPhoto ? (isLandscape ? 2.4 : 1.9) : 1.55,
+                            (geo.size.width - (isLandscape ? 36 : 48)) / max(cardSize.width, 1),
+                            geo.size.height * 0.6 / max(cardSize.height, 1))
+            // With the notes layer open the photo shrinks back to about its pinned size, up at the top.
+            let small = min(scale, 1.0)
+            let smallTarget = CGPoint(x: geo.size.width / 2, y: 64 + cardSize.height * small / 2)
+            let shownScale = notesOpen ? small : scale
+            let shownTarget = notesOpen ? smallTarget : target
+            // The caption is 14pt on screen whatever the zoom, so a long one runs below the card; keep the date clear of it.
+            let captionHang: CGFloat = {
+                guard case .photo(let c) = post.kind, !c.isEmpty else { return 0 }
+                let size = 14 / shownScale
+                let perLine = max(1, Int((PhotoMetrics.pinWidth - 26) / (size * 0.6)))
+                let lines = (c.count + perLine - 1) / perLine
+                return max(0, CGFloat(lines) * size * 1.3 + 20 - 43)
+            }()
 
             ZStack {
-                Color.black.opacity(expanded ? 0.3 : 0)
+                ZStack {
+                    Rectangle().fill(.ultraThinMaterial).opacity(expanded ? 0.4 : 0)   // just a hint of blur
+                    Color.black.opacity(expanded ? 0.5 : 0)
+                }
                     .ignoresSafeArea()
-                    .onTapGesture(perform: close)
+                    .onTapGesture { if notesOpen { notesOpen = false } else { close() } }
 
-                PostView(post: post, animated: false, tilt: expanded ? 0 : 1)
+                PostView(post: post, animated: false, tilt: expanded ? 0 : 1, fullCaption: true,
+                         captionSize: 14 / shownScale, captionVisible: expanded)
                     .fixedSize()
                     .onGeometryChange(for: CGSize.self, of: \.size) { cardSize = $0 }
-                    .scaleEffect(expanded ? scale : 1)
+                    .scaleEffect(expanded ? shownScale : 1)
                     .shadow(color: .black.opacity(expanded ? 0.22 : 0), radius: 18, y: 10)
-                    .position(expanded ? target : origin)
+                    .position(expanded ? shownTarget : start)
                     .gesture(
                         DragGesture()
-                            .onChanged { pull = max(0, $0.translation.height) }
+                            .onChanged { if !notesOpen { pull = max(0, $0.translation.height) } }
                             .onEnded { value in
+                                if notesOpen { return }
                                 if value.translation.height > 90 { close() }
                                 else { withAnimation(.spring(duration: 0.35, bounce: 0.3)) { pull = 0 } }
                             }
@@ -106,22 +180,27 @@ struct OpenedPostOverlay: View {
 
                 details
                     .position(x: geo.size.width / 2,
-                              y: target.y + cardSize.height * scale / 2 + 34)
-                    .opacity(expanded ? 1 : 0)
+                              y: target.y + cardSize.height * scale / 2 + 34 + captionHang * scale)
+                    .opacity(expanded && !notesOpen ? 1 : 0)
                     .animation(.easeOut(duration: 0.25).delay(expanded ? 0.2 : 0), value: expanded)
+                    .animation(.easeOut(duration: 0.15), value: notesOpen)
+
             }
+            .animation(.spring(duration: 0.45, bounce: 0.12), value: notesOpen)
         }
         .ignoresSafeArea()
         .onAppear { withAnimation(.spring(duration: 0.5, bounce: 0.2)) { expanded = true } }
-        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: store.openedPostID)
     }
 
     /// Which day it belongs to, and when it was added if it was clipped on later.
-    private var details: some View {
+    @ViewBuilder private var details: some View {
+        if dayLabel != nil || (post.isClipped && post.addedLabel != nil) { detailsPill }
+    }
+
+    private var detailsPill: some View {
         VStack(spacing: 4) {
-            if let day = store.dayID(of: post.id) {
-                Text(store.fullLabel(day))
-                    .font(.system(size: 15, weight: .medium))
+            if let dayLabel {
+                Text(dayLabel).font(.system(size: 15, weight: .medium))
             }
             if post.isClipped, let added = post.addedLabel {
                 Label("Added \(added)", systemImage: "paperclip")
@@ -139,61 +218,93 @@ struct OpenedPostOverlay: View {
         withAnimation(.spring(duration: 0.42, bounce: 0.12)) { expanded = false; pull = 0 }
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            store.openedPostID = nil
+            onClose()
         }
     }
 }
 
 // MARK: - Folded note, opened
 
-/// Folded notes open into a full page for reading. (BRD-06 isn't designed yet, so this is a plain
-/// serif page for now.)
+/// Folded notes open into a full page for reading, set in the same type as the card on the board.
 struct JournalPage: View {
     @Environment(BoardStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
     let post: Post
+    @State private var viewport: CGFloat = 0
 
     private var title: String { if case .journal(let t, _) = post.kind { t } else { "" } }
     private var text: String { if case .journal(_, let b) = post.kind { b } else { "" } }
     private var readMinutes: Int { max(1, text.split(separator: " ").count / 200) }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    if let day = store.dayID(of: post.id) {
-                        Text(store.fullLabel(day))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.black.opacity(0.5))
-                    }
-                    if !title.isEmpty {
-                        Text(title)
-                            .font(.system(size: 28, weight: .semibold, design: .serif))
-                    }
-                    Text(text)
-                        .font(.system(size: 19, design: .serif))
-                        .lineSpacing(7)
-                    Text("\(readMinutes) min read")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.black.opacity(0.45))
+        ZStack(alignment: .top) {
+            // the board behind it, darkened with a hint of blur: the same backdrop as an opened sticky
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial).opacity(0.4)
+                Color.black.opacity(0.5)
+            }
+            .ignoresSafeArea()
+            .contentShape(.rect)
+            .onTapGesture(perform: close)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Button(action: close) {
+                    Text("Close")
+                        .font(.system(size: 17))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 20).padding(.vertical, 12)
+                        .background(.white.opacity(0.9), in: Capsule())
+                        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
                 }
-                .foregroundStyle(.black)
-                .padding(26)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.white, in: RoundedRectangle(cornerRadius: 2))
-                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .buttonStyle(PressableStyle())
+                .padding(.horizontal, 20).padding(.top, 6)
+
+                ScrollView {
+                    // the whole scrolling area is the backdrop: a tap anywhere off the page closes it
+                    page
+                        .contentShape(.rect)
+                        .onTapGesture {}      // a tap on the page itself does nothing
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
+                        .padding(.bottom, 40)
+                        .frame(maxWidth: .infinity, minHeight: viewport, alignment: .top)
+                        .contentShape(.rect)
+                        .onTapGesture(perform: close)
+                }
+                .scrollIndicators(.hidden)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
             }
-            .background(Color("Paper"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundStyle(.black) }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
-        .presentationBackground(Color("Paper"))
-        .tint(.black)
+        .transition(.opacity)
     }
+
+    private var page: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let day = store.dayID(of: post.id) {
+                Text("\(store.monthShort) \(day)")
+                    .font(Typo.pixel(14))
+                    .foregroundStyle(.black.opacity(0.5))
+            }
+            if !title.isEmpty {
+                Text(title)
+                    .font(Typo.scaled(24, .semibold, relativeTo: .title2))
+            }
+            Text(text)
+                .font(Typo.scaled(16, .medium, relativeTo: .body))
+                .foregroundStyle(.black.opacity(0.75))
+                .lineSpacing(5)
+            Text("\(readMinutes) min read")
+                .font(Typo.scaled(12, .regular, relativeTo: .caption))
+                .foregroundStyle(.black.opacity(0.6))
+        }
+        .foregroundStyle(.black)
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CutCornerShape().fill(.white))
+        .overlay(alignment: .bottomTrailing) {
+            PaperFold().fill(.black.opacity(0.05)).frame(width: 26.6, height: 26.6)
+        }
+        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+    }
+
+    private func close() { withAnimation(.snappy(duration: 0.3)) { store.openedJournalID = nil } }
 }

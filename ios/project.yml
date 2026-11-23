@@ -1,6 +1,6 @@
 name: Bulletin
 options:
-  bundleIdPrefix: com.alinachiu
+  bundleIdPrefix: com.bananalab
   deploymentTarget:
     iOS: "18.0"
 settings:
@@ -8,14 +8,25 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1"
     CURRENT_PROJECT_VERSION: "1"
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 11.15.0
 targets:
   Bulletin:
     type: application
     platform: iOS
     sources: [Bulletin]
+    info:
+      path: Config/Info.plist
+      properties:
+        # lets Firebase's reCAPTCHA check send the person back to the app (phone sign-in on a real device before push is set up)
+        UIBackgroundModes: [remote-notification]      # Firebase's silent push for phone sign-in
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [app-1-1087943671809-ios-c55abb978019a3ee650000]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.alinachiu.bulletin
+        PRODUCT_BUNDLE_IDENTIFIER: com.bananalab.bulletin
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
@@ -23,3 +34,10 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Bulletin
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseStorage

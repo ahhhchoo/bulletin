@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// Bulletin's Storage rules. Pictures are written once (their names are fingerprints of the file), so nothing is
+// ever overwritten, and every file is checked for who it belongs to, how big it is and what it is.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // profile pictures: 512 px JPEGs
+    match /avatars/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 1 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // post pictures: a JPEG, or a GIF and its small versions
+    match /posts/{uid}/{file} {
+      allow read: if request.auth != null;      // tightened to friends once the guest list lives on the server
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|gif)');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

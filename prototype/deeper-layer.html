@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comments in a deeper layer</title>
+<style>
+:root{
+  --paper:#f5f5f5; --mint:#aee0ce; --pink:#e55bb5; --blush:#f9d0e6; --ink50:rgba(0,0,0,.5);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro","SF Pro Text","Helvetica Neue",sans-serif;
+  --pixel:"CoFo Sans Pixel Trial","SF Mono",ui-monospace,"Courier New",monospace;
+  --z:.8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9ec;font-family:var(--ui);color:#111;padding:32px 24px 80px;-webkit-font-smoothing:antialiased}
+button,textarea{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+header.page{max-width:1500px;margin:0 auto 6px}
+header.page h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+header.page p{margin-top:6px;color:#555;font-size:15px;max-width:940px;line-height:1.45}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px auto 0;max-width:1500px;padding:12px 14px;background:#fff;border-radius:14px;font-size:14px}
+.bar label{color:#555}.bar .sep{width:1px;align-self:stretch;background:#e2e2e6}
+.bar button{padding:7px 13px;border-radius:999px;background:rgba(0,0,0,.05);font-weight:510;font-size:13px}
+.bar button.on{background:#000;color:#fff}
+.note{max-width:1500px;margin:10px auto 0;background:#fff;border-radius:14px;padding:12px 16px;font-size:13.5px;line-height:1.55;color:#444}
+.spec{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;max-width:1500px;margin:26px auto 0;background:#fff;border-radius:14px;padding:22px 20px 16px}
+.spec .sp{width:170px;text-align:center;font-size:13px;color:#555;line-height:1.35}
+.spec .sp b{display:block;color:#111;font-size:14px;margin-top:12px}
+.spec .post{position:relative;margin:14px auto 0;width:150px;cursor:default}
+.grid{display:flex;flex-wrap:wrap;gap:34px 36px;justify-content:center;max-width:1750px;margin:28px auto 0}
+.cell{width:calc(402px * var(--z))}
+.cell h2{font-size:17px;font-weight:600;margin:14px 2px 2px}
+.cell p{font-size:13.5px;line-height:1.45;color:#555;margin:0 2px}
+.reset{margin:8px 2px 0;padding:5px 12px;border-radius:999px;background:#fff;font-size:12.5px;font-weight:510}
+.frame{width:calc(402px * var(--z));height:calc(874px * var(--z))}
+.phone{position:relative;width:402px;height:874px;border-radius:32px;overflow:hidden;background:var(--paper);transform:scale(var(--z));transform-origin:0 0;box-shadow:0 0 0 1px rgba(0,0,0,.2);user-select:none;touch-action:none}
+.sb{position:absolute;inset:0 0 auto 0;height:44px;z-index:90;pointer-events:none;display:flex;align-items:center;padding:0 28px}
+.sb .t{flex:1;font-weight:600;font-size:16px;padding-top:4px}.sb .ic{display:flex;gap:6px;align-items:center;padding-top:4px}
+.sb .ic i{display:block;background:#111;border-radius:2px}
+
+/* board */
+.hdr{position:absolute;left:28px;top:62px;font-size:24px;font-weight:500;letter-spacing:-.2px}
+.cards{position:absolute;left:12px;right:12px;top:108px;display:flex;gap:8px}
+.cards div{height:76px;border-radius:23px;padding:16px 18px;font-size:13px;font-weight:510}
+.cards .a{flex:1;background:#eceef2}.cards .a small{display:block;font-size:10.5px;color:var(--ink50);margin-bottom:2px}.cards .a b{font-size:19px;font-weight:500}
+.cards .b{flex:1.3;background:#e4eaf5;padding:10px 12px}
+.cards .b span{display:block;background:#fff;border-radius:11px 11px 11px 3px;padding:4px 9px;font-size:11px;color:var(--ink50);width:fit-content}
+.cards .b em{display:block;background:var(--pink);color:#fff;border-radius:11px 11px 3px 11px;padding:4px 9px;font-style:normal;font-size:11px;width:fit-content;margin:5px 0 0 auto}
+.sheet{position:absolute;left:0;right:0;top:200px;bottom:0;background:#fff;border-radius:24px 24px 0 0;overflow:hidden}
+.tl{position:absolute;left:27px;top:28px;bottom:0;width:3px;background:rgba(0,0,0,.1)}
+.day{position:absolute;left:44px;top:22px;font-size:14px;font-weight:510;color:var(--ink50)}
+.day::before{content:"";position:absolute;left:-19px;top:5px;width:8px;height:8px;border-radius:50%;background:#000}
+.post{position:absolute;cursor:pointer}
+.post .img{isolation:isolate;position:relative;background:#fff;padding:3px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.post .img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+.post .img::before{content:"";position:absolute;top:-5px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c;z-index:2}
+.post .cap{position:absolute;left:12px;right:12px;background:#fff;font-family:var(--pixel);font-size:11.5px;padding:6px 8px;box-shadow:0 1px 2px rgba(0,0,0,.2);z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ind{position:absolute;z-index:6;pointer-events:none}
+.ind.env{right:-12px;top:-12px;display:flex;align-items:center;gap:4px;background:#1c1c1e;color:#fff;font:600 11px var(--ui);border-radius:999px;padding:5px 8px 5px 7px;box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 2px #fff}
+.ind.env svg{width:15px;height:11px;display:block}
+.ind.curl{right:0;bottom:0;width:42px;height:42px;background:linear-gradient(135deg,rgba(0,0,0,.0) 49%,rgba(0,0,0,.22) 50%,#ece9e1 56%,#f7f5ef 100%);clip-path:polygon(100% 0,100% 100%,0 100%);border-bottom-right-radius:4px}
+.ind.tab{right:-19px;top:24px;width:21px;height:42px;background:#ece9e1;border-radius:0 8px 8px 0;box-shadow:1px 1px 3px rgba(0,0,0,.2),inset 0 0 0 .5px rgba(0,0,0,.08);display:grid;place-items:center;z-index:1}
+.ind.tab::after{content:"";width:7px;height:2px;background:rgba(0,0,0,.35);box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.ind.tuck{right:-16px;bottom:18px;width:42px;height:42px;background:#aee0ce;transform:rotate(14deg);box-shadow:1px 1px 3px rgba(0,0,0,.2);z-index:-1}
+.stk{position:absolute;left:50px;top:420px;background:var(--mint);width:118px;height:92px;font-family:var(--pixel);font-size:12px;padding:16px 10px;box-shadow:0 2px 3px rgba(0,0,0,.18);transform:rotate(-2deg)}
+.stk::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+
+/* detailed view = layer 1 */
+.layer1{position:absolute;inset:0;background:#a9a9ad;z-index:40;display:none}
+.phone[data-v="detail"] .layer1,.phone[data-v="below"] .layer1{display:block}
+.dx{position:absolute;right:14px;top:50px;z-index:70;font-size:22px;padding:6px 10px;display:none}
+.phone:not([data-v="board"]) .dx{display:block}
+.pg{position:absolute;left:0;right:0;top:124px;transition:transform .45s cubic-bezier(.2,.8,.2,1);transform-origin:50% 0}
+.phone[data-v="below"] .pg{transform:translateY(-84px) scale(.47)}
+.phone[data-v="below"] .meta{opacity:0;height:0;margin:0;overflow:hidden}
+.ph{position:relative;width:320px;height:427px;margin:0 auto;background:#fff;padding:5px;border-radius:5px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+.ph::before{content:"";position:absolute;top:-6px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c;z-index:2}
+.slip{position:relative;width:276px;margin:-14px auto 0;background:#fff;padding:9px 10px;font-family:var(--pixel);font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.2);transform:rotate(1deg);z-index:3}
+.meta{display:flex;justify-content:center;margin-top:16px}
+.pill{background:rgba(255,255,255,.7);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:510}
+/* the way down: a sticky peeking up from the bottom edge */
+.peek{position:absolute;left:0;right:0;bottom:0;height:118px;z-index:45;display:none;cursor:pointer}
+.phone[data-v="detail"] .peek.on{display:block}
+.peek .s{position:absolute;top:-30px;width:118px;height:92px;background:var(--mint);box-shadow:0 -2px 5px rgba(0,0,0,.18)}
+.peek .s:nth-child(1){left:128px;transform:rotate(-7deg);background:#9fd6c2}
+.peek .s:nth-child(2){left:158px;transform:rotate(6deg);background:#b6e4d3}
+.peek .s:nth-child(3){left:142px}
+.peek .s::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.peek .pn{position:absolute;inset:0;background:#ece9e1;border-radius:26px 26px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.22);text-align:center;padding-top:10px}
+.peek .pn i{display:block;width:38px;height:5px;border-radius:3px;background:rgba(0,0,0,.2);margin:0 auto 14px}
+.peek .pn b{font-size:14px;font-weight:600;color:rgba(0,0,0,.6)}
+
+/* the layer below = layer 2 */
+.layer2{position:absolute;left:0;right:0;top:258px;bottom:0;background:#ece9e1;border-radius:26px 26px 0 0;z-index:50;transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);box-shadow:0 -8px 28px rgba(0,0,0,.22);display:flex;flex-direction:column}
+.phone[data-v="below"] .layer2{transform:none}
+.grab{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 0;cursor:pointer}
+.grab i{width:38px;height:5px;border-radius:3px;background:rgba(0,0,0,.2)}
+.grab b{font-size:13px;font-weight:600;color:rgba(0,0,0,.55)}
+.list{flex:1;overflow-y:auto;padding:16px 22px 150px;display:flex;flex-direction:column;gap:14px;scrollbar-width:none}
+.list::-webkit-scrollbar{display:none}
+.empty{text-align:center;color:rgba(0,0,0,.45);font-size:14px;padding:50px 30px;line-height:1.5}
+.mark{position:relative;border:2px dashed rgba(0,0,0,.35);border-radius:4px;height:86px;width:70%;margin:0 auto;background:rgba(0,0,0,.04);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:rgba(0,0,0,.5)}
+.phone.dragging .mark{display:flex}
+.dock{position:absolute;left:0;right:0;bottom:0;height:130px;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:26px;gap:8px;background:linear-gradient(rgba(236,233,225,0),#ece9e1 55%);pointer-events:none}
+.phone[data-v="below"] .dock.on{display:flex}
+.dock .tile{pointer-events:auto;width:52px;height:52px;background:var(--mint);border-radius:3px;transform:rotate(8deg);box-shadow:0 2px 3px rgba(0,0,0,.14);display:grid;place-items:center;font-size:30px;color:rgba(0,0,0,.35);cursor:grab;touch-action:none}
+.dock small{font-size:13px;color:rgba(0,0,0,.45)}
+.ghost{position:absolute;z-index:80;width:118px;height:92px;background:var(--mint);box-shadow:0 12px 24px rgba(0,0,0,.28);transform:translate(-50%,-50%) rotate(-4deg) scale(1.05);display:none;pointer-events:none;opacity:.92}
+.phone.dragging .ghost{display:block}
+.item{display:flex;flex-direction:column}
+/* thread style: stickies */
+.sn{position:relative;width:76%;background:var(--mint);font-family:var(--pixel);font-size:13px;line-height:1.35;padding:18px 12px 10px;box-shadow:0 2px 3px rgba(0,0,0,.18);align-self:flex-start;transform:rotate(-1.2deg)}
+.item:nth-child(even) .sn{align-self:flex-end;transform:rotate(1.3deg)}
+.sn::before{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.sn.mine{background:#bfe9d9}
+.sn .by{display:flex;justify-content:space-between;font:600 10.5px var(--ui);color:rgba(0,0,0,.5);margin-top:8px}
+.sn .by button{font:600 10.5px var(--ui);color:rgba(0,0,0,.55);text-decoration:underline;text-underline-offset:2px;margin-left:8px}
+.sr{position:relative;width:64%;background:#d6e6f7;font-family:var(--pixel);font-size:12.5px;padding:14px 11px 8px;box-shadow:0 2px 3px rgba(0,0,0,.16);margin:-6px 0 0 24px;transform:rotate(1deg);align-self:flex-start}
+.item:nth-child(even) .sr{align-self:flex-end;margin:-6px 24px 0 0}
+.sr .by{font:600 10.5px var(--ui);color:rgba(0,0,0,.5);margin-top:6px}
+/* thread style: bubbles */
+.bt{display:flex;gap:8px;align-items:flex-end}
+.bt .av{width:26px;height:26px;border-radius:50%;flex:none}
+.bt .b{background:#fff;border-radius:16px;border-bottom-left-radius:4px;padding:9px 13px;font-size:13.5px;line-height:1.3;max-width:240px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.bt .b small{display:block;font-size:10.5px;font-weight:600;color:var(--ink50);margin-bottom:2px}
+.bt.own{justify-content:flex-end}.bt.own .b{background:#1c1c1e;color:#fff;border-radius:16px;border-bottom-right-radius:4px}
+.bt.own .b small{color:rgba(255,255,255,.75)}
+.bt .acts{font-size:10.5px;font-weight:600;color:var(--ink50);margin:2px 0 0 34px}
+.bt .acts button{font:600 10.5px var(--ui);color:var(--ink50);text-decoration:underline;margin-right:8px}
+/* compose */
+.compose{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:95;display:none;flex-direction:column;align-items:center;padding-top:150px;gap:14px}
+.phone[data-c="1"] .compose{display:flex}
+.compose .pad{position:relative;width:240px;min-height:150px;background:var(--mint);padding:22px 14px 12px;box-shadow:0 8px 20px rgba(0,0,0,.3);transform:rotate(-2deg)}
+.compose .pad.reply{background:#d6e6f7}
+.compose .pad::before{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4px;border-radius:50%;background:#f92d2d;border:.75px solid #9d0c0c}
+.compose textarea{width:100%;height:96px;background:none;border:0;outline:0;resize:none;font-family:var(--pixel);font-size:14px;line-height:1.35}
+.compose .to{font:600 11px var(--ui);color:rgba(0,0,0,.5)}
+.compose .btns{display:flex;gap:10px}
+.compose .btns button{padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;background:#fff}
+.compose .btns button.go{background:#000;color:#fff}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Comments in a deeper layer</h1>
+  <p>Your bulletin is about you, so friends’ notes stay out of the way. Nothing social shows on the board. Open a photo and you see just the photo. Only if you reach further down does the conversation appear, under the picture, on its own layer. To add a note, drag a sticky up from the bottom edge into that layer. Both phones are live: tap the first photo to start.</p>
+</header>
+<div class="bar">
+  <label>Comments look like</label><button id="s-st" class="on">stickies</button><button id="s-bu">chat bubbles</button>
+  <span class="sep"></span>
+  <label>Something below, shown on the board as</label><button data-ind="env" class="on">a little envelope with a count</button><button data-ind="curl">a peeled corner</button><button data-ind="tab">a side tab</button><button data-ind="tuck">a note tucked behind</button></div>
+<div class="note"><b>The flow:</b> board (clean) → tap a photo → detailed view (just the photo; a sticky peeks up from the bottom edge only if there is something below, or if you’re visiting a friend) → pull up or tap it → the layer below slides up under a smaller photo → drag a sticky up from the bottom to leave a note. On your own board you only read, reply and tuck away; you never get a prompt to add notes to your own photos.</div>
+<div class="spec" id="spec"></div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const COLORS={Liam:'#f9c9d4',Emma:'#fde7a9',Noah:'#c8dafa',Ava:'#aee0ce',Jules:'#dccbf6',Maya:'#e55bb5'};
+  const PICS=[{x:52,y:60,h:170,img:'sample-food.jpg',cap:'Rained all day'},{x:222,y:60,h:96,img:'sample-wide.jpg',cap:'this is a picture'},{x:222,y:204,h:170,img:'sample-p3.jpg',cap:'dinner'},{x:52,y:278,h:96,img:'sample-p4.jpg',cap:'soup arc'}];
+  const seed=()=>[{id:1,by:'Liam',text:'that looks so good',reply:null},{id:2,by:'Emma',text:'where is this?? i need to go',reply:null},{id:3,by:'Noah',text:'save me one',reply:'thai place on 5th'},{id:4,by:'Ava',text:'omg the sauce',reply:null}];
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let style='stickies', ind='env'; const cells=[];
+
+  const ENV='<svg viewBox="0 0 15 11" fill="none" stroke="#fff" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><rect x=".7" y=".7" width="13.6" height="9.6" rx="2"/><path d="M1.2 1.6 7.5 6.2l6.3-4.6"/></svg>';
+  const indFor=(k,n)=>k==='env'?`<span class="ind env">${ENV}+${n>9?'9+':n}</span>`:`<i class="ind ${k}"></i>`;
+  function build(role){   // role: 'owner' | 'visitor'
+    const owner = role==='owner';
+    const cell=document.createElement('div'); cell.className='cell';
+    cell.innerHTML=`<div class="frame"><div class="phone" data-v="board" data-c="0"></div></div>
+      <h2>${owner?'On your own board':'Visiting a friend'}</h2>
+      <p>${owner?'You see your photos and nothing else. If friends have left notes, they’re in the layer below: you can read them, reply, or tuck them away. There’s no “add a note” on your own photos.':'You’re on Liam’s board. Same clean board. When you open a photo, a sticky peeks up from the bottom: that’s how you add a note.'}</p><button class="reset">Reset</button>`;
+    const phone=cell.querySelector('.phone'); let notes=owner?seed():seed().slice(0,2), compose=null;
+    const mine=()=>notes.find(n=>n.mine);
+    const indHTML=()=>indFor(ind,notes.length);
+    const hasBelow=()=>owner? notes.length>0 : true;
+
+    const thread=()=>{
+      if(!notes.length) return `<div class="empty">No notes yet.<br>${owner?'':'Drag the sticky up to leave the first one.'}</div>`;
+      return notes.map(n=>style==='stickies'
+        ? `<div class="item"><div class="sn ${n.mine?'mine':''}">${esc(n.text)}<div class="by"><span>${n.mine?'you':'from '+n.by}</span><span>${owner&&!n.reply?`<button data-reply="${n.id}">Reply</button>`:''}${owner?`<button data-tuck="${n.id}">Tuck away</button>`:''}${!owner&&n.mine?`<button data-take="${n.id}">Take back</button>`:''}</span></div></div>${n.reply?`<div class="sr">${esc(n.reply)}<div class="by">Maya</div></div>`:''}</div>`
+        : `<div class="item"><div class="bt"><i class="av" style="background:${COLORS[n.by]||'#ccc'}"></i><div class="b"><small>${n.mine?'you':n.by}</small>${esc(n.text)}</div></div><div class="acts">${owner&&!n.reply?`<button data-reply="${n.id}">Reply</button>`:''}${owner?`<button data-tuck="${n.id}">Tuck away</button>`:''}${!owner&&n.mine?`<button data-take="${n.id}">Take back</button>`:''}</div>${n.reply?`<div class="bt own"><div class="b"><small>Maya</small>${esc(n.reply)}</div></div>`:''}</div>`).join('');
+    };
+
+    const render=()=>{
+      const posts=PICS.map((p,i)=>`<div class="post" data-open="${i}" style="left:${p.x}px;top:${p.y}px;width:150px"><div class="img" style="height:${p.h}px"><img src="assets/${p.img}" alt="">${i===0&&notes.length?indHTML():''}</div><div class="cap" style="top:${p.h-10}px">${p.cap}</div></div>`).join('');
+      phone.innerHTML=`<div class="sb"><span class="t">9:41</span><span class="ic"><i style="width:17px;height:10px"></i><i style="width:15px;height:11px;border-radius:6px"></i><i style="width:26px;height:12px;border-radius:4px"></i></span></div>
+        <div class="hdr">${owner?'My November':'Liam’s November'}</div>
+        <div class="cards"><div class="a"><small>currently into</small><b>${owner?'pumpkin spice latte':'sourdough'}</b></div><div class="b"><span>what made you smile lately?</span><em>my cat asleep in…</em></div></div>
+        <div class="sheet"><div class="tl"></div><div class="day">Wed 4</div>${posts}<div class="stk" style="${owner?'':'display:none'}">watching this movie about a group of…</div></div>
+        <button class="dx" data-back>✕</button>
+        <div class="layer1"><div class="pg" data-pg><div class="ph"><img src="assets/sample-food.jpg" alt=""></div><div class="slip">Rained all day</div><div class="meta"><div class="pill">Wed 4</div></div></div></div>
+        <div class="peek ${hasBelow()?'on':''}" data-peek><div class="s"></div><div class="s"></div><div class="s"></div><div class="pn"><i></i><b>${owner?notes.length+(notes.length===1?' note':' notes'):'Add a note'}</b></div></div>
+        <div class="layer2"><div class="grab" data-grab><i></i><b>${owner?'Notes from friends':'Notes on this photo'} · ${notes.length}</b></div><div class="list" data-list>${thread()}<div class="mark">Your note goes here</div></div></div>
+        <div class="dock ${owner?'':'on'}"><div class="tile" data-drag>+</div><small>Drag a sticky up to add a note</small></div>
+        <div class="ghost"></div>
+        <div class="compose">${compose?`<div class="pad ${compose.reply?'reply':''}"><div class="to">${compose.reply?'Reply to '+esc(notes.find(n=>n.id===compose.reply).by):'To Liam, about this photo'}</div><textarea maxlength="140" placeholder="${compose.reply?'Write a reply…':'Write something…'}">${esc(compose.text||'')}</textarea></div><div class="btns"><button data-cancel>Cancel</button><button class="go" data-send>${compose.reply?'Reply':'Stick it'}</button></div>`:''}</div>`;
+      phone.dataset.c=compose?'1':'0';
+    };
+
+    // drag the sticky up from the bottom into the layer
+    let dragging=false, over=false;
+    const kk=()=>phone.getBoundingClientRect().width/402;
+    const loc=e=>{const r=phone.getBoundingClientRect();return{x:(e.clientX-r.left)/kk(),y:(e.clientY-r.top)/kk()};};
+    const upd=e=>{const p=loc(e),g=phone.querySelector('.ghost');g.style.left=p.x+'px';g.style.top=p.y+'px';over=p.y>300&&p.y<780;};
+    phone.addEventListener('pointerdown',e=>{if(!e.target.closest('[data-drag]'))return;dragging=true;phone.classList.add('dragging');phone.setPointerCapture(e.pointerId);upd(e);});
+    phone.addEventListener('pointermove',e=>{if(dragging)upd(e);});
+    const end=()=>{if(!dragging)return;dragging=false;phone.classList.remove('dragging');if(over){const m=mine();compose={text:m?m.text:''};render();}};
+    phone.addEventListener('pointerup',end);phone.addEventListener('pointercancel',end);
+    // pulling the photo view upward also goes down a layer
+    let sy=null;
+    phone.addEventListener('pointerdown',e=>{if(phone.dataset.v==='detail'&&!e.target.closest('button'))sy=e.clientY;});
+    phone.addEventListener('pointerup',e=>{if(sy!==null&&phone.dataset.v==='detail'&&sy-e.clientY>60&&hasBelow())phone.dataset.v='below';sy=null;});
+
+    phone.addEventListener('click',e=>{
+      const t=e.target;let el;
+      if(el=t.closest('[data-open]')){ if(+el.dataset.open===0){phone.dataset.v='detail';} return; }
+      if(t.closest('[data-back]')){ phone.dataset.v=phone.dataset.v==='below'?'detail':'board'; return; }
+      if(t.closest('[data-peek]')||t.closest('[data-grab]')&&phone.dataset.v==='detail'){ phone.dataset.v='below'; return; }
+      if(t.closest('[data-grab]')){ phone.dataset.v='detail'; return; }
+      if(el=t.closest('[data-reply]')){compose={reply:+el.dataset.reply,text:''};render();return;}
+      if(el=t.closest('[data-tuck]')){notes=notes.filter(n=>n.id!==+el.dataset.tuck);render();return;}
+      if(t.closest('[data-take]')){notes=notes.filter(n=>!n.mine);render();return;}
+      if(t.closest('[data-cancel]')){compose=null;render();return;}
+      if(t.closest('[data-send]')){const text=phone.querySelector('textarea').value.trim();if(!text)return;
+        if(compose.reply)notes.find(n=>n.id===compose.reply).reply=text; else {notes=notes.filter(n=>!n.mine);notes.push({id:Date.now(),by:'Jules',text,reply:null,mine:true});}
+        compose=null;render();const l=phone.querySelector('[data-list]');if(l)l.scrollTop=l.scrollHeight;}
+    });
+    cell.querySelector('.reset').onclick=()=>{notes=owner?seed():seed().slice(0,2);compose=null;phone.dataset.v='board';render();};
+    cell.__render=render;render();return cell;
+  }
+  const SP=[['env','A little envelope with a count','A small black envelope with +1, +2, +3 beside it, so you know how many are waiting.'],['curl','A peeled corner','The corner of the photo lifts to show the same paper as the layer below.'],['tab','A side tab','An index tab sticking out of the photo’s edge.'],['tuck','A note tucked behind','A sliver of mint paper peeking out from behind the photo.']];
+  document.getElementById('spec').innerHTML=SP.map(([k,t,d])=>`<div class="sp"><div class="post"><div class="img" style="height:170px"><img src="assets/sample-food.jpg" alt="">${indFor(k,3)}</div></div><b>${t}</b>${d}</div>`).join('');
+  const grid=document.getElementById('grid');['owner','visitor'].forEach(r=>{const c=build(r);grid.appendChild(c);cells.push(c);});
+  const $=id=>document.getElementById(id);
+  const seg=(a,b,fn)=>{$(a).onclick=()=>{fn(false);$(a).classList.add('on');$(b).classList.remove('on');cells.forEach(c=>c.__render());};$(b).onclick=()=>{fn(true);$(b).classList.add('on');$(a).classList.remove('on');cells.forEach(c=>c.__render());};};
+  seg('s-st','s-bu',alt=>{style=alt?'bubbles':'stickies';});
+  document.querySelectorAll('[data-ind]').forEach(b=>b.onclick=()=>{ind=b.dataset.ind;document.querySelectorAll('[data-ind]').forEach(x=>x.classList.toggle('on',x===b));cells.forEach(c=>c.__render());});
+})();
+</script>
+</body>
+</html>
